@@ -23,9 +23,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // 未授权，清除token并跳转到登录页
-      const authStore = require('../store/authStore').useAuthStore.getState()
-      authStore.logout()
-      window.location.href = '/login'
+      import('../store/authStore').then(({ useAuthStore }) => {
+        useAuthStore.getState().logout()
+        window.location.href = '/login'
+      })
     }
     return Promise.reject(error)
   }

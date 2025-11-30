@@ -8,11 +8,13 @@ import {
   Modal,
   Form,
   Input,
+  Card,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import api from '../../utils/api'
 import dayjs from 'dayjs'
+import api from '../../utils/api'
+import PageHeader from '../../components/PageHeader'
 
 interface Tag {
   id: number
@@ -104,10 +106,11 @@ export default function TagList() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 170,
       fixed: 'right',
+      className: 'table-col-actions',
       render: (_, record) => (
-        <Space>
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -123,39 +126,44 @@ export default function TagList() {
               删除
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
-          新建标签
-        </Button>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={tags}
-        rowKey="id"
-        loading={loading}
+    <div className="page-shell">
+      <PageHeader
+        title="标签管理"
+        description="标签帮助搜索与推荐更精准，支持随时维护。"
+        stats={[{ label: '标签总数', value: tags.length }]}
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={fetchTags}>
+              刷新
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              新建标签
+            </Button>
+          </Space>
+        }
       />
+      <Card className="app-card">
+        <Table
+          className="app-table"
+          columns={columns}
+          dataSource={tags}
+          rowKey="id"
+          loading={loading}
+        />
+      </Card>
       <Modal
         title={editingTag ? '编辑标签' : '新建标签'}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-        >
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="name"
             label="标签名称"

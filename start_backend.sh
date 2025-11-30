@@ -1,17 +1,20 @@
 #!/bin/bash
+set -e
 
-# 启动后端服务脚本
+# 启动 FastAPI 后端脚本 (端口: 8000)
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT=8000
+HOST=0.0.0.0
 
-echo "正在启动后端服务..."
+echo "👉 正在启动 FastAPI 后端，端口 ${PORT}"
+cd "${ROOT_DIR}"
 
-# 检查.env文件
 if [ ! -f ".env" ]; then
-    echo "警告: .env 文件不存在，请检查配置"
+    echo "⚠️  警告: 根目录未发现 .env 文件，请确认数据库/OSS 配置是否已写入。"
 fi
 
-# 启动服务
-echo "启动FastAPI服务..."
-python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+echo "🚀 启动 Uvicorn..."
+exec python3 -m uvicorn app.main:app --reload --host "${HOST}" --port "${PORT}"
 
 
 

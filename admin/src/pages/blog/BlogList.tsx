@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Table,
@@ -9,11 +9,13 @@ import {
   Input,
   Select,
   Tag,
+  Card,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, FilterOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import api from '../../utils/api'
 import dayjs from 'dayjs'
+import api from '../../utils/api'
+import PageHeader from '../../components/PageHeader'
 
 interface Blog {
   id: number
@@ -74,6 +76,12 @@ export default function BlogList() {
     }
   }
 
+  const publishedCount = useMemo(() => blogs.filter((blog) => blog.is_published).length, [blogs])
+  const totalViews = useMemo(
+    () => blogs.reduce((total, blog) => total + (blog.view_count || 0), 0),
+    [blogs],
+  )
+
   const columns: ColumnsType<Blog> = [
     {
       title: 'ID',
@@ -126,10 +134,11 @@ export default function BlogList() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 170,
       fixed: 'right',
+      className: 'table-col-actions',
       render: (_, record) => (
-        <Space>
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -145,51 +154,75 @@ export default function BlogList() {
               删除
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <Space>
-          <Input
-            placeholder="搜索标题或内容"
-            style={{ width: 200 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-          />
-          <Select
-            placeholder="选择分类"
-            style={{ width: 150 }}
-            allowClear
-            value={categoryFilter}
-            onChange={setCategoryFilter}
-          >
-            {categories.map((cat) => (
-              <Select.Option key={cat.id} value={cat.id}>
-                {cat.name}
-              </Select.Option>
-            ))}
-          </Select>
-        </Space>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/blogs/new')}
-        >
-          新建博客
-        </Button>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={blogs}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 1200 }}
+    <div className="page-shell">
+      <PageHeader
+        title="博客管理"
+        description="快速筛选、批量管理所有博客文章，支持分类和关键字组合过滤。"
+        stats={[
+          { label: '文章总数', value: blogs.length },
+          { label: '已发布', value: publishedCount },
+          { label: '累计浏览', value: totalViews },
+        ]}
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={fetchBlogs}>
+              刷新
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/blogs/new')}
+            >
+              新建博客
+            </Button>
+          </Space>
+        }
       />
+
+      <Card className="app-card">
+        <div className="page-toolbar">
+          <div className="page-toolbar__filters">
+            <Input
+              prefix={<FilterOutlined />}
+              placeholder="搜索标题、内容或 slug"
+              style={{ width: 260 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
+            />
+            <Select
+              placeholder="所有分类"
+              style={{ width: 180 }}
+              allowClear
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+            >
+              {categories.map((cat) => (
+                <Select.Option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          <div className="page-toolbar__actions">
+            <Button onClick={() => setCategoryFilter(undefined)}>清空筛选</Button>
+          </div>
+        </div>
+        <Table
+          className="app-table"
+          columns={columns}
+          dataSource={blogs}
+          rowKey="id"
+          loading={loading}
+          scroll={{ x: 1200 }}
+        />
+      </Card>
     </div>
   )
 }

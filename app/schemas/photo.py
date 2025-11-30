@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 class PhotoCategoryBase(BaseModel):
@@ -32,6 +32,14 @@ class PhotoBase(BaseModel):
     file_size: Optional[int] = None
     category_id: Optional[int] = None
     is_featured: bool = False
+    make: Optional[str] = None
+    model: Optional[str] = None
+    focal_length: Optional[str] = None
+    aperture: Optional[str] = None
+    shutter_speed: Optional[str] = None
+    iso: Optional[str] = None
+    shoot_time: Optional[datetime] = None
+    exif: Optional[Dict[str, Any]] = None
 
 
 class PhotoCreate(PhotoBase):
@@ -48,6 +56,14 @@ class PhotoUpdate(BaseModel):
     file_size: Optional[int] = None
     category_id: Optional[int] = None
     is_featured: Optional[bool] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    focal_length: Optional[str] = None
+    aperture: Optional[str] = None
+    shutter_speed: Optional[str] = None
+    iso: Optional[str] = None
+    shoot_time: Optional[datetime] = None
+    exif: Optional[Dict[str, Any]] = None
 
 
 class Photo(PhotoBase):

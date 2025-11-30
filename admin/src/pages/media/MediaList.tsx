@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   Table,
   Button,
-  Space,
   Popconfirm,
   message,
   Card,
@@ -20,10 +19,12 @@ import {
   PictureOutlined,
   FileImageOutlined,
   RobotOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import api from '../../utils/api'
 import dayjs from 'dayjs'
+import PageHeader from '../../components/PageHeader'
 
 interface MediaItem {
   id: string
@@ -108,6 +109,11 @@ export default function MediaList() {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
   }
 
+  const refreshAll = () => {
+    fetchStats()
+    fetchMediaList()
+  }
+
   const columns: ColumnsType<MediaItem> = [
     {
       title: '缩略图',
@@ -167,10 +173,11 @@ export default function MediaList() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 170,
       fixed: 'right',
+      className: 'table-col-actions',
       render: (_, record) => (
-        <Space>
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EyeOutlined />}
@@ -187,66 +194,79 @@ export default function MediaList() {
               删除
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
+    <div className="page-shell">
+      <PageHeader
+        title="媒体资源"
+        description="统一管理 OSS 资源，支持类型筛选与快速预览，确保封面/插图素材可控可查。"
+        stats={[
+          { label: '资源总量', value: stats?.total ?? '--' },
+          { label: '博客封面', value: stats?.blog_covers ?? '--' },
+          { label: '摄影作品', value: stats?.photos ?? '--' },
+          { label: 'AI 封面', value: stats?.ai_covers ?? '--' },
+        ]}
+        extra={
+          <Button icon={<ReloadOutlined />} onClick={refreshAll}>
+            重新同步
+          </Button>
+        }
+      />
+
+      <Card className="app-card">
+        <Row gutter={16}>
+          <Col xs={24} sm={12} lg={6}>
             <Statistic
               title="博客封面"
               value={stats?.blog_covers || 0}
               prefix={<FileImageOutlined />}
             />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
             <Statistic
               title="摄影作品"
               value={stats?.photos || 0}
               prefix={<PictureOutlined />}
             />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
             <Statistic
-              title="AI项目封面"
+              title="AI 项目封面"
               value={stats?.ai_covers || 0}
               prefix={<RobotOutlined />}
             />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="总计"
-              value={stats?.total || 0}
-            />
-          </Card>
-        </Col>
-      </Row>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Statistic title="总计" value={stats?.total || 0} />
+          </Col>
+        </Row>
+      </Card>
 
-      <Card>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <Select
-            placeholder="筛选类型"
-            style={{ width: 200 }}
-            allowClear
-            value={mediaType}
-            onChange={setMediaType}
-          >
-            <Select.Option value="blog_cover">博客封面</Select.Option>
-            <Select.Option value="photo">摄影作品</Select.Option>
-            <Select.Option value="ai_cover">AI项目封面</Select.Option>
-          </Select>
+      <Card className="app-card">
+        <div className="page-toolbar">
+          <div className="page-toolbar__filters">
+            <Select
+              placeholder="筛选类型"
+              style={{ width: 200 }}
+              allowClear
+              value={mediaType}
+              onChange={setMediaType}
+            >
+              <Select.Option value="blog_cover">博客封面</Select.Option>
+              <Select.Option value="photo">摄影作品</Select.Option>
+              <Select.Option value="ai_cover">AI 项目封面</Select.Option>
+            </Select>
+          </div>
+          <div className="page-toolbar__actions">
+            <Button onClick={() => setMediaType(undefined)}>查看全部</Button>
+          </div>
         </div>
         <Table
+          className="app-table"
           columns={columns}
           dataSource={mediaList}
           rowKey="id"

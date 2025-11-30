@@ -13,7 +13,6 @@ import {
 } from 'antd'
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import api from '../../utils/api'
-import type { UploadFile } from 'antd/es/upload/interface'
 
 const { TextArea } = Input
 const { Option } = Select

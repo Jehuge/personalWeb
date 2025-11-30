@@ -256,6 +256,7 @@ async def get_blog(blog_id: int, db: AsyncSession = Depends(get_db)):
     # 增加浏览量
     blog.view_count += 1
     await db.commit()
+    await db.refresh(blog)
     
     return blog
 

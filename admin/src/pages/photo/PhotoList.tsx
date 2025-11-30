@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Table,
@@ -9,11 +9,19 @@ import {
   Select,
   Image,
   Tag,
+  Card,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  UploadOutlined,
+} from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import api from '../../utils/api'
 import dayjs from 'dayjs'
+import api from '../../utils/api'
+import PageHeader from '../../components/PageHeader'
 
 interface Photo {
   id: number
@@ -72,6 +80,12 @@ export default function PhotoList() {
     }
   }
 
+  const featuredCount = useMemo(() => photos.filter((photo) => photo.is_featured).length, [photos])
+  const totalViews = useMemo(
+    () => photos.reduce((total, photo) => total + (photo.view_count || 0), 0),
+    [photos],
+  )
+
   const columns: ColumnsType<Photo> = [
     {
       title: 'ID',
@@ -126,10 +140,11 @@ export default function PhotoList() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 170,
       fixed: 'right',
+      className: 'table-col-actions',
       render: (_, record) => (
-        <Space>
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -145,42 +160,69 @@ export default function PhotoList() {
               删除
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <Select
-          placeholder="选择分类"
-          style={{ width: 200 }}
-          allowClear
-          value={categoryFilter}
-          onChange={setCategoryFilter}
-        >
-          {categories.map((cat) => (
-            <Select.Option key={cat.id} value={cat.id}>
-              {cat.name}
-            </Select.Option>
-          ))}
-        </Select>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/photos/new')}
-        >
-          上传照片
-        </Button>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={photos}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 1200 }}
+    <div className="page-shell">
+      <PageHeader
+        title="摄影作品"
+        description="集中管理已发布及待发布的摄影素材，支持分类筛选与精选标记。"
+        stats={[
+          { label: '作品总数', value: photos.length },
+          { label: '精选', value: featuredCount },
+          { label: '累计浏览', value: totalViews },
+        ]}
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={fetchPhotos}>
+              刷新
+            </Button>
+            <Button icon={<UploadOutlined />} onClick={() => navigate('/photos/bulk')}>
+              批量上传
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/photos/new')}
+            >
+              上传照片
+            </Button>
+          </Space>
+        }
       />
+      <Card className="app-card">
+        <div className="page-toolbar">
+          <div className="page-toolbar__filters">
+            <Select
+              placeholder="按分类筛选"
+              style={{ width: 220 }}
+              allowClear
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+            >
+              {categories.map((cat) => (
+                <Select.Option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          <div className="page-toolbar__actions">
+            <Button onClick={() => setCategoryFilter(undefined)}>全部分类</Button>
+          </div>
+        </div>
+        <Table
+          className="app-table"
+          columns={columns}
+          dataSource={photos}
+          rowKey="id"
+          loading={loading}
+          scroll={{ x: 1200 }}
+        />
+      </Card>
     </div>
   )
 }

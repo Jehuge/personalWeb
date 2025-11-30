@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Table,
   Button,
-  Space,
-  Popconfirm,
   message,
   Tag,
-  Switch,
+  Card,
+  Space,
 } from 'antd'
-import { EditOutlined } from '@ant-design/icons'
+import { EditOutlined, ReloadOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import api from '../../utils/api'
 import dayjs from 'dayjs'
+import api from '../../utils/api'
+import PageHeader from '../../components/PageHeader'
 
 interface User {
   id: number
@@ -46,17 +46,8 @@ export default function UserList() {
     }
   }
 
-  const handleToggleActive = async (user: User) => {
-    try {
-      // 需要后端支持
-      message.warning('用户状态更新功能需要后端支持')
-      // await api.put(`/users/${user.id}`, { is_active: !user.is_active })
-      // message.success('更新成功')
-      // fetchUsers()
-    } catch (error) {
-      message.error('更新失败')
-    }
-  }
+  const activeCount = useMemo(() => users.filter((user) => user.is_active).length, [users])
+  const adminCount = useMemo(() => users.filter((user) => user.is_superuser).length, [users])
 
   const columns: ColumnsType<User> = [
     {
@@ -76,7 +67,7 @@ export default function UserList() {
       title: '状态',
       dataIndex: 'is_active',
       width: 100,
-      render: (active, record) => (
+      render: (active) => (
         <Tag color={active ? 'green' : 'red'}>
           {active ? '激活' : '禁用'}
         </Tag>
@@ -102,8 +93,9 @@ export default function UserList() {
       title: '操作',
       width: 150,
       fixed: 'right',
-      render: (_, record) => (
-        <Space>
+      className: 'table-col-actions',
+      render: () => (
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -111,24 +103,48 @@ export default function UserList() {
           >
             编辑
           </Button>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <p style={{ color: '#999' }}>
-          提示：用户管理功能需要后端提供相应的API接口支持
-        </p>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={users}
-        rowKey="id"
-        loading={loading}
+    <div className="page-shell">
+      <PageHeader
+        title="用户管理"
+        description="查看后台可用账户及其角色，后续可扩展状态切换、重置密码等高级功能。"
+        stats={[
+          { label: '用户总数', value: users.length },
+          { label: '活跃', value: activeCount },
+          { label: '超级管理员', value: adminCount },
+        ]}
+        extra={
+          <Button icon={<ReloadOutlined />} onClick={fetchUsers}>
+            刷新
+          </Button>
+        }
       />
+      <Card
+        className="app-card"
+        title={
+          <Space>
+            <InfoCircleOutlined />
+            <span>温馨提示</span>
+          </Space>
+        }
+        style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+      >
+        用户状态切换、权限分配等操作需要后端接口支持，当前版本仅提供可视化查看。
+      </Card>
+      <Card className="app-card" style={{ marginTop: -12 }}>
+        <Table
+          className="app-table"
+          columns={columns}
+          dataSource={users}
+          rowKey="id"
+          loading={loading}
+        />
+      </Card>
     </div>
   )
 }

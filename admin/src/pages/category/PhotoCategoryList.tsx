@@ -9,11 +9,13 @@ import {
   Form,
   Input,
   Upload,
+  Card,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import api from '../../utils/api'
 import dayjs from 'dayjs'
+import api from '../../utils/api'
+import PageHeader from '../../components/PageHeader'
 
 interface Category {
   id: number
@@ -134,10 +136,11 @@ export default function PhotoCategoryList() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 170,
       fixed: 'right',
+      className: 'table-col-actions',
       render: (_, record) => (
-        <Space>
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -153,28 +156,37 @@ export default function PhotoCategoryList() {
               删除
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
-          新建分类
-        </Button>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={categories}
-        rowKey="id"
-        loading={loading}
+    <div className="page-shell">
+      <PageHeader
+        title="摄影分类"
+        description="为摄影作品设置主题，搭配封面图片即刻用于前端展示。"
+        stats={[{ label: '分类总数', value: categories.length }]}
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={fetchCategories}>
+              刷新
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              新建分类
+            </Button>
+          </Space>
+        }
       />
+      <Card className="app-card">
+        <Table
+          className="app-table"
+          columns={columns}
+          dataSource={categories}
+          rowKey="id"
+          loading={loading}
+        />
+      </Card>
       <Modal
         title={editingCategory ? '编辑分类' : '新建分类'}
         open={modalVisible}
@@ -182,11 +194,7 @@ export default function PhotoCategoryList() {
         onOk={() => form.submit()}
         width={600}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-        >
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="name"
             label="分类名称"
@@ -202,19 +210,12 @@ export default function PhotoCategoryList() {
           >
             <Input placeholder="例如：landscape" />
           </Form.Item>
-          <Form.Item
-            name="description"
-            label="描述"
-          >
+          <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="分类描述（可选）" />
           </Form.Item>
           <Form.Item name="cover_image" label="封面图片">
             <Space direction="vertical">
-              <Upload
-                beforeUpload={handleUpload}
-                showUploadList={false}
-                accept="image/*"
-              >
+              <Upload beforeUpload={handleUpload} showUploadList={false} accept="image/*">
                 <Button>上传图片</Button>
               </Upload>
               {coverImage && (

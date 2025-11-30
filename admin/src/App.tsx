@@ -10,8 +10,11 @@ import PhotoCategoryList from './pages/category/PhotoCategoryList'
 import TagList from './pages/tag/TagList'
 import PhotoList from './pages/photo/PhotoList'
 import PhotoEdit from './pages/photo/PhotoEdit'
+import PhotoBulkUpload from './pages/photo/PhotoBulkUpload'
 import AIProjectList from './pages/ai/AIProjectList'
 import AIProjectEdit from './pages/ai/AIProjectEdit'
+import AIDemoList from './pages/ai/AIDemoList'
+import AIDemoEdit from './pages/ai/AIDemoEdit'
 import UserList from './pages/user/UserList'
 import MediaList from './pages/media/MediaList'
 
@@ -41,11 +44,15 @@ function App() {
           <Route path="tags" element={<TagList />} />
           <Route path="photos" element={<PhotoList />} />
           <Route path="photos/new" element={<PhotoEdit />} />
+          <Route path="photos/bulk" element={<PhotoBulkUpload />} />
           <Route path="photos/:id" element={<PhotoEdit />} />
           <Route path="photo-categories" element={<PhotoCategoryList />} />
           <Route path="ai-projects" element={<AIProjectList />} />
           <Route path="ai-projects/new" element={<AIProjectEdit />} />
           <Route path="ai-projects/:id" element={<AIProjectEdit />} />
+          <Route path="ai-demos" element={<AIDemoList />} />
+          <Route path="ai-demos/new" element={<AIDemoEdit />} />
+          <Route path="ai-demos/:id" element={<AIDemoEdit />} />
           <Route path="users" element={<UserList />} />
           <Route path="media" element={<MediaList />} />
         </Route>

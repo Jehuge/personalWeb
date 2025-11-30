@@ -81,6 +81,18 @@ npm run dev
 
 默认开发地址 `http://localhost:5173`，通过 `admin/src/utils/api.ts` 统一配置 API 基址与认证拦截器，结合 `store/authStore.ts` 管理登录态。
 
+### Web 前台（炫酷双主题展示站）
+
+```bash
+cd Web
+npm install
+npm run dev
+```
+
+- 默认开发地址 `http://localhost:3000`，生产预览 `npm run preview`。
+- 在 `Web/.env`（或 `.env.local`）中设置 `VITE_API_BASE_URL=http://localhost:8000` 指向 FastAPI。
+- Web 端自带黑夜/白天模式切换、Hero 动画、AI 项目/博客/摄影聚合与时间线展示，会优先请求实时数据，失败时自动降级为示例内容。
+
 ## 环境变量
 
 在项目根目录创建 `.env`（可参考 `.env.example`）：
@@ -124,6 +136,28 @@ CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
 - `start_backend.sh`：检测 `.env` 后启动 `uvicorn app.main:app --reload`。
 - `start_admin.sh`：进入 `admin/` 并运行 `npm run dev`。
 - `setup_oss.sh`：交互式检查 OSS Key、Bucket、网络连通性。
+
+## 生产环境部署
+
+### 宝塔面板部署（推荐）
+
+详细的宝塔面板部署指南请参考：[**DEPLOY_BT.md**](./DEPLOY_BT.md)
+
+快速部署步骤：
+1. 上传项目到服务器 `/www/wwwroot/personal-web/`
+2. 创建数据库并导入 `sql/init.sql`
+3. 配置 `.env` 文件（参考 `deploy/.env.example`）
+4. 运行部署脚本：`bash deploy/deploy.sh`
+5. 配置Nginx反向代理（参考 `deploy/nginx.conf.example`）
+6. 配置SSL证书启用HTTPS
+
+### 部署文件说明
+
+- `DEPLOY_BT.md` - 完整的宝塔面板部署指南
+- `deploy/nginx.conf.example` - Nginx配置示例
+- `deploy/pm2.config.js` - PM2进程管理配置
+- `deploy/deploy.sh` - 一键部署脚本
+- `deploy/.env.example` - 环境变量配置示例
 
 ## 后续规划
 

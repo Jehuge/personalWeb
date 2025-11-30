@@ -1,11 +1,13 @@
 """
 摄影作品API路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
+from datetime import datetime
+import json
 
 from app.core.database import get_db
 from app.api.dependencies import get_current_active_user
@@ -19,6 +21,7 @@ from app.schemas.photo import (
     PhotoCategoryCreate
 )
 from app.utils.oss import oss_service
+from app.services.image_utils import read_image_bytes, generate_image_path
 
 router = APIRouter(prefix="/photos", tags=["摄影作品"])
 
@@ -219,6 +222,60 @@ async def create_photo(
     return result.scalar_one()
 
 
+@router.post("/with-file", response_model=PhotoSchema, status_code=status.HTTP_201_CREATED)
+async def create_photo_with_file(
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    category_id: Optional[int] = Form(None),
+    is_featured: bool = Form(False),
+    make: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
+    focal_length: Optional[str] = Form(None),
+    aperture: Optional[str] = Form(None),
+    shutter_speed: Optional[str] = Form(None),
+    iso: Optional[str] = Form(None),
+    shoot_time: Optional[str] = Form(None),
+    exif: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    await _ensure_category_exists(db, category_id)
+    upload_result = await _process_photo_file(file)
+    shoot_time_value = _parse_iso_datetime(shoot_time) if shoot_time else (
+        _parse_iso_datetime(upload_result.get("shoot_time")) if upload_result.get("shoot_time") else None
+    )
+    exif_payload = _merge_exif_payload(exif, upload_result.get("exif"))
+
+    db_photo = Photo(
+        title=title,
+        description=description,
+        image_url=upload_result["url"],
+        thumbnail_url=upload_result.get("thumbnail_url"),
+        width=upload_result.get("width"),
+        height=upload_result.get("height"),
+        file_size=upload_result.get("file_size"),
+        category_id=category_id,
+        is_featured=is_featured,
+        make=make or upload_result.get("make"),
+        model=model or upload_result.get("model"),
+        focal_length=focal_length or upload_result.get("focal_length"),
+        aperture=aperture or upload_result.get("aperture"),
+        shutter_speed=shutter_speed or upload_result.get("shutter_speed"),
+        iso=iso or upload_result.get("iso"),
+        shoot_time=shoot_time_value,
+        exif=exif_payload,
+    )
+    db.add(db_photo)
+    await db.commit()
+    await db.refresh(db_photo)
+
+    result = await db.execute(
+        select(Photo).options(selectinload(Photo.category)).where(Photo.id == db_photo.id)
+    )
+    return result.scalar_one()
+
+
 @router.put("/{photo_id}", response_model=PhotoSchema)
 async def update_photo(
     photo_id: int,
@@ -270,6 +327,77 @@ async def update_photo(
     return result.scalar_one()
 
 
+@router.put("/{photo_id}/with-file", response_model=PhotoSchema)
+async def update_photo_with_file(
+    photo_id: int,
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    category_id: Optional[int] = Form(None),
+    is_featured: bool = Form(False),
+    make: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
+    focal_length: Optional[str] = Form(None),
+    aperture: Optional[str] = Form(None),
+    shutter_speed: Optional[str] = Form(None),
+    iso: Optional[str] = Form(None),
+    shoot_time: Optional[str] = Form(None),
+    exif: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    await _ensure_category_exists(db, category_id)
+    result = await db.execute(
+        select(Photo).options(selectinload(Photo.category)).where(Photo.id == photo_id)
+    )
+    db_photo = result.scalar_one_or_none()
+    if not db_photo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="摄影作品不存在",
+        )
+
+    upload_result = await _process_photo_file(file)
+    shoot_time_value = _parse_iso_datetime(shoot_time) if shoot_time else (
+        _parse_iso_datetime(upload_result.get("shoot_time")) if upload_result.get("shoot_time") else None
+    )
+    exif_payload = _merge_exif_payload(exif, upload_result.get("exif"))
+
+    # 删除旧文件
+    for url in (db_photo.image_url, db_photo.thumbnail_url):
+        if not url:
+            continue
+        path = oss_service.extract_oss_path(url)
+        if path:
+            try:
+                oss_service.delete_file(path)
+            except Exception as exc:
+                print(f"删除旧图片失败 ({path}): {exc}")
+
+    db_photo.title = title
+    db_photo.description = description
+    db_photo.category_id = category_id
+    db_photo.is_featured = is_featured
+    db_photo.make = make or upload_result.get("make")
+    db_photo.model = model or upload_result.get("model")
+    db_photo.focal_length = focal_length or upload_result.get("focal_length")
+    db_photo.aperture = aperture or upload_result.get("aperture")
+    db_photo.shutter_speed = shutter_speed or upload_result.get("shutter_speed")
+    db_photo.iso = iso or upload_result.get("iso")
+    db_photo.shoot_time = shoot_time_value
+    db_photo.exif = exif_payload
+    db_photo.image_url = upload_result["url"]
+    db_photo.thumbnail_url = upload_result.get("thumbnail_url")
+    db_photo.width = upload_result.get("width")
+    db_photo.height = upload_result.get("height")
+    db_photo.file_size = upload_result.get("file_size")
+
+    await db.commit()
+    await db.refresh(db_photo)
+
+    return db_photo
+
+
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_photo(
     photo_id: int,
@@ -308,6 +436,64 @@ async def delete_photo(
     await db.delete(db_photo)
     await db.commit()
     return None
+
+
+async def _ensure_category_exists(db: AsyncSession, category_id: Optional[int]):
+    if not category_id:
+        return
+    result = await db.execute(select(PhotoCategory).where(PhotoCategory.id == category_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="分类不存在",
+        )
+
+
+def _parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="拍摄时间格式不正确，请使用 ISO8601 格式",
+        )
+
+
+async def _process_photo_file(file: UploadFile) -> dict:
+    try:
+        file_content = await read_image_bytes(file)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    file_path = generate_image_path(file.filename)
+    result = oss_service.upload_image(
+        file_content,
+        file_path,
+        max_size=(1920, 1920),
+        quality=85,
+    )
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="图片上传失败，请检查OSS配置",
+        )
+    return result
+
+
+def _merge_exif_payload(client_exif: Optional[str], upload_exif: Optional[dict]) -> Optional[dict]:
+    if client_exif:
+        try:
+            return json.loads(client_exif)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"EXIF 数据格式错误: {exc}",
+            ) from exc
+    return upload_exif
 
 
 

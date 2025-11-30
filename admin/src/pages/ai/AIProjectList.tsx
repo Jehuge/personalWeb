@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Table,
@@ -8,11 +8,13 @@ import {
   message,
   Tag,
   Image,
+  Card,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import api from '../../utils/api'
 import dayjs from 'dayjs'
+import api from '../../utils/api'
+import PageHeader from '../../components/PageHeader'
 
 interface AIProject {
   id: number
@@ -56,6 +58,15 @@ export default function AIProjectList() {
       message.error('删除失败')
     }
   }
+
+  const publishedCount = useMemo(
+    () => projects.filter((project) => project.is_published).length,
+    [projects],
+  )
+  const featuredCount = useMemo(
+    () => projects.filter((project) => project.is_featured).length,
+    [projects],
+  )
 
   const columns: ColumnsType<AIProject> = [
     {
@@ -123,10 +134,11 @@ export default function AIProjectList() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 170,
       fixed: 'right',
+      className: 'table-col-actions',
       render: (_, record) => (
-        <Space>
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -142,29 +154,46 @@ export default function AIProjectList() {
               删除
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/ai-projects/new')}
-        >
-          新建项目
-        </Button>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={projects}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 1200 }}
+    <div className="page-shell">
+      <PageHeader
+        title="AI 项目"
+        description="管理 AI 相关项目，快速查看发布状态与浏览表现。"
+        stats={[
+          { label: '项目总数', value: projects.length },
+          { label: '已发布', value: publishedCount },
+          { label: '精选', value: featuredCount },
+        ]}
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={fetchProjects}>
+              刷新
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/ai-projects/new')}
+            >
+              新建项目
+            </Button>
+          </Space>
+        }
       />
+      <Card className="app-card">
+        <Table
+          className="app-table"
+          columns={columns}
+          dataSource={projects}
+          rowKey="id"
+          loading={loading}
+          scroll={{ x: 1200 }}
+        />
+      </Card>
     </div>
   )
 }

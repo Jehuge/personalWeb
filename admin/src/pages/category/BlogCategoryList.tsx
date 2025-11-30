@@ -8,11 +8,13 @@ import {
   Modal,
   Form,
   Input,
+  Card,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import api from '../../utils/api'
 import dayjs from 'dayjs'
+import api from '../../utils/api'
+import PageHeader from '../../components/PageHeader'
 
 interface Category {
   id: number
@@ -110,10 +112,11 @@ export default function BlogCategoryList() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 170,
       fixed: 'right',
+      className: 'table-col-actions',
       render: (_, record) => (
-        <Space>
+        <div className="table-actions">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -129,39 +132,44 @@ export default function BlogCategoryList() {
               删除
             </Button>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ]
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
-          新建分类
-        </Button>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={categories}
-        rowKey="id"
-        loading={loading}
+    <div className="page-shell">
+      <PageHeader
+        title="博客分类"
+        description="分类越清晰，内容结构越有序。可随时增删分类并维护描述。"
+        stats={[{ label: '分类总数', value: categories.length }]}
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={fetchCategories}>
+              刷新
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              新建分类
+            </Button>
+          </Space>
+        }
       />
+      <Card className="app-card">
+        <Table
+          className="app-table"
+          columns={columns}
+          dataSource={categories}
+          rowKey="id"
+          loading={loading}
+        />
+      </Card>
       <Modal
         title={editingCategory ? '编辑分类' : '新建分类'}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-        >
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="name"
             label="分类名称"
@@ -177,10 +185,7 @@ export default function BlogCategoryList() {
           >
             <Input placeholder="例如：tech-share" />
           </Form.Item>
-          <Form.Item
-            name="description"
-            label="描述"
-          >
+          <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="分类描述（可选）" />
           </Form.Item>
         </Form>

@@ -100,6 +100,14 @@ CREATE TABLE IF NOT EXISTS `photos` (
     `width` INT COMMENT '图片宽度（像素）',
     `height` INT COMMENT '图片高度（像素）',
     `file_size` INT COMMENT '文件大小（字节）',
+    `make` VARCHAR(100) COMMENT '相机品牌',
+    `model` VARCHAR(100) COMMENT '相机型号',
+    `focal_length` VARCHAR(50) COMMENT '焦距',
+    `aperture` VARCHAR(50) COMMENT '光圈',
+    `shutter_speed` VARCHAR(50) COMMENT '快门',
+    `iso` VARCHAR(20) COMMENT 'ISO',
+    `shoot_time` DATETIME(6) DEFAULT NULL COMMENT '拍摄时间',
+    `exif` JSON COMMENT '原始EXIF数据',
     `category_id` INT COMMENT '分类ID',
     `is_featured` BOOLEAN DEFAULT FALSE COMMENT '是否精选',
     `view_count` INT DEFAULT 0 COMMENT '浏览次数',
@@ -133,4 +141,29 @@ CREATE TABLE IF NOT EXISTS `ai_projects` (
     INDEX `idx_is_published` (`is_published`),
     INDEX `idx_is_featured` (`is_featured`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI项目表';
+
+-- AI Demo 表
+CREATE TABLE IF NOT EXISTS `ai_demos` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Demo ID',
+    `title` VARCHAR(200) NOT NULL COMMENT '标题',
+    `slug` VARCHAR(200) NOT NULL UNIQUE COMMENT 'URL标识',
+    `description` TEXT COMMENT '描述',
+    `cover_image` VARCHAR(500) COMMENT '封面',
+    `category` VARCHAR(100) COMMENT '分类',
+    `tags` VARCHAR(500) COMMENT '标签',
+    `bundle_path` VARCHAR(200) COMMENT '静态目录',
+    `entry_file` VARCHAR(200) DEFAULT 'index.html' COMMENT '入口文件',
+    `external_url` VARCHAR(500) COMMENT '对外URL',
+    `iframe_height` INT COMMENT '默认 iframe 高度',
+    `is_featured` BOOLEAN DEFAULT FALSE COMMENT '是否精选',
+    `is_published` BOOLEAN DEFAULT FALSE COMMENT '是否已发布',
+    `sort_order` INT DEFAULT 0 COMMENT '排序',
+    `view_count` INT DEFAULT 0 COMMENT '浏览次数',
+    `created_at` DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+    `updated_at` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+    `published_at` DATETIME(6) DEFAULT NULL COMMENT '发布时间',
+    INDEX `idx_slug_demo` (`slug`),
+    INDEX `idx_is_published_demo` (`is_published`),
+    INDEX `idx_sort_order_demo` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI Demo 表';
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -30,6 +30,14 @@ class Photo(Base):
     width = Column(Integer, nullable=True)  # 图片宽度
     height = Column(Integer, nullable=True)  # 图片高度
     file_size = Column(Integer, nullable=True)  # 文件大小（字节）
+    make = Column(String(100), nullable=True)  # 相机品牌
+    model = Column(String(100), nullable=True)  # 相机型号
+    focal_length = Column(String(50), nullable=True)  # 焦距
+    aperture = Column(String(50), nullable=True)  # 光圈
+    shutter_speed = Column(String(50), nullable=True)  # 快门速度
+    iso = Column(String(20), nullable=True)  # ISO
+    shoot_time = Column(DateTime(timezone=True), nullable=True)  # 拍摄时间
+    exif = Column(JSON, nullable=True)  # 原始EXIF数据
     category_id = Column(Integer, ForeignKey("photo_categories.id"), nullable=True)
     is_featured = Column(Boolean, default=False)  # 是否精选
     view_count = Column(Integer, default=0)
