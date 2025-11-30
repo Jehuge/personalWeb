@@ -221,17 +221,20 @@ export default function PhotoEdit() {
   }
 
   const buildFormPayload = (values: any, skipImageMeta: boolean) => {
+    // 清理空字符串，转换为 null
+    const cleanValue = (val: any) => (val === '' ? null : val)
+    
     const payload: Record<string, any> = {
       title: values.title,
-      description: values.description,
+      description: cleanValue(values.description),
       category_id: values.category_id,
       is_featured: values.is_featured,
-      make: values.make,
-      model: values.model,
-      focal_length: values.focal_length,
-      aperture: values.aperture,
-      shutter_speed: values.shutter_speed,
-      iso: values.iso,
+      make: cleanValue(values.make),
+      model: cleanValue(values.model),
+      focal_length: cleanValue(values.focal_length),
+      aperture: cleanValue(values.aperture),
+      shutter_speed: cleanValue(values.shutter_speed),
+      iso: cleanValue(values.iso),
     }
 
     const shootTimeValue = normalizeShootTime(values.shoot_time)
@@ -241,18 +244,26 @@ export default function PhotoEdit() {
 
     if (!skipImageMeta) {
       payload.image_url = values.image_url
-      payload.thumbnail_url = values.thumbnail_url
+      payload.thumbnail_url = cleanValue(values.thumbnail_url)
       payload.width = values.width
       payload.height = values.height
       payload.file_size = values.file_size
     }
 
+    // 移除 null 或 undefined 的 category_id
     if (payload.category_id === undefined || payload.category_id === null) {
       delete payload.category_id
     }
 
+    // exif 字段格式：使用 with-file 端点时需要字符串，使用普通 PUT 端点时需要对象
     if (exifMeta) {
-      payload.exif = JSON.stringify(exifMeta)
+      if (skipImageMeta) {
+        // 使用 with-file 端点，exif 需要是字符串
+        payload.exif = JSON.stringify(exifMeta)
+      } else {
+        // 使用普通 PUT 端点，exif 需要是对象
+        payload.exif = exifMeta
+      }
     }
 
     return payload
@@ -505,9 +516,9 @@ export default function PhotoEdit() {
               <SectionHeader title="图片资源" subtitle="上传原图后会自动生成缩略图与 EXIF 信息" />
               <Form.Item
                 label="图片文件"
-                required
-                validateStatus={!pendingFile && !imageUrl ? 'error' : undefined}
-                help={!pendingFile && !imageUrl ? '请上传图片' : undefined}
+                required={!isEdit}
+                validateStatus={!isEdit && !pendingFile && !imageUrl ? 'error' : undefined}
+                help={!isEdit && !pendingFile && !imageUrl ? '请上传图片' : undefined}
               >
                 <Upload
                   beforeUpload={handleUpload}

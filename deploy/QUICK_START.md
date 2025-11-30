@@ -14,18 +14,58 @@
 在宝塔面板「软件商店」安装：
 - [ ] Nginx 1.22+
 - [ ] MySQL 8.0+
+- [ ] **Python 3.11+**（重要！项目需要Python 3.8+，推荐3.11+）
 - [ ] Python项目管理器 或 PM2管理器
 - [ ] Node.js版本管理器（Node.js 18+）
+- [ ] Git（可选，如果使用Git方式）
+
+**检查Python版本：**
+```bash
+python3 --version
+# 如果版本低于3.8，需要升级
+```
+
+**如果Python版本过低：**
+- 在宝塔面板「软件商店」安装「Python版本管理器」，选择Python 3.11+
+- 或运行：`bash deploy/install-python311.sh`
+
+**如果使用Git但提示"未找到命令"，安装Git：**
+```bash
+# CentOS/RHEL
+yum install -y git
+
+# Ubuntu/Debian  
+apt-get update && apt-get install -y git
+```
 
 ### 2. 上传项目（5分钟）
 
+**方式一：使用宝塔文件管理器（推荐，无需Git）**
+
+1. **在本地打包项目**（排除 node_modules 和 .venv）：
+   ```bash
+   # 在本地项目目录执行
+   tar -czf personal-web.tar.gz \
+     --exclude='node_modules' \
+     --exclude='.venv' \
+     --exclude='admin/node_modules' \
+     --exclude='Web/node_modules' \
+     --exclude='.git' \
+     .
+   ```
+
+2. **上传到服务器**：
+   - 登录宝塔面板 → 「文件」管理器
+   - 进入 `/www/wwwroot/`
+   - 点击「上传」，选择 `personal-web.tar.gz`
+   - 上传后右键解压
+   - 确保解压后目录为 `/www/wwwroot/personal-web/`
+
+**方式二：使用Git（需要先安装Git）**
 ```bash
-# 方式一：Git克隆
 cd /www/wwwroot/
 git clone https://你的仓库地址 personal-web
 cd personal-web
-
-# 方式二：使用宝塔文件管理器上传压缩包并解压
 ```
 
 ### 3. 数据库配置（5分钟）
@@ -118,6 +158,29 @@ bash deploy/deploy.sh
 ```
 
 ## ❗ 常见问题
+
+### pip依赖安装失败（版本不匹配）
+
+**错误：Could not find a version that satisfies the requirement fastapi==0.104.1**
+
+**原因**：阿里云镜像源未同步最新版本（最高只有0.83.0）
+
+**解决方案：**
+
+```bash
+# 方案1：使用官方PyPI源（推荐）
+pip install --upgrade pip -i https://pypi.org/simple
+pip install -i https://pypi.org/simple -r requirements.txt
+
+# 方案2：使用修复脚本（自动处理）
+bash deploy/fix-pip-source.sh
+
+# 方案3：使用兼容版本（如果官方源访问慢）
+pip install -r requirements-compatible.txt
+
+# 方案4：使用清华镜像源（更新较快）
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+```
 
 ### 后端无法启动
 ```bash

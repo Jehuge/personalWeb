@@ -14,6 +14,7 @@ import {
 } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
 import api from '../../utils/api'
+import { extractErrorMessage } from '../../utils/error'
 
 const { TextArea } = Input
 
@@ -53,8 +54,8 @@ export default function AIDemoEdit() {
       const { data } = await api.get(`/ai-demos/${id}`)
       form.setFieldsValue(data)
       setCoverImage(data.cover_image || '')
-    } catch (error) {
-      message.error('获取 Demo 详情失败')
+    } catch (error: any) {
+      message.error(extractErrorMessage(error, '获取 Demo 详情失败'))
       navigate('/ai-demos')
     }
   }
@@ -213,6 +214,7 @@ export default function AIDemoEdit() {
     </Card>
   )
 }
+
 
 
 

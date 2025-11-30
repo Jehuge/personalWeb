@@ -13,6 +13,7 @@ import {
 } from 'antd'
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import api from '../../utils/api'
+import { extractErrorMessage } from '../../utils/error'
 
 const { TextArea } = Input
 
@@ -37,8 +38,8 @@ export default function AIProjectEdit() {
       const project = response.data
       form.setFieldsValue(project)
       setCoverImage(project.cover_image || '')
-    } catch (error) {
-      message.error('获取项目详情失败')
+    } catch (error: any) {
+      message.error(extractErrorMessage(error, '获取项目详情失败'))
       navigate('/ai-projects')
     }
   }

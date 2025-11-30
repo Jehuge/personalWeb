@@ -46,20 +46,40 @@ async def get_ai_projects(
 @router.get("/{project_id}", response_model=AIProjectSchema)
 async def get_ai_project(project_id: int, db: AsyncSession = Depends(get_db)):
     """获取单个AI项目"""
-    result = await db.execute(select(AIProject).where(AIProject.id == project_id))
-    project = result.scalar_one_or_none()
-    
-    if not project:
+    try:
+        result = await db.execute(select(AIProject).where(AIProject.id == project_id))
+        project = result.scalar_one_or_none()
+        
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="AI项目不存在"
+            )
+        
+        # 增加浏览量（异步更新，不阻塞返回）
+        try:
+            project.view_count = (project.view_count or 0) + 1
+            await db.commit()
+            await db.refresh(project)
+        except Exception as e:
+            # 如果更新浏览量失败，回滚但不影响返回数据
+            await db.rollback()
+            # 重新查询以获取最新数据
+            result = await db.execute(select(AIProject).where(AIProject.id == project_id))
+            project = result.scalar_one()
+            print(f"更新浏览量失败，已回滚: {e}")
+        
+        return project
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        traceback.print_exc()
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="AI项目不存在"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取项目详情失败: {error_msg}"
         )
-    
-    # 增加浏览量
-    project.view_count += 1
-    await db.commit()
-    
-    return project
 
 
 @router.post("", response_model=AIProjectSchema, status_code=status.HTTP_201_CREATED)

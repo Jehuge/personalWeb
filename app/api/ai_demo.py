@@ -52,19 +52,40 @@ async def list_ai_demos(
 @router.get("/{demo_id}", response_model=AIDemoSchema)
 async def get_ai_demo(demo_id: int, db: AsyncSession = Depends(get_db)):
     """获取单个 Demo"""
-    result = await db.execute(select(AIDemo).where(AIDemo.id == demo_id))
-    demo = result.scalar_one_or_none()
+    try:
+        result = await db.execute(select(AIDemo).where(AIDemo.id == demo_id))
+        demo = result.scalar_one_or_none()
 
-    if not demo:
+        if not demo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Demo 不存在",
+            )
+
+        # 增加浏览量（异步更新，不阻塞返回）
+        try:
+            demo.view_count = (demo.view_count or 0) + 1
+            await db.commit()
+            await db.refresh(demo)
+        except Exception as e:
+            # 如果更新浏览量失败，回滚但不影响返回数据
+            await db.rollback()
+            # 重新查询以获取最新数据
+            result = await db.execute(select(AIDemo).where(AIDemo.id == demo_id))
+            demo = result.scalar_one()
+            print(f"更新浏览量失败，已回滚: {e}")
+
+        return demo
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        traceback.print_exc()
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Demo 不存在",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取 Demo 详情失败: {error_msg}"
         )
-
-    demo.view_count += 1
-    await db.commit()
-
-    return demo
 
 
 @router.post("", response_model=AIDemoSchema, status_code=status.HTTP_201_CREATED)
@@ -159,6 +180,7 @@ async def delete_ai_demo(
     await db.delete(db_demo)
     await db.commit()
     return None
+
 
 
 

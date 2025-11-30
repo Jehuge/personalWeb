@@ -43,8 +43,22 @@ export const useAuthStore = create<AuthState>()(
         // 设置axios默认token
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
         
-        // 获取用户信息
-        await get().fetchUserInfo()
+        // 获取用户信息（如果失败不影响登录）
+        try {
+          await get().fetchUserInfo()
+        } catch (error) {
+          console.warn('获取用户信息失败，但登录已成功:', error)
+          // 如果 /me 端点不存在，创建一个临时用户对象
+          set({ 
+            user: {
+              id: 0,
+              username: username,
+              email: '',
+              is_active: true,
+              is_superuser: false
+            }
+          })
+        }
       },
 
       logout: () => {
@@ -56,9 +70,18 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await api.get('/auth/me')
           set({ user: response.data })
-        } catch (error) {
+        } catch (error: any) {
           console.error('获取用户信息失败:', error)
-          get().logout()
+          // 如果是 404，说明端点不存在，不退出登录
+          if (error.response?.status === 404) {
+            console.warn('/api/auth/me 端点不存在，请检查服务器代码是否已更新')
+            // 不退出登录，保持登录状态
+            return
+          }
+          // 其他错误（如 401）才退出登录
+          if (error.response?.status === 401) {
+            get().logout()
+          }
         }
       },
     }),

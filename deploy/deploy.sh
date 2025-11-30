@@ -26,11 +26,41 @@ fi
 
 cd "${PROJECT_DIR}"
 
-# 1. 检查Python虚拟环境
-echo -e "${YELLOW}[1/6] 检查Python虚拟环境...${NC}"
+# 1. 检查Python版本和虚拟环境
+echo -e "${YELLOW}[1/6] 检查Python版本...${NC}"
+PYTHON_CMD="python3"
+
+# 检查是否有python3.11
+if command -v python3.11 &> /dev/null; then
+    PYTHON_VERSION=$(python3.11 --version 2>&1 | awk '{print $2}')
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+    if [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -ge 8 ]; then
+        PYTHON_CMD="python3.11"
+        echo "使用Python 3.11"
+    fi
+fi
+
+# 检查Python版本是否符合要求
+PYTHON_VERSION=$(${PYTHON_CMD} --version 2>&1 | awk '{print $2}')
+PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+
+if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]); then
+    echo -e "${RED}错误: Python版本过低！当前版本: $PYTHON_VERSION${NC}"
+    echo -e "${RED}项目需要Python 3.8+（推荐3.11+）${NC}"
+    echo ""
+    echo "解决方案："
+    echo "1. 在宝塔面板安装Python 3.11+"
+    echo "2. 或运行: bash deploy/install-python311.sh"
+    exit 1
+fi
+
+echo "Python版本: $PYTHON_VERSION"
+
+echo -e "${YELLOW}创建Python虚拟环境...${NC}"
 if [ ! -d "${VENV_DIR}" ]; then
-    echo "创建Python虚拟环境..."
-    python3 -m venv "${VENV_DIR}"
+    ${PYTHON_CMD} -m venv "${VENV_DIR}"
 fi
 
 # 激活虚拟环境
@@ -39,7 +69,18 @@ source "${VENV_DIR}/bin/activate"
 # 2. 安装/更新Python依赖
 echo -e "${YELLOW}[2/6] 安装Python依赖...${NC}"
 pip install --upgrade pip
-pip install -r requirements.txt
+
+# 尝试使用官方源安装（解决镜像源版本问题）
+echo "尝试使用官方PyPI源安装依赖..."
+if ! pip install -i https://pypi.org/simple -r requirements.txt 2>/dev/null; then
+    echo -e "${YELLOW}官方源安装失败，尝试使用兼容版本...${NC}"
+    if [ -f "requirements-compatible.txt" ]; then
+        pip install -r requirements-compatible.txt
+    else
+        echo -e "${RED}安装失败，请手动检查依赖${NC}"
+        exit 1
+    fi
+fi
 
 # 3. 检查.env文件
 echo -e "${YELLOW}[3/6] 检查环境配置...${NC}"

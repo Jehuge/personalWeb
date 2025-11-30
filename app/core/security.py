@@ -1,20 +1,42 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt 最多支持 72 字节
+BCRYPT_MAX_LENGTH = 72
+
+
+def _truncate_password(password: str) -> bytes:
+    """截断密码到 bcrypt 支持的最大长度"""
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > BCRYPT_MAX_LENGTH:
+        password_bytes = password_bytes[:BCRYPT_MAX_LENGTH]
+    return password_bytes
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        password_bytes = _truncate_password(plain_password)
+        # 确保 hashed_password 是字节
+        if isinstance(hashed_password, str):
+            hashed_bytes = hashed_password.encode('utf-8')
+        else:
+            hashed_bytes = hashed_password
+        
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:
     """生成密码哈希"""
-    return pwd_context.hash(password)
+    password_bytes = _truncate_password(password)
+    salt = bcrypt.gensalt(rounds=12)
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

@@ -113,9 +113,9 @@ export default function AIDemoList() {
         value ? (
           value
             .split(/[,，]/)
-            .map((tag) => tag.trim())
+            .map((tag: string) => tag.trim())
             .filter(Boolean)
-            .map((tag) => (
+            .map((tag: string) => (
               <Tag key={tag} color="blue">
                 {tag}
               </Tag>
