@@ -10,17 +10,23 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('light');
-
-  useEffect(() => {
-    // 初始化主题：优先读取本地存储，其次读取系统偏好
+  // 初始化主题：优先读取本地存储，如果没有则默认使用深色模式
+  const getInitialTheme = (): Theme => {
     const storedTheme = localStorage.getItem('theme') as Theme | null;
-    if (storedTheme) {
-      setTheme(storedTheme);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark');
+    return storedTheme || 'dark';
+  };
+
+  const [theme, setTheme] = useState<Theme>(() => {
+    const initialTheme = getInitialTheme();
+    // 立即应用主题到根元素，避免闪烁
+    const root = window.document.documentElement;
+    if (initialTheme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
     }
-  }, []);
+    return initialTheme;
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;

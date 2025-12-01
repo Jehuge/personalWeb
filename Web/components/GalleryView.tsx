@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
-import { fetchPhotos } from '../services/dataService';
+import { fetchPhotos, fetchPhoto } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 
 type ParsedExifData = {
@@ -47,6 +48,8 @@ const pickValue = (value?: string | number | null) => {
 };
 
 export const GalleryView: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -64,6 +67,49 @@ export const GalleryView: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const PAGE_SIZE = 18;
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : null;
+
+  // 根据路由参数加载照片详情
+  useEffect(() => {
+    if (id) {
+      const photoId = parseInt(id, 10);
+      if (!isNaN(photoId)) {
+        // 如果照片已经在列表中，直接选择
+        const photo = photos.find(p => p.id === photoId);
+        if (photo) {
+          setSelectedPhoto(photo);
+        } else {
+          // 如果照片不在当前列表中，通过 API 获取
+          fetchPhoto(photoId)
+            .then(singlePhoto => {
+              setSelectedPhoto(singlePhoto);
+              // 如果照片不在当前列表中，也添加到列表中以便后续使用
+              if (!photos.find(p => p.id === photoId)) {
+                setPhotos(prev => [singlePhoto, ...prev]);
+              }
+            })
+            .catch(error => {
+              console.error('Failed to fetch photo:', error);
+              setError('照片加载失败，请稍后重试');
+            });
+        }
+      }
+    } else {
+      setSelectedPhoto(null);
+    }
+  }, [id, photos]);
+
+  // 监听来自首页的图片选择事件（用于从首页跳转）
+  useEffect(() => {
+    const handleSelectPhoto = async (event: CustomEvent<{ photoId: number }>) => {
+      const photoId = event.detail.photoId;
+      navigate(`/gallery/${photoId}`);
+    };
+
+    window.addEventListener('gallerySelectPhoto', handleSelectPhoto as EventListener);
+    return () => {
+      window.removeEventListener('gallerySelectPhoto', handleSelectPhoto as EventListener);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (!selectedPhoto) {
@@ -281,7 +327,7 @@ export const GalleryView: React.FC = () => {
     return (
       <div className="max-w-7xl mx-auto py-12 px-4 md:px-6 space-y-8">
         <button
-          onClick={() => setSelectedPhoto(null)}
+          onClick={() => navigate('/gallery')}
           className="inline-flex items-center text-sm font-semibold text-primary-600 dark:text-primary-300 hover:text-primary-400 transition-colors"
         >
           ← 返回摄影集
@@ -486,9 +532,9 @@ export const GalleryView: React.FC = () => {
 
           return (
             <article 
-              key={photo.id}
+              key={photo.id} 
               className="group bg-white/70 dark:bg-gray-900/40 border border-gray-100/60 dark:border-gray-800 rounded-3xl shadow-sm hover:shadow-2xl transition-shadow duration-500 overflow-hidden flex flex-col cursor-pointer"
-              onClick={() => setSelectedPhoto(photo)}
+              onClick={() => navigate(`/gallery/${photo.id}`)}
             >
               <div
                 className="relative w-full overflow-hidden rounded-t-3xl bg-gray-900"

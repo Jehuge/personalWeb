@@ -60,3 +60,8 @@ echo "5. 确保解压后目录为 /www/wwwroot/personal-web/"
 echo ""
 
 
+
+
+
+
+

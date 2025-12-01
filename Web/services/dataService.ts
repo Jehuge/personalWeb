@@ -77,9 +77,17 @@ export const fetchPosts = async (params: PaginationParams = {}): Promise<BlogPos
   return request<BlogPost[]>(`/blogs?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
+export const fetchBlog = async (blogId: number): Promise<BlogPost> => {
+  return request<BlogPost>(`/blogs/${blogId}`);
+};
+
 export const fetchPhotos = async (params: PaginationParams = {}): Promise<PhotoWork[]> => {
   const { skip = 0, limit = 18 } = params;
   return request<PhotoWork[]>(`/photos?skip=${skip}&limit=${limit}`);
+};
+
+export const fetchPhoto = async (photoId: number): Promise<PhotoWork> => {
+  return request<PhotoWork>(`/photos/${photoId}`);
 };
 
 export const fetchAIProjects = async (params: PaginationParams = {}): Promise<AIProject[]> => {
@@ -95,7 +103,7 @@ export const fetchAIDemos = async (params: PaginationParams = {}): Promise<AIDem
 export interface HomeOverview {
   blogs: BlogPost[];
   photos: PhotoWork[];
-  projects: AIProject[];
+  projects: AIDemo[];
   stats: {
     blog_count: number;
     photo_count: number;

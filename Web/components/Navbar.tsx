@@ -1,24 +1,42 @@
 import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from './ThemeContext';
 
-interface NavbarProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  showBack?: boolean;
-  onBack?: () => void;
-  backLabel?: string;
-}
-
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, showBack = false, onBack, backLabel = '返回' }) => {
+export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { id: 'home', label: '首页' },
-    { id: 'blog', label: '博客' },
-    { id: 'gallery', label: '摄影' },
-    { id: 'ai', label: 'AI 实验室' },
+    { id: 'home', path: '/', label: '首页' },
+    { id: 'blog', path: '/blog', label: '博客' },
+    { id: 'gallery', path: '/gallery', label: '摄影' },
+    { id: 'ai', path: '/ai', label: 'AI 实验室' },
   ];
+
+  // 判断是否在详情页（有 ID 参数）
+  const isInDetail = /^\/(blog|gallery)\/\d+$/.test(location.pathname);
+  const showBack = isInDetail;
+  const backLabel = isInDetail ? '返回列表' : '返回';
+
+  const handleBack = () => {
+    if (isInDetail) {
+      // 如果在详情页，返回到对应的列表页
+      const basePath = location.pathname.split('/')[1];
+      navigate(`/${basePath}`);
+    } else {
+      // 否则返回首页
+      navigate('/');
+    }
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <nav className="sticky top-4 z-50 w-full max-w-7xl mx-auto px-4 md:px-6">
@@ -26,9 +44,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, showBack
         <div className="flex justify-between h-16 items-center">
           {/* Left side: Back button or Logo */}
           <div className="flex items-center gap-3">
-            {showBack && onBack ? (
+            {showBack ? (
               <button
-                onClick={onBack}
+                onClick={handleBack}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,30 +55,30 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, showBack
                 {backLabel}
               </button>
             ) : (
-              <div className="flex-shrink-0 flex items-center cursor-pointer group" onClick={() => onTabChange('home')}>
+              <Link to="/" className="flex-shrink-0 flex items-center cursor-pointer group">
                 <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg mr-2 flex items-center justify-center text-white font-bold text-lg group-hover:rotate-12 transition-transform">
                   A
                 </div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                   TianJQ<span className="text-primary-500">.Space</span>
                 </span>
-              </div>
+              </Link>
             )}
           </div>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-2">
             {navItems.map((item) => (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${activeTab === item.id
+                to={item.path}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${isActive(item.path)
                   ? 'bg-gray-100 dark:bg-white/10 text-primary-600 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'
                   }`}
               >
                 {item.label}
-              </button>
+              </Link>
             ))}
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
@@ -106,19 +124,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, showBack
         <div className="md:hidden mt-2 glass-card rounded-2xl overflow-hidden animate-slide-up">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => {
-                  onTabChange(item.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`block w-full text-left px-3 py-3 rounded-xl text-base font-medium ${activeTab === item.id
+                to={item.path}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block w-full text-left px-3 py-3 rounded-xl text-base font-medium ${isActive(item.path)
                   ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 {item.label}
-              </button>
+              </Link>
             ))}
             <button
               onClick={() => {

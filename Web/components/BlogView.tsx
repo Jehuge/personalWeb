@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
 import { BlogPost } from '../types';
-import { fetchPosts } from '../services/dataService';
+import { fetchPosts, fetchBlog } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 
 interface Heading {
@@ -61,12 +62,9 @@ const scrollToHeading = (id: string) => {
   }
 };
 
-interface BlogViewProps {
-  onDetailChange?: (isInDetail: boolean) => void;
-  onBackRequest?: () => void;
-}
-
-export const BlogView: React.FC<BlogViewProps> = ({ onDetailChange, onBackRequest }) => {
+export const BlogView: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -85,6 +83,49 @@ export const BlogView: React.FC<BlogViewProps> = ({ onDetailChange, onBackReques
   const tocContainerRef = useRef<HTMLElement>(null);
   const [tocTop, setTocTop] = useState(100); // 目录的 top 位置
   const PAGE_SIZE = 12;
+
+  // 根据路由参数加载博客详情
+  useEffect(() => {
+    if (id) {
+      const blogId = parseInt(id, 10);
+      if (!isNaN(blogId)) {
+        // 如果博客已经在列表中，直接选择
+        const post = posts.find(p => p.id === blogId);
+        if (post) {
+          setSelectedPost(post);
+        } else {
+          // 如果博客不在当前列表中，通过 API 获取
+          fetchBlog(blogId)
+            .then(singleBlog => {
+              setSelectedPost(singleBlog);
+              // 如果博客不在当前列表中，也添加到列表中以便后续使用
+              if (!posts.find(p => p.id === blogId)) {
+                setPosts(prev => [singleBlog, ...prev]);
+              }
+            })
+            .catch(error => {
+              console.error('Failed to fetch blog:', error);
+              setError('博客加载失败，请稍后重试');
+            });
+        }
+      }
+    } else {
+      setSelectedPost(null);
+    }
+  }, [id, posts]);
+
+  // 监听来自首页的博客选择事件（用于从首页跳转）
+  useEffect(() => {
+    const handleSelectBlog = async (event: CustomEvent<{ blogId: number }>) => {
+      const blogId = event.detail.blogId;
+      navigate(`/blog/${blogId}`);
+    };
+
+    window.addEventListener('blogSelectPost', handleSelectBlog as EventListener);
+    return () => {
+      window.removeEventListener('blogSelectPost', handleSelectBlog as EventListener);
+    };
+  }, [navigate]);
 
   // 初始加载
   useEffect(() => {
@@ -159,27 +200,6 @@ export const BlogView: React.FC<BlogViewProps> = ({ onDetailChange, onBackReques
   const filteredPosts = selectedCategory === '全部'
     ? posts
     : posts.filter(p => (p.category?.name?.trim() || '未分类') === selectedCategory);
-
-  // 通知父组件是否在详情页（必须在所有条件返回之前）
-  useEffect(() => {
-    if (onDetailChange) {
-      onDetailChange(!!selectedPost);
-    }
-  }, [selectedPost, onDetailChange]);
-
-  // 监听返回请求（通过自定义事件）
-  useEffect(() => {
-    const handleGoBack = () => {
-      if (selectedPost) {
-        setSelectedPost(null);
-      }
-    };
-    
-    window.addEventListener('blogViewGoBack', handleGoBack);
-    return () => {
-      window.removeEventListener('blogViewGoBack', handleGoBack);
-    };
-  }, [selectedPost]);
 
   // 在内容渲染后提取标题（只在有选中文章时执行）
   useEffect(() => {
@@ -524,7 +544,7 @@ export const BlogView: React.FC<BlogViewProps> = ({ onDetailChange, onBackReques
             >
               <button
                 type="button"
-                onClick={() => setSelectedPost(post)}
+                onClick={() => navigate(`/blog/${post.id}`)}
                 className="text-left flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
               >
                 <div className="relative h-56 bg-gradient-to-br from-primary-500/20 to-purple-500/30">

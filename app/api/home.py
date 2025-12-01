@@ -13,10 +13,11 @@ import random
 from app.core.database import get_db
 from app.models.blog import Blog
 from app.models.photo import Photo
+from app.models.ai_demo import AIDemo
 from app.models.ai_project import AIProject
 from app.schemas.blog import Blog as BlogSchema
 from app.schemas.photo import Photo as PhotoSchema
-from app.schemas.ai_project import AIProject as AIProjectSchema
+from app.schemas.ai_demo import AIDemo as AIDemoSchema
 
 router = APIRouter(prefix="/home", tags=["首页"])
 
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/home", tags=["首页"])
 class HomeOverviewResponse(BaseModel):
     blogs: List[BlogSchema]
     photos: List[PhotoSchema]
-    projects: List[AIProjectSchema]
+    projects: List[AIDemoSchema]
     stats: Dict[str, int]
 
 
@@ -41,7 +42,7 @@ async def get_home_overview(
         blog_query = select(Blog).options(
             selectinload(Blog.category),
             selectinload(Blog.tags)
-        ).where(Blog.is_published == True)
+        ).where(Blog.is_published == True)  # noqa: E712
         # 按created_at排序（已发布的文章通常published_at也会有值，但为兼容性使用created_at）
         blog_query = blog_query.order_by(Blog.created_at.desc()).limit(blog_limit)
         blog_result = await db.execute(blog_query)
@@ -62,45 +63,46 @@ async def get_home_overview(
             # 打乱顺序
             random.shuffle(photos)
         
-        # 获取已发布的AI项目（优先显示精选）
-        project_query = select(AIProject).where(AIProject.is_published == True)
-        project_query = project_query.order_by(AIProject.is_featured.desc(), AIProject.created_at.desc()).limit(project_limit)
+        # 获取已发布的AI Demo（优先显示精选）
+        project_query = select(AIDemo).where(AIDemo.is_published == True)  # noqa: E712
+        project_query = project_query.order_by(AIDemo.is_featured.desc(), AIDemo.sort_order.asc(), AIDemo.created_at.desc()).limit(project_limit)
         project_result = await db.execute(project_query)
         projects = project_result.scalars().all()
         
-        # 统计数据 - 使用实际返回的数据长度，更准确
-        blog_count = len(blogs) if blogs else 0
-        photo_count = len(photos) if photos else 0
-        project_count = len(projects) if projects else 0
-        
-        # 如果需要显示总数而不是当前返回的数量，可以使用以下查询
-        # 但为了准确性，我们使用实际返回的数据数量
-        total_blog_count_query = select(func.count(Blog.id)).where(Blog.is_published == True)
+        # 统计数据 - 统计总数
+        # 博客数量：已发布的博客总数
+        total_blog_count_query = select(func.count(Blog.id)).where(Blog.is_published == True)  # noqa: E712
         total_blog_count_result = await db.execute(total_blog_count_query)
-        total_blog_count = total_blog_count_result.scalar() or 0
+        blog_count = total_blog_count_result.scalar() or 0
         
+        # 图片数量：所有图片总数（Photo 没有 is_published 字段，统计所有）
         total_photo_count_query = select(func.count(Photo.id))
         total_photo_count_result = await db.execute(total_photo_count_query)
-        total_photo_count = total_photo_count_result.scalar() or 0
+        photo_count = total_photo_count_result.scalar() or 0
         
-        total_project_count_query = select(func.count(AIProject.id)).where(AIProject.is_published == True)
-        total_project_count_result = await db.execute(total_project_count_query)
-        total_project_count = total_project_count_result.scalar() or 0
+        # AI 数量：AIDemo（aidemolab）已发布数量 + AIProject（ai项目）已发布数量
+        total_ai_demo_count_query = select(func.count(AIDemo.id)).where(AIDemo.is_published == True)  # noqa: E712
+        total_ai_demo_count_result = await db.execute(total_ai_demo_count_query)
+        ai_demo_count = total_ai_demo_count_result.scalar() or 0
         
-        # 使用总数而不是当前返回的数量
-        blog_count = total_blog_count
-        photo_count = total_photo_count
-        project_count = total_project_count
+        total_ai_project_count_query = select(func.count(AIProject.id)).where(AIProject.is_published == True)  # noqa: E712
+        total_ai_project_count_result = await db.execute(total_ai_project_count_query)
+        ai_project_count = total_ai_project_count_result.scalar() or 0
+        
+        project_count = ai_demo_count + ai_project_count
+        
+        # 构建stats字典
+        stats_dict = {
+            "blog_count": blog_count,
+            "photo_count": photo_count,
+            "project_count": project_count,
+        }
         
         return HomeOverviewResponse(
             blogs=blogs,
             photos=photos,
             projects=projects,
-            stats={
-                "blog_count": blog_count,
-                "photo_count": photo_count,
-                "project_count": project_count,
-            }
+            stats=stats_dict
         )
     except Exception as e:
         import traceback

@@ -1,10 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BlogPost, PhotoWork, AIProject } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { BlogPost, PhotoWork, AIDemo } from '../types';
 import { fetchHomeOverview } from '../services/dataService';
 import { LazyImage } from './LazyImage';
+import { useTheme } from './ThemeContext';
 
-type HomeViewProps = {
-  onNavigate: (tab: 'blog' | 'gallery' | 'ai') => void;
+// 解析 AI Demo 的 URL
+const resolveDemoUrl = (demo: AIDemo) => {
+  if (demo.external_url) return demo.external_url;
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+  const cleanBundle = (demo.bundle_path || demo.slug || '')
+    .replace(/^\/+/, '')
+    .replace(/^aiLab\//, '')
+    .replace(/\/+$/, '');
+  const entryFile = (demo.entry_file || 'index.html').replace(/^\/+/, '');
+  const pathSegments = ['aiLab', cleanBundle || demo.slug, entryFile].filter(Boolean);
+  const path = pathSegments.join('/');
+  const url = `${base}/${path}`.replace(/\/{2,}/g, '/');
+  return url.startsWith('http') ? url : url.startsWith('/') ? url : `/${url}`;
 };
 
 // 数字计数动画 Hook
@@ -12,15 +25,34 @@ const useCountUp = (end: number, duration: number = 2000, start: number = 0) => 
   const [count, setCount] = useState(start);
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // 检查元素是否一开始就在视口中
+    const checkInitialVisibility = () => {
+      if (ref.current) {
+        const rect = ref.current.getBoundingClientRect();
+        const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
+        if (isInViewport && !isVisible) {
+          setIsVisible(true);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // 先检查初始可见性
+    if (checkInitialVisibility()) {
+      return; // 如果已经在视口中，不需要设置 observer
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !isVisible) {
           setIsVisible(true);
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.1 }
     );
 
     if (ref.current) {
@@ -34,21 +66,57 @@ const useCountUp = (end: number, duration: number = 2000, start: number = 0) => 
     };
   }, [isVisible]);
 
+  // 如果end值已经更新且大于0，但元素在视口中，强制触发动画
   useEffect(() => {
-    if (!isVisible) return;
+    if (end > 0 && ref.current && !isVisible) {
+      const rect = ref.current.getBoundingClientRect();
+      const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
+      if (isInViewport) {
+        setIsVisible(true);
+      }
+    }
+  }, [end, isVisible]);
 
+  useEffect(() => {
+    if (!isVisible) {
+      // 如果不可见，但end值已经更新，直接设置最终值
+      if (end > 0) {
+        setCount(end);
+      }
+      return;
+    }
+
+    // 取消之前的动画
+    if (animationRef.current !== null) {
+      cancelAnimationFrame(animationRef.current);
+    }
+
+    // 当end值变化时，重置count为start，然后开始动画
+    setCount(start);
+    
     let startTime: number | null = null;
     const animate = (currentTime: number) => {
       if (startTime === null) startTime = currentTime;
       const progress = Math.min((currentTime - startTime) / duration, 1);
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      setCount(Math.floor(start + (end - start) * easeOutQuart));
+      const newCount = Math.floor(start + (end - start) * easeOutQuart);
+      setCount(newCount);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        animationRef.current = null;
+        setCount(end); // 确保最终值是准确的
       }
     };
-    requestAnimationFrame(animate);
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
   }, [isVisible, end, start, duration]);
 
   return { count, ref };
@@ -67,15 +135,15 @@ const formatDate = (dateString?: string | null) => {
   }
 };
 
-export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
+export const HomeView: React.FC = () => {
+  const navigate = useNavigate();
+  const { theme } = useTheme();
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
-  const [projects, setProjects] = useState<AIProject[]>([]);
+  const [projects, setProjects] = useState<AIDemo[]>([]);
   const [stats, setStats] = useState({ blog_count: 0, photo_count: 0, project_count: 0 });
   const [loading, setLoading] = useState(true);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const [scrollY, setScrollY] = useState(0);
-  const [hoveredBlog, setHoveredBlog] = useState<number | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   const blogCount = useCountUp(stats.blog_count, 1500);
   const photoCount = useCountUp(stats.photo_count, 1500);
@@ -88,7 +156,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
         setBlogs(data.blogs);
         setPhotos(data.photos);
         setProjects(data.projects);
-        setStats(data.stats);
+        setStats(data.stats || { blog_count: 0, photo_count: 0, project_count: 0 });
       } catch (err) {
         console.error('Failed to load homepage data', err);
       } finally {
@@ -100,391 +168,299 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrollY(window.scrollY);
+      setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const heroParallax = scrollY * 0.5;
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-cyber-dark">
         <div className="relative">
-          <div className="w-16 h-16 border-4 border-primary-500/30 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-cyber-accent/30 dark:border-cyber-accent/30 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-cyber-accent dark:border-cyber-accent border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      {/* 动态背景粒子效果 */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-emerald-50/20 to-amber-50/20 dark:from-blue-950/20 dark:via-emerald-950/15 dark:to-amber-950/15"></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-200/20 dark:bg-blue-800/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-200/20 dark:bg-emerald-800/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
+    <div className="min-h-screen font-sans selection:bg-cyber-accent/30 selection:text-white overflow-x-hidden bg-gray-50 dark:bg-cyber-dark text-gray-900 dark:text-white">
+      
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+        {/* Abstract Background Elements */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyber-glow/10 dark:bg-cyber-glow/20 rounded-full blur-[128px] animate-pulse-slow"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyber-accent/5 dark:bg-cyber-accent/10 rounded-full blur-[128px] animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+        </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 pb-20 space-y-24">
-        {/* Hero Section */}
-        <section
-          ref={heroRef}
-          className="relative pt-20 md:pt-32 pb-16 overflow-hidden"
-        >
-          <div
-            className="absolute inset-0 opacity-30"
-            style={{
-              transform: `translateY(${heroParallax}px)`,
-              transition: 'transform 0.1s ease-out',
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/15 via-emerald-400/15 to-amber-400/15 dark:from-blue-600/10 dark:via-emerald-600/10 dark:to-amber-600/10 blur-3xl"></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 text-center">
+          <div className="px-6 sm:px-8">
+          <div className="inline-block px-4 py-1.5 mb-6 rounded-full border border-cyber-accent/30 dark:border-cyber-accent/30 bg-cyber-accent/10 dark:bg-cyber-accent/5 text-cyber-accent dark:text-cyber-accent text-xs font-semibold tracking-widest uppercase">
+            System Online
           </div>
-
-          <div className="relative z-10 text-center space-y-8">
-            <div className="inline-block">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 via-blue-700 to-emerald-700 dark:from-slate-100 dark:via-blue-400 dark:to-emerald-400 animate-gradient">
-                欢迎来到我的世界
-              </h1>
-            </div>
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              这里记录着我的技术思考、摄影作品和 AI 实验
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 pt-4">
-              <button
-                onClick={() => onNavigate('blog')}
-                className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 text-white rounded-2xl font-semibold text-lg shadow-lg shadow-blue-500/30 dark:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/40 dark:hover:shadow-blue-500/30 transition-all duration-300 hover:scale-105 overflow-hidden"
-              >
-                <span className="relative z-10">探索博客</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 dark:from-blue-600 dark:to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
-              <button
-                onClick={() => onNavigate('gallery')}
-                className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold text-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105"
-              >
-                浏览摄影
-              </button>
-              <button
-                onClick={() => onNavigate('ai')}
-                className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold text-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105"
-              >
-                AI 实验室
-              </button>
-            </div>
-          </div>
-
+          <h1 className="text-5xl md:text-8xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-slate-200 dark:to-slate-500 mb-8">
+            探索数字前沿
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-accent to-cyber-glow">DIGITAL FRONTIER</span>
+          </h1>
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 dark:text-slate-400 mb-10 leading-relaxed">
+            这里记录着我的技术思考、摄影作品和 AI 实验
+            <br />
+            用代码和镜头探索无限可能
+          </p>
+          
           {/* 统计数据 */}
-          <div className="grid grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto">
+          <div className="grid grid-cols-3 gap-8 md:gap-12 max-w-4xl mx-auto mb-10">
             <div ref={blogCount.ref} className="text-center group">
-              <div className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-400 dark:to-blue-500 mb-2">
+              <div className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyber-accent to-cyber-glow mb-2">
                 {blogCount.count}+
               </div>
-              <div className="text-gray-600 dark:text-gray-400">技术文章</div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm md:text-base">技术文章</div>
             </div>
             <div ref={photoCount.ref} className="text-center group">
-              <div className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-400 dark:to-emerald-500 mb-2">
+              <div className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyber-glow to-cyber-accent mb-2">
                 {photoCount.count}+
               </div>
-              <div className="text-gray-600 dark:text-gray-400">摄影作品</div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm md:text-base">摄影作品</div>
             </div>
             <div ref={projectCount.ref} className="text-center group">
-              <div className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-500 mb-2">
+              <div className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyber-accent to-emerald-400 dark:to-emerald-400 mb-2">
                 {projectCount.count}+
               </div>
-              <div className="text-gray-600 dark:text-gray-400">AI 项目</div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm md:text-base">AI 项目</div>
             </div>
           </div>
-        </section>
 
-        {/* 最新博客 - 优化后的展示方式 */}
-        {blogs.length > 0 && (
-          <section className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-                  最新文章
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">探索我的技术思考</p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => navigate('/blog')}
+              className="px-8 py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-cyber-accent/50 dark:hover:border-cyber-accent/50 hover:text-cyber-accent dark:hover:text-cyber-accent transition-all text-sm font-medium text-gray-700 dark:text-white"
+            >
+              探索博客
+            </button>
+            <button
+              onClick={() => navigate('/gallery')}
+              className="px-8 py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-cyber-accent/50 dark:hover:border-cyber-accent/50 hover:text-cyber-accent dark:hover:text-cyber-accent transition-all text-sm font-medium text-gray-700 dark:text-white"
+            >
+              浏览摄影
+            </button>
+            <button
+              onClick={() => navigate('/ai')}
+              className="px-8 py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-cyber-accent/50 dark:hover:border-cyber-accent/50 hover:text-cyber-accent dark:hover:text-cyber-accent transition-all text-sm font-medium text-gray-700 dark:text-white"
+            >
+              AI 实验室
+            </button>
+          </div>
+
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-gray-400 dark:text-slate-500">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      {/* AI & Tech Projects Section */}
+      {projects.length > 0 && (
+        <section id="projects" className="py-24 bg-white dark:bg-slate-950 relative">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="px-6 sm:px-8">
+            <div className="flex items-center gap-4 mb-16">
+              <div className="p-3 bg-cyber-accent/10 dark:bg-cyber-accent/10 rounded-xl">
+                <svg className="w-6 h-6 text-cyber-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
               </div>
-              <button
-                onClick={() => onNavigate('blog')}
-                className="hidden md:flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
-              >
-                查看更多
-                <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </button>
-            </div>
-
-            {/* 博客网格布局 */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {blogs.map((blog, idx) => (
-                <article
-                  key={blog.id}
-                  className="group relative bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                  onClick={() => onNavigate('blog')}
-                  style={{
-                    animationDelay: `${idx * 100}ms`,
-                    animation: 'fadeInUp 0.6s ease-out forwards',
-                  }}
-                >
-                  {/* 封面图 */}
-                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-blue-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-                    {blog.cover_image ? (
-                      <LazyImage
-                        src={blog.cover_image}
-                        alt={blog.title}
-                        className="absolute inset-0"
-                        imageClassName="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="h-full flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="text-4xl mb-2">📝</div>
-                          <div className="text-blue-600 dark:text-blue-400 font-semibold text-sm">
-                            {blog.category?.name || '未分类'}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute top-4 left-4">
-                      <span className="px-3 py-1 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold rounded-full">
-                        {blog.category?.name || '未分类'}
-                      </span>
-                    </div>
-                    {idx === 0 && (
-                      <div className="absolute top-4 right-4">
-                        <span className="px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
-                          ✨ 最新
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 内容 */}
-                  <div className="p-6 space-y-3">
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>{formatDate(blog.published_at || blog.created_at)}</span>
-                      <span className="flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        {blog.view_count}
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {blog.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                      {blog.excerpt || blog.content.slice(0, 120) + '...'}
-                    </p>
-                    {blog.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {blog.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag.id}
-                            className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded-md"
-                          >
-                            #{tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="pt-2 flex items-center justify-between">
-                      <span className="text-xs text-gray-400">
-                        约 {Math.ceil((blog.content?.length || 0) / 500)} 分钟阅读
-                      </span>
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:gap-2 inline-flex items-center gap-1">
-                        阅读全文
-                        <span className="group-hover:translate-x-1 transition-transform">→</span>
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 随机摄影作品 - 瀑布流风格 */}
-        {photos.length > 0 && (
-          <section className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-                  随机摄影
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">用镜头捕捉的瞬间</p>
-              </div>
-              <button
-                onClick={() => onNavigate('gallery')}
-                className="hidden md:flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
-              >
-                查看更多
-                <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </button>
-            </div>
-
-            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-              {photos.map((photo, idx) => {
-                const aspectRatio = photo.width && photo.height ? photo.width / photo.height : 1.33;
-                const height = Math.random() * 200 + 250; // 随机高度，模拟瀑布流
-                return (
-                  <article
-                    key={photo.id}
-                    className="group relative break-inside-avoid mb-6 overflow-hidden rounded-2xl bg-gray-900 shadow-xl hover:shadow-2xl transition-all duration-500 cursor-pointer"
-                    style={{
-                      height: `${height}px`,
-                      animationDelay: `${idx * 100}ms`,
-                      animation: 'fadeInUp 0.6s ease-out forwards',
-                    }}
-                    onClick={() => onNavigate('gallery')}
-                  >
-                    <LazyImage
-                      src={photo.thumbnail_url || photo.image_url}
-                      alt={photo.title}
-                      className="absolute inset-0"
-                      imageClassName="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                      <h3 className="text-xl font-bold text-white mb-2">{photo.title}</h3>
-                      <p className="text-sm text-white/80 line-clamp-2 mb-3">
-                        {photo.description || '点击查看详情'}
-                      </p>
-                      {photo.category && (
-                        <span className="inline-block px-3 py-1 bg-white/20 text-white text-xs font-semibold rounded-full backdrop-blur">
-                          {photo.category.name}
-                        </span>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* AI 项目 - 卡片网格 + 简介 */}
-        {projects.length > 0 && (
-          <section className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-                  AI 项目
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">探索 AI 的可能性</p>
-              </div>
-              <button
-                onClick={() => onNavigate('ai')}
-                className="hidden md:flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
-              >
-                查看更多
-                <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </button>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">AI & Tech Projects</h2>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              {projects.map((project, idx) => (
-                <article
-                  key={project.id}
-                  className="group relative bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-3xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                  style={{
-                    animationDelay: `${idx * 100}ms`,
-                    animation: 'fadeInUp 0.6s ease-out forwards',
-                  }}
+              {projects.map((project) => {
+                const projectUrl = resolveDemoUrl(project);
+                return (
+                <div 
+                  key={project.id} 
+                  className="group relative bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden hover:border-cyber-accent/50 dark:hover:border-cyber-accent/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] dark:hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] cursor-pointer"
+                  onClick={() => window.open(projectUrl, '_blank')}
                 >
-                  <div className="relative h-64 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+                  <div className="aspect-video overflow-hidden">
                     {project.cover_image ? (
-                      <LazyImage
-                        src={project.cover_image}
+                      <img 
+                        src={project.cover_image} 
                         alt={project.title}
-                        className="absolute inset-0"
-                        imageClassName="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
                     ) : (
-                      <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400 font-semibold text-2xl">
-                        <div className="text-center">
-                          <div className="text-6xl mb-4">🤖</div>
-                          <div>AI Project</div>
-                        </div>
+                      <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center">
+                        <svg className="w-16 h-16 text-gray-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
                       </div>
                     )}
-                    {project.is_featured && (
-                      <div className="absolute top-4 right-4">
-                        <span className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
-                          ⭐ Featured
+                    <div className="absolute top-4 right-4 bg-black/60 dark:bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-mono text-white border border-white/10">
+                      AI
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-cyber-accent transition-colors">
+                      {project.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-sm mb-4 line-clamp-3">
+                      {project.description || '暂无描述'}
+                    </p>
+                    {project.category && (
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        <span className="text-xs font-mono text-cyber-accent bg-cyber-accent/10 dark:bg-cyber-accent/5 px-2 py-1 rounded">
+                          {project.category}
                         </span>
                       </div>
                     )}
+                    <a 
+                      href={projectUrl} 
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-white hover:text-cyber-accent transition-colors"
+                    >
+                      View Project
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
                   </div>
-                  <div className="p-8 space-y-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                        {project.title}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
-                        {project.description || '暂无描述'}
-                      </p>
+                </div>
+                );
+              })}
+            </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Photography Section */}
+      {photos.length > 0 && (
+        <section id="photography" className="py-24 bg-gray-100 dark:bg-cyber-dark relative">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="px-6 sm:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-cyber-glow/10 dark:bg-cyber-glow/10 rounded-xl">
+                  <svg className="w-6 h-6 text-cyber-glow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">Visual Archives</h2>
+              </div>
+              <p className="text-gray-600 dark:text-slate-400 max-w-md text-right md:text-right text-left">
+                用镜头捕捉的瞬间，记录生活的美好
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {photos.map((photo, index) => {
+                // 计算图片的宽高比
+                const aspectRatio = photo.width && photo.height 
+                  ? photo.width / photo.height 
+                  : 4 / 3; // 默认比例
+                
+                return (
+                  <div 
+                    key={photo.id} 
+                    className={`group relative rounded-2xl overflow-hidden cursor-pointer ${index === 0 || index === 3 ? 'md:col-span-2 lg:col-span-1' : ''}`}
+                    onClick={() => navigate(`/gallery/${photo.id}`)}
+                    style={{
+                      aspectRatio: aspectRatio.toString()
+                    }}
+                  >
+                    <img 
+                      src={photo.thumbnail_url || photo.image_url} 
+                      alt={photo.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                      {photo.category && (
+                        <span className="text-cyber-glow text-xs font-mono mb-1">{photo.category.name}</span>
+                      )}
+                      <h3 className="text-white font-bold">{photo.title}</h3>
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <button
-                        onClick={() => onNavigate('ai')}
-                        className="text-emerald-600 dark:text-emerald-400 font-semibold hover:gap-2 inline-flex items-center gap-1 group-hover:gap-2 transition-all"
-                      >
-                        查看详情
-                        <span>→</span>
-                      </button>
-                      {project.demo_url && (
-                        <a
-                          href={project.demo_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-5 py-2.5 bg-emerald-600 dark:bg-emerald-500 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/30 dark:shadow-emerald-500/20"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          在线体验 →
-                        </a>
+                  </div>
+                );
+              })}
+            </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Blog Section */}
+      {blogs.length > 0 && (
+        <section id="blog" className="py-24 bg-white dark:bg-slate-950 relative border-t border-gray-200 dark:border-white/5">
+          <div className="max-w-4xl mx-auto px-4 md:px-6">
+            <div className="flex items-center gap-4 mb-16 justify-center">
+              <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-xl">
+                <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">Transmission Logs</h2>
+            </div>
+
+            <div className="space-y-6">
+              {blogs.map((post) => (
+                <article 
+                  key={post.id} 
+                  className="group relative bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-900 border border-gray-200 dark:border-white/5 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 p-8 rounded-3xl transition-all duration-300 cursor-pointer"
+                  onClick={() => navigate(`/blog/${post.id}`)}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div className="flex gap-2 flex-wrap">
+                      {post.tags.slice(0, 3).map(tag => (
+                        <span key={tag.id} className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-900">
+                          #{tag.name}
+                        </span>
+                      ))}
+                      {post.category && (
+                        <span className="text-xs font-mono text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-800/50 px-2 py-0.5 rounded-full border border-gray-300 dark:border-slate-700">
+                          {post.category.name}
+                        </span>
                       )}
                     </div>
+                    <span className="text-sm text-gray-500 dark:text-slate-500 font-mono">
+                      {formatDate(post.published_at || post.created_at)} • 约 {Math.ceil((post.content?.length || 0) / 500)} 分钟阅读
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    {post.title}
+                  </h3>
+                  <p className="text-gray-600 dark:text-slate-400 mb-6 leading-relaxed line-clamp-2">
+                    {post.excerpt || post.content.slice(0, 150) + '...'}
+                  </p>
+                  
+                  <div className="inline-flex items-center text-emerald-600 dark:text-emerald-500 font-medium hover:text-emerald-700 dark:hover:text-emerald-400">
+                    <span>阅读全文</span>
+                    <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </article>
               ))}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-      </div>
-
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes gradient {
-          0%, 100% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
-      `}</style>
     </div>
   );
 };
