@@ -257,6 +257,8 @@ export const GalleryView: React.FC = () => {
     });
   };
 
+  const mouseMoveRef = useRef<number | null>(null);
+
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (zoom === 1) {
       return;
@@ -272,10 +274,16 @@ export const GalleryView: React.FC = () => {
     if (!isDragging) {
       return;
     }
-    setOffset({
-      x: event.clientX - dragStartRef.current.x,
-      y: event.clientY - dragStartRef.current.y,
-    });
+    // 使用 requestAnimationFrame 节流，减少状态更新频率
+    if (mouseMoveRef.current === null) {
+      mouseMoveRef.current = requestAnimationFrame(() => {
+        setOffset({
+          x: event.clientX - dragStartRef.current.x,
+          y: event.clientY - dragStartRef.current.y,
+        });
+        mouseMoveRef.current = null;
+      });
+    }
   };
 
   const stopDragging = () => {
@@ -283,6 +291,11 @@ export const GalleryView: React.FC = () => {
       return;
     }
     setIsDragging(false);
+    // 清理未完成的动画帧
+    if (mouseMoveRef.current !== null) {
+      cancelAnimationFrame(mouseMoveRef.current);
+      mouseMoveRef.current = null;
+    }
   };
 
   const handleDoubleClick = () => {

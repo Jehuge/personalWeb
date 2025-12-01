@@ -43,6 +43,11 @@
             'scan': 'scan 14s linear infinite',
             'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           },
+          // 性能优化：使用 GPU 加速的 transform 属性
+          willChange: {
+            'transform': 'transform',
+            'opacity': 'opacity',
+          },
           keyframes: {
             fadeIn: {
               '0%': { opacity: '0' },
@@ -82,6 +87,26 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
+    }
+
+    /* 性能优化：页面不可见时暂停所有动画 */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* 优化动画性能：使用 GPU 加速 */
+    .animate-blob,
+    .animate-orbital,
+    .animate-scan,
+    .animate-pulse-slow {
+      will-change: transform;
+      transform: translateZ(0); /* 触发 GPU 加速 */
     }
 
     /* Custom scrollbar for better aesthetics */

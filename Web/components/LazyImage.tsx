@@ -20,15 +20,16 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
   return (
     <div className={`relative overflow-hidden bg-gray-200 dark:bg-gray-800 ${className}`}>
-      {/* 缩略图/占位图 (Blur effect) */}
+      {/* 缩略图/占位图 (Blur effect) - 优化：使用更轻量的 blur */}
       {thumbnailSrc && (
         <img
           src={thumbnailSrc}
           alt={alt}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 filter blur-lg ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 filter blur-sm ${
             isLoaded ? 'opacity-0' : 'opacity-100'
           }`}
           aria-hidden="true"
+          loading="lazy"
         />
       )}
       

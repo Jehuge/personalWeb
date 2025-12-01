@@ -95,12 +95,18 @@ const useCountUp = (end: number, duration: number = 2000, start: number = 0) => 
     setCount(start);
     
     let startTime: number | null = null;
+    let lastCount = start;
     const animate = (currentTime: number) => {
       if (startTime === null) startTime = currentTime;
       const progress = Math.min((currentTime - startTime) / duration, 1);
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
       const newCount = Math.floor(start + (end - start) * easeOutQuart);
-      setCount(newCount);
+      
+      // 只在值真正改变时更新状态，减少重新渲染
+      if (newCount !== lastCount) {
+        setCount(newCount);
+        lastCount = newCount;
+      }
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
@@ -167,10 +173,18 @@ export const HomeView: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // 节流滚动事件，减少性能开销
+    let ticking = false;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 50);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -197,10 +211,10 @@ export const HomeView: React.FC = () => {
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
-        {/* Abstract Background Elements */}
+        {/* Abstract Background Elements - 优化：减少 blur 半径 */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyber-glow/10 dark:bg-cyber-glow/20 rounded-full blur-[128px] animate-pulse-slow"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyber-accent/5 dark:bg-cyber-accent/10 rounded-full blur-[128px] animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyber-glow/10 dark:bg-cyber-glow/20 rounded-full blur-[64px] dark:blur-[80px] animate-pulse-slow will-change-transform"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyber-accent/5 dark:bg-cyber-accent/10 rounded-full blur-[64px] dark:blur-[80px] animate-pulse-slow will-change-transform" style={{ animationDelay: '2s' }}></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 text-center">
@@ -262,7 +276,7 @@ export const HomeView: React.FC = () => {
             </button>
           </div>
 
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-gray-400 dark:text-slate-500">
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-gray-400 dark:text-slate-500 will-change-transform">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
