@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AIDemo, AIProject } from '../types';
 import { fetchAIDemos, fetchAIProjects } from '../services/dataService';
+import PlayButton from './PlayButton';
 
 // 检查页面是否可见
 const usePageVisibility = () => {
@@ -197,7 +198,7 @@ export const AIProjectView: React.FC = () => {
             return (
               <article
                 key={demo.id}
-                className="glass-card rounded-3xl p-6 border border-gray-100 dark:border-gray-800 hover:border-primary-200/60 dark:hover:border-primary-500/40 transition-colors duration-200 flex flex-col"
+                className="ai-demo-card glass-card rounded-3xl p-6 border border-gray-100 dark:border-slate-700/80 hover:border-primary-200/60 dark:hover:border-primary-500/40 transition-colors duration-200 flex flex-col"
               >
                 {demo.cover_image && (
                   <div className="relative mb-5 rounded-2xl overflow-hidden">
@@ -225,12 +226,9 @@ export const AIProjectView: React.FC = () => {
                     ))}
                   </div>
                   <div className="mt-auto flex gap-3">
-                    <button
-                      onClick={() => window.open(targetUrl, '_blank')}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-2xl bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                    >
-                      打开 Demo
-                    </button>
+                    <div className="flex-1">
+                      <PlayButton onClick={() => window.open(targetUrl, '_blank')} />
+                    </div>
                     {demo.external_url && (
                       <a
                         href={demo.external_url}

@@ -595,7 +595,7 @@ export const GalleryView: React.FC = () => {
           return (
             <article 
               key={photo.id} 
-              className="group relative break-inside-avoid mb-4 md:mb-6 rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-cyber-accent/20 animate-fade-in will-change-transform"
+              className="photo-card group relative break-inside-avoid mb-4 md:mb-6 rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-cyber-accent/20 animate-fade-in will-change-transform"
               style={{ animationDelay }}
               onClick={() => navigate(`/gallery/${photo.id}`)}
             >

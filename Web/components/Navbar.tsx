@@ -41,7 +41,8 @@ export const Navbar: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 w-full">
       <div className="w-full">
-        <div className="bg-gradient-to-r from-slate-50 via-primary-50/30 to-slate-50 dark:from-slate-800 dark:via-primary-900/20 dark:to-slate-800 backdrop-blur-xl rounded-b-2xl px-4 sm:px-6 md:px-8 shadow-xl shadow-primary-500/10 dark:shadow-primary-500/5 border-b-2 border-primary-200/60 dark:border-primary-700/40">
+        {/* 顶部栏：使用明显的浅色 / 深色纯色背景，确保一眼能看出变化 */}
+        <div className="site-navbar bg-slate-50 dark:bg-slate-900 backdrop-blur-xl rounded-b-2xl px-4 sm:px-6 md:px-8 shadow-md shadow-primary-500/10 dark:shadow-black/50 border-b border-gray-200/70 dark:border-slate-700/80 transition-colors duration-300">
         <div className="flex justify-between h-16 items-center">
           {/* Left side: Back button or Logo */}
           <div className="flex items-center gap-3">
@@ -57,7 +58,7 @@ export const Navbar: React.FC = () => {
               </button>
             ) : (
               <Link to="/" className="flex-shrink-0 flex items-center cursor-pointer group">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg mr-2 flex items-center justify-center text-white font-bold text-lg group-hover:rotate-12 transition-transform">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg mr-2 flex items-center justify-center text-white font-bold text-lg group-hover:rotate-12 transition-transform shadow-md shadow-primary-500/40">
                   A
                 </div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -69,25 +70,30 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.id}
-                to={item.path}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${isActive(item.path)
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-md shadow-primary-500/20 dark:shadow-primary-500/10 font-semibold'
-                  : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-                  }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isCurrent = isActive(item.path);
+              const shared = 'px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-300';
+              const activeClass =
+                'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/40 ring-1 ring-white/70 dark:bg-[#cfe2ff] dark:text-[#0b1120] dark:shadow-[#a5b4fc]/40';
+              const inactiveClass =
+                'text-gray-700 hover:text-primary-600 hover:bg-primary-50 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20';
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  className={`${shared} ${isCurrent ? activeClass : inactiveClass}`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
 
             <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
 
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-colors border border-transparent dark:border-slate-600/60"
               aria-label="切换主题"
             >
               {theme === 'light' ? (
@@ -124,21 +130,26 @@ export const Navbar: React.FC = () => {
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="fixed top-16 left-0 right-0 z-40 md:hidden mx-0 px-4">
-          <div className="bg-gradient-to-br from-slate-50 via-primary-50/40 to-slate-50 dark:from-slate-800 dark:via-primary-900/30 dark:to-slate-800 backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-primary-500/5 border-2 border-primary-200/60 dark:border-primary-700/40">
+          <div className="bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-[rgba(15,23,42,0.98)] dark:via-[rgba(15,23,42,1)] dark:to-[rgba(15,23,42,0.98)] backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.id}
-                to={item.path}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block w-full text-left px-3 py-3 rounded-xl text-base font-medium ${isActive(item.path)
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-semibold'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400'
-                  }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isCurrent = isActive(item.path);
+              const shared = 'block w-full text-left px-3 py-3 rounded-2xl text-base font-semibold transition-all duration-200';
+              const activeClass =
+                'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/30 dark:bg-[#cfe2ff] dark:text-[#0b1120]';
+              const inactiveClass =
+                'text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20';
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`${shared} ${isCurrent ? activeClass : inactiveClass}`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
             <button
               onClick={() => {
                 toggleTheme();

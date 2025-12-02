@@ -6,9 +6,9 @@ export const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="mt-16 border-t-2 border-primary-200/60 dark:border-primary-700/40 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 backdrop-blur-xl shadow-xl shadow-primary-500/5 dark:shadow-primary-500/10">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600 dark:text-gray-400">
-        <p className="font-semibold text-gray-700 dark:text-gray-300">TianJQ.Space</p>
+    <footer className="site-footer mt-16 border-t border-gray-200/70 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-900 backdrop-blur-xl shadow-inner shadow-primary-500/5 dark:shadow-black/40 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600 dark:text-slate-400">
+        <p className="font-semibold text-gray-700 dark:text-slate-200">TianJQ.Space</p>
         <div className="flex items-center gap-4">
           {links.map(link => (
             <a

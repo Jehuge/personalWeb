@@ -6,18 +6,18 @@
   --color-primary-500: #0ea5e9;
   --color-primary-600: #0284c7;
   --color-primary-900: #0c4a6e;
-  
+
   --color-accent-500: #8b5cf6;
   --color-accent-600: #7c3aed;
-  
+
   --color-cyber-dark: #020617;
   --color-cyber-panel: #0f172a;
   --color-cyber-accent: #06b6d4;
   --color-cyber-glow: #8b5cf6;
-  
+
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
-  
+
   --animate-fade-in: fadeIn 0.5s ease-out;
   --animate-slide-up: slideUp 0.6s ease-out;
   --animate-float: float 6s ease-in-out infinite;
@@ -25,39 +25,102 @@
   --animate-blob: blob 24s ease-in-out infinite;
   --animate-scan: scan 14s linear infinite;
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  
+
   @keyframes fadeIn {
     0% { opacity: 0; }
     100% { opacity: 1; }
   }
-  
+
   @keyframes slideUp {
     0% { transform: translateY(20px); opacity: 0; }
     100% { transform: translateY(0); opacity: 1; }
   }
-  
+
   @keyframes float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
   }
-  
+
   @keyframes orbital {
     0% { transform: rotate(0deg) scale(1); }
     50% { transform: rotate(180deg) scale(1.05); }
     100% { transform: rotate(360deg) scale(1); }
   }
-  
+
   @keyframes blob {
     0% { transform: translate3d(0,0,0) scale(1); }
     33% { transform: translate3d(5%, -2%, 0) scale(1.05); }
     66% { transform: translate3d(-3%, 2%, 0) scale(0.98); }
     100% { transform: translate3d(0,0,0) scale(1); }
   }
-  
+
   @keyframes scan {
     0% { transform: translateX(-100%); opacity: 0; }
     10% { opacity: 0.25; }
     50% { opacity: 0.6; }
     100% { transform: translateX(100%); opacity: 0; }
+  }
+}
+
+/* 全局深色模式重新设计：
+   - 统一卡片与面板背景
+   - 提升文字对比度
+   - 让没有显式 dark: 类的区域在深色下也更协调 */
+@layer utilities {
+  /* 面板 / 卡片背景统一为深色面板，而不是纯白 */
+  .dark .bg-white,
+  .dark .bg-slate-50,
+  .dark .bg-slate-100,
+  .dark .bg-gray-50,
+  .dark .bg-gray-100 {
+    background-color: color-mix(in srgb, var(--color-cyber-panel) 88%, black 12%);
+  }
+
+  /* 常见边框颜色在深色下偏亮一些，避免太“脏” */
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-slate-100,
+  .dark .border-slate-200 {
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  /* 文字颜色更清晰 */
+  .dark .text-gray-900,
+  .dark .text-slate-900 {
+    color: #e5e7eb;
+  }
+
+  .dark .text-gray-700,
+  .dark .text-slate-700 {
+    color: #cbd5f5;
+  }
+
+  .dark .text-gray-600,
+  .dark .text-slate-600 {
+    color: #9ca3af;
+  }
+
+  /* 默认 body / 根容器的背景用统一深色 */
+  .dark body,
+  .dark .app-background {
+    background-color: var(--color-cyber-dark);
+  }
+
+  /* 博客卡片在深色下的统一样式 */
+  .dark .blog-card {
+    background-color: rgba(15, 23, 42, 0.96);
+    border-color: rgba(148, 163, 184, 0.45);
+  }
+
+  /* 摄影卡片在深色下的统一样式 */
+  .dark .photo-card {
+    background-color: rgba(15, 23, 42, 0.98);
+    border-radius: 1rem;
+  }
+
+  /* AI Demo 卡片在深色下统一成深色玻璃质感 */
+  .dark .ai-demo-card {
+    background-color: rgba(15, 23, 42, 0.96);
+    border-color: rgba(148, 163, 184, 0.45);
   }
 }

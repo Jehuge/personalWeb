@@ -5,6 +5,18 @@ import { fetchHomeOverview } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 import { useTheme } from './ThemeContext';
 
+// 从列表中随机取出若干元素（不修改原数组）
+const pickRandomItems = <T,>(items: T[], count: number): T[] => {
+  if (items.length <= count) return items;
+  const indices = items.map((_, idx) => idx);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  const picked = indices.slice(0, count);
+  return picked.map((i) => items[i]);
+};
+
 // 解析 AI Demo 的 URL
 const resolveDemoUrl = (demo: AIDemo) => {
   if (demo.external_url) return demo.external_url;
@@ -147,6 +159,10 @@ export const HomeView: React.FC = () => {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
   const [projects, setProjects] = useState<AIDemo[]>([]);
+  // 首页展示用的随机子集
+  const [featuredBlogs, setFeaturedBlogs] = useState<BlogPost[]>([]);
+  const [featuredPhotos, setFeaturedPhotos] = useState<PhotoWork[]>([]);
+  const [featuredProjects, setFeaturedProjects] = useState<AIDemo[]>([]);
   const [stats, setStats] = useState({ blog_count: 0, photo_count: 0, project_count: 0 });
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
@@ -159,9 +175,18 @@ export const HomeView: React.FC = () => {
     const loadData = async () => {
       try {
         const data = await fetchHomeOverview();
-        setBlogs(data.blogs);
-        setPhotos(data.photos);
-        setProjects(data.projects);
+        const allBlogs: BlogPost[] = data.blogs || [];
+        const allPhotos: PhotoWork[] = data.photos || [];
+        const allProjects: AIDemo[] = data.projects || [];
+
+        setBlogs(allBlogs);
+        setPhotos(allPhotos);
+        setProjects(allProjects);
+
+        // 随机挑选首页展示内容：AI 项目 2 个、博客 2 篇、照片约两排（最多 6 张）
+        setFeaturedBlogs(pickRandomItems(allBlogs, 2));
+        setFeaturedProjects(pickRandomItems(allProjects, 2));
+        setFeaturedPhotos(pickRandomItems(allPhotos, 6));
         setStats(data.stats || { blog_count: 0, photo_count: 0, project_count: 0 });
       } catch (err) {
         console.error('Failed to load homepage data', err);
@@ -286,7 +311,7 @@ export const HomeView: React.FC = () => {
       </section>
 
       {/* AI & Tech Projects Section */}
-      {projects.length > 0 && (
+      {featuredProjects.length > 0 && (
         <section id="projects" className="py-24 bg-slate-100 dark:bg-slate-800 relative">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="px-6 sm:px-8">
@@ -300,7 +325,7 @@ export const HomeView: React.FC = () => {
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              {projects.map((project) => {
+              {featuredProjects.map((project) => {
                 const projectUrl = resolveDemoUrl(project);
                 return (
                 <div 
@@ -364,7 +389,7 @@ export const HomeView: React.FC = () => {
       )}
 
       {/* Photography Section */}
-      {photos.length > 0 && (
+      {featuredPhotos.length > 0 && (
         <section id="photography" className="py-24 bg-slate-50 dark:bg-slate-900 relative">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="px-6 sm:px-8">
@@ -384,7 +409,7 @@ export const HomeView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {photos.map((photo, index) => {
+              {featuredPhotos.map((photo, index) => {
                 // 计算图片的宽高比
                 const aspectRatio = photo.width && photo.height 
                   ? photo.width / photo.height 
@@ -420,7 +445,7 @@ export const HomeView: React.FC = () => {
       )}
 
       {/* Blog Section */}
-      {blogs.length > 0 && (
+      {featuredBlogs.length > 0 && (
         <section id="blog" className="py-24 bg-slate-100 dark:bg-slate-800 relative border-t border-gray-200 dark:border-white/5">
           <div className="max-w-4xl mx-auto px-4 md:px-6">
             <div className="flex items-center gap-4 mb-16 justify-center">
@@ -433,7 +458,7 @@ export const HomeView: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              {blogs.map((post) => (
+              {featuredBlogs.map((post) => (
                 <article 
                   key={post.id} 
                   className="group relative bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700/50 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 p-8 rounded-3xl transition-all duration-300 cursor-pointer"

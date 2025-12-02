@@ -656,7 +656,7 @@ export const BlogView: React.FC = () => {
                 ))}
               </div>
 
-              <div ref={contentRef}>
+              <div ref={contentRef} className="prose prose-slate max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-white prose-blockquote:border-l-primary-500 dark:prose-blockquote:border-l-primary-400 prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-300 prose-code:bg-gray-100 dark:prose-code:bg-gray-900/60 prose-code:text-pink-600 dark:prose-code:text-pink-300 prose-hr:border-gray-200 dark:prose-hr:border-gray-800">
                 <OptimizedMarkdownContent 
                   content={selectedPost.content} 
                   onRenderComplete={handleMarkdownRenderComplete}
@@ -821,7 +821,7 @@ export const BlogView: React.FC = () => {
           return (
             <article
               key={post.id}
-              className="group flex flex-col bg-slate-50/90 dark:bg-slate-800/70 rounded-3xl border border-gray-200/70 dark:border-slate-700 overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 backdrop-blur w-full max-w-[420px] justify-self-center"
+              className="blog-card group flex flex-col bg-slate-50/90 dark:bg-slate-900/80 rounded-3xl border border-gray-200/70 dark:border-slate-700/80 overflow-hidden shadow-md hover:shadow-2xl hover:shadow-cyber-accent/20 transition-shadow duration-300 backdrop-blur w-full max-w-[420px] justify-self-center"
             >
               <button
                 type="button"
