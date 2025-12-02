@@ -457,7 +457,8 @@ class OSSService:
                 result["shoot_time"] = exif_summary["shoot_time"].isoformat()
             
             # 生成高质量 WebP 缩略图
-            thumbnail_size = (400, 400)
+            # 增大缩略图尺寸以提高画质（从 400x400 提升到 1200x1200）
+            thumbnail_size = (1200, 1200)
             thumbnail = image.copy()
             thumbnail.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
             
@@ -466,10 +467,11 @@ class OSSService:
                 thumbnail = thumbnail.convert("RGBA" if "A" in thumbnail.mode else "RGB")
             
             thumbnail_output = io.BytesIO()
+            # 提高缩略图质量到 95（最高质量）
             thumbnail.save(
                 thumbnail_output,
                 format='WEBP',
-                quality=min(quality + 5, 95),
+                quality=95,  # 使用最高质量
                 method=6  # 更高压缩质量
             )
             thumbnail_content = thumbnail_output.getvalue()

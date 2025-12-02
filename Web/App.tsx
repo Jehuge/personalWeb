@@ -7,7 +7,6 @@ import { GalleryView } from './components/GalleryView';
 import { AIProjectView } from './components/AIProjectView';
 import { Footer } from './components/Footer';
 import { HomeView } from './components/HomeView';
-import { BackgroundFX } from './components/BackgroundFX';
 import { ScrollToTop } from './components/ScrollToTop';
 
 function AppContent() {
@@ -15,19 +14,10 @@ function AppContent() {
   const isHome = location.pathname === '/';
 
   return (
-    <div className={`relative min-h-screen text-gray-900 dark:text-gray-100 transition-colors duration-500 font-sans selection:bg-primary-500 selection:text-white overflow-hidden ${
-      isHome ? 'bg-gray-50 dark:bg-cyber-dark' : 'bg-[#eef2ff] dark:bg-[#050812]'
-    }`}>
-      {!isHome && (
-        <>
-          <BackgroundFX />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.18),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.25),_transparent_60%)]"></div>
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 opacity-30 blur-3xl bg-gradient-to-br from-primary-500/30 to-purple-500/20"></div>
-        </>
-      )}
+    <div className="app-background relative min-h-screen text-gray-900 dark:text-gray-100 transition-colors duration-500 font-sans selection:bg-primary-500 selection:text-white overflow-hidden">
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar />
-        <main className={`flex-1 ${isHome ? '' : 'pt-4'}`}>
+        <main className="flex-1 pt-20">
           <Routes>
             <Route path="/" element={<HomeView />} />
             <Route path="/blog" element={<BlogView />} />

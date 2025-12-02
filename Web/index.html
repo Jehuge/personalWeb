@@ -5,88 +5,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>多维创作者 - 个人空间</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: {
-              50: '#f0f9ff',
-              100: '#e0f2fe',
-              500: '#0ea5e9',
-              600: '#0284c7',
-              900: '#0c4a6e',
-            },
-            accent: {
-              500: '#8b5cf6', // Violet
-              600: '#7c3aed',
-            },
-            cyber: {
-              dark: '#020617', // slate-950
-              panel: '#0f172a', // slate-900
-              accent: '#06b6d4', // cyan-500
-              glow: '#8b5cf6', // violet-500
-            }
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-            display: ['Space Grotesk', 'sans-serif'],
-          },
-          animation: {
-            'fade-in': 'fadeIn 0.5s ease-out',
-            'slide-up': 'slideUp 0.6s ease-out',
-            'float': 'float 6s ease-in-out infinite',
-            'orbital': 'orbital 60s linear infinite',
-            'blob': 'blob 24s ease-in-out infinite',
-            'scan': 'scan 14s linear infinite',
-            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          },
-          // 性能优化：使用 GPU 加速的 transform 属性
-          willChange: {
-            'transform': 'transform',
-            'opacity': 'opacity',
-          },
-          keyframes: {
-            fadeIn: {
-              '0%': { opacity: '0' },
-              '100%': { opacity: '1' },
-            },
-            slideUp: {
-              '0%': { transform: 'translateY(20px)', opacity: '0' },
-              '100%': { transform: 'translateY(0)', opacity: '1' },
-            },
-            float: {
-              '0%, 100%': { transform: 'translateY(0)' },
-              '50%': { transform: 'translateY(-10px)' },
-            },
-            orbital: {
-              '0%': { transform: 'rotate(0deg) scale(1)' },
-              '50%': { transform: 'rotate(180deg) scale(1.05)' },
-              '100%': { transform: 'rotate(360deg) scale(1)' },
-            },
-            blob: {
-              '0%': { transform: 'translate3d(0,0,0) scale(1)' },
-              '33%': { transform: 'translate3d(5%, -2%, 0) scale(1.05)' },
-              '66%': { transform: 'translate3d(-3%, 2%, 0) scale(0.98)' },
-              '100%': { transform: 'translate3d(0,0,0) scale(1)' },
-            },
-            scan: {
-              '0%': { transform: 'translateX(-100%)', opacity: '0' },
-              '10%': { opacity: '0.25' },
-              '50%': { opacity: '0.6' },
-              '100%': { transform: 'translateX(100%)', opacity: '0' },
-            }
-          }
-        },
-      },
-    }
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/fonts/fonts.css" rel="stylesheet">
   <style>
+    :root {
+      /* 浅色模式背景色 - 柔和的暖灰色调，避免纯白 */
+      --bg-primary: #f5f7fa; /* 柔和的灰蓝色，比纯白更舒适 */
+      --bg-secondary: #eef2f6; /* 稍深的灰蓝色 */
+      
+      /* 深色模式背景色 - 柔和的深灰色调，避免纯黑 */
+      --bg-dark-primary: #0f1729; /* 柔和的深蓝灰色，不是纯黑 */
+      --bg-dark-secondary: #1a1f2e; /* 稍浅的深灰色 */
+    }
+    
     body {
       font-family: 'Inter', sans-serif;
+    }
+    
+    /* 统一的背景色设计 - 使用纯色保证性能，避免渐变带来的性能开销 */
+    .app-background {
+      background-color: var(--bg-primary);
+    }
+    
+    .dark .app-background {
+      background-color: var(--bg-dark-primary);
+    }
+    
+    /* 确保背景色过渡平滑 */
+    .app-background {
+      transition: background-color 0.3s ease;
     }
 
     /* 性能优化：页面不可见时暂停所有动画 */
@@ -404,6 +350,41 @@
     .dark .toc-scroll::-webkit-scrollbar-thumb:hover {
       background: #64748b;
     }
+
+    /* 瀑布流布局优化 */
+    .break-inside-avoid {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* 摄影作品卡片动画优化 */
+    @supports (display: grid) {
+      .columns-1,
+      .columns-2,
+      .columns-3,
+      .columns-4 {
+        column-gap: 1.5rem;
+      }
+    }
+
+    /* 图片悬停效果优化 - GPU 加速 */
+    .group:hover img {
+      will-change: transform;
+    }
+
+    /* 光晕效果优化 */
+    .group:hover .animate-pulse-slow {
+      will-change: transform, opacity;
+    }
+
+    /* 隐藏滚动条但保持滚动功能 */
+    .scrollbar-hide {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;  /* Chrome, Safari and Opera */
+    }
   </style>
   <script type="importmap">
 {
@@ -418,7 +399,7 @@
   <link rel="stylesheet" href="/index.css">
 </head>
 
-<body class="bg-gray-50 text-gray-900 dark:bg-[#0B1120] dark:text-gray-100 transition-colors duration-300 min-h-screen">
+<body class="bg-slate-50 text-gray-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

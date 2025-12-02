@@ -39,8 +39,9 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="sticky top-4 z-50 w-full max-w-7xl mx-auto px-4 md:px-6">
-      <div className="glass-card rounded-2xl px-6 sm:px-8">
+    <nav className="fixed top-0 left-0 right-0 z-50 w-full">
+      <div className="w-full">
+        <div className="bg-gradient-to-r from-slate-50 via-primary-50/30 to-slate-50 dark:from-slate-800 dark:via-primary-900/20 dark:to-slate-800 backdrop-blur-xl rounded-b-2xl px-4 sm:px-6 md:px-8 shadow-xl shadow-primary-500/10 dark:shadow-primary-500/5 border-b-2 border-primary-200/60 dark:border-primary-700/40">
         <div className="flex justify-between h-16 items-center">
           {/* Left side: Back button or Logo */}
           <div className="flex items-center gap-3">
@@ -73,15 +74,15 @@ export const Navbar: React.FC = () => {
                 key={item.id}
                 to={item.path}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${isActive(item.path)
-                  ? 'bg-gray-100 dark:bg-white/10 text-primary-600 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'
+                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-md shadow-primary-500/20 dark:shadow-primary-500/10 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
                   }`}
               >
                 {item.label}
               </Link>
             ))}
 
-            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
 
             {/* Theme Toggle */}
             <button
@@ -118,10 +119,12 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden mt-2 glass-card rounded-2xl overflow-hidden animate-slide-up">
+        <div className="fixed top-16 left-0 right-0 z-40 md:hidden mx-0 px-4">
+          <div className="bg-gradient-to-br from-slate-50 via-primary-50/40 to-slate-50 dark:from-slate-800 dark:via-primary-900/30 dark:to-slate-800 backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-primary-500/5 border-2 border-primary-200/60 dark:border-primary-700/40">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => (
               <Link
@@ -129,8 +132,8 @@ export const Navbar: React.FC = () => {
                 to={item.path}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`block w-full text-left px-3 py-3 rounded-xl text-base font-medium ${isActive(item.path)
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400'
                   }`}
               >
                 {item.label}
@@ -145,6 +148,7 @@ export const Navbar: React.FC = () => {
             >
               {theme === 'light' ? '切换到夜间模式' : '切换到日间模式'}
             </button>
+          </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -15,7 +15,6 @@ interface Heading {
 }
 
 const estimateReadTime = (content: string) => {
-  // 与首页保持一致：按字符数计算，每 500 字符 = 1 分钟
   return Math.max(1, Math.ceil((content?.length || 0) / 500));
 };
 
@@ -51,7 +50,8 @@ const extractHeadingsFromDOM = (): Heading[] => {
 const scrollToHeading = (id: string) => {
   const element = document.getElementById(id);
   if (element) {
-    const offset = 100; // 顶部偏移量
+    // 固定顶部栏高度约 80px，加上一些间距
+    const offset = 100;
     const elementPosition = element.getBoundingClientRect().top;
     const offsetPosition = elementPosition + window.pageYOffset - offset;
 
@@ -61,6 +61,179 @@ const scrollToHeading = (id: string) => {
     });
   }
 };
+
+// 性能优化：节流函数
+const throttle = <T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let lastCall = 0;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  
+  return (...args: Parameters<T>) => {
+    const now = Date.now();
+    const timeSinceLastCall = now - lastCall;
+    
+    if (timeSinceLastCall >= delay) {
+      lastCall = now;
+      func(...args);
+    } else {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        lastCall = Date.now();
+        func(...args);
+      }, delay - timeSinceLastCall);
+    }
+  };
+};
+
+// 使用 requestAnimationFrame 的节流
+const rafThrottle = <T extends (...args: any[]) => any>(
+  func: T
+): ((...args: Parameters<T>) => void) => {
+  let rafId: number | null = null;
+  
+  return (...args: Parameters<T>) => {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+    }
+    rafId = requestAnimationFrame(() => {
+      func(...args);
+      rafId = null;
+    });
+  };
+};
+
+// 检查页面是否可见
+const usePageVisibility = () => {
+  const [isVisible, setIsVisible] = useState(!document.hidden);
+  
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(!document.hidden);
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+  
+  return isVisible;
+};
+
+// 优化的 Markdown 内容组件 - 分块渲染
+const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () => void }>(({ content, onRenderComplete }) => {
+  const [renderedChunks, setRenderedChunks] = useState<string[]>([]);
+  const [isRendering, setIsRendering] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isVisible = usePageVisibility();
+  const renderTaskRef = useRef<number | null>(null);
+  
+  // 将内容按段落分割成块 - 增加块大小以减少渲染频率
+  const chunks = useMemo(() => {
+    if (!content) return [];
+    // 按双换行符分割（段落）
+    const paragraphs = content.split(/\n\n+/);
+    const result: string[] = [];
+    let currentChunk = '';
+    
+    // 每 5 个段落组成一个块，减少渲染频率（从 3 增加到 5）
+    // 对于短文章，直接一次性渲染
+    if (paragraphs.length <= 5) {
+      return [content];
+    }
+    
+    for (let i = 0; i < paragraphs.length; i++) {
+      currentChunk += paragraphs[i] + '\n\n';
+      if ((i + 1) % 5 === 0 || i === paragraphs.length - 1) {
+        result.push(currentChunk.trim());
+        currentChunk = '';
+      }
+    }
+    
+    return result.length > 0 ? result : [content];
+  }, [content]);
+  
+  // 分块渲染逻辑
+  useEffect(() => {
+    if (!isVisible) {
+      // 页面不可见时暂停渲染
+      return;
+    }
+    
+    setIsRendering(true);
+    setRenderedChunks([]);
+    
+    let currentIndex = 0;
+    const totalChunks = chunks.length;
+    
+    const renderNextChunk = () => {
+      if (currentIndex >= totalChunks || !isVisible) {
+        setIsRendering(false);
+        // 所有块渲染完成后，通知父组件
+        if (currentIndex >= totalChunks && onRenderComplete) {
+          // 延迟一点确保 DOM 已更新
+          setTimeout(() => {
+            onRenderComplete();
+          }, 100);
+        }
+        return;
+      }
+      
+      setRenderedChunks(prev => [...prev, chunks[currentIndex]]);
+      currentIndex++;
+      
+      // 使用 requestIdleCallback 在浏览器空闲时渲染下一块
+      // 增加延迟时间以减少渲染频率，降低功耗
+      if ('requestIdleCallback' in window) {
+        renderTaskRef.current = (window as any).requestIdleCallback(renderNextChunk, { timeout: 200 });
+      } else {
+        // 降级方案：增加延迟到 50ms，减少渲染频率
+        renderTaskRef.current = setTimeout(renderNextChunk, 50) as unknown as number;
+      }
+    };
+    
+    // 立即渲染第一块
+    if (totalChunks > 0) {
+      renderNextChunk();
+    } else {
+      setIsRendering(false);
+    }
+    
+    return () => {
+      if (renderTaskRef.current !== null) {
+        if ('requestIdleCallback' in window) {
+          (window as any).cancelIdleCallback(renderTaskRef.current);
+        } else {
+          clearTimeout(renderTaskRef.current);
+        }
+      }
+    };
+  }, [chunks, isVisible, onRenderComplete]);
+  
+  return (
+    <div ref={containerRef} className="markdown-content max-w-none leading-relaxed text-gray-700 dark:text-gray-200">
+      {renderedChunks.map((chunk, index) => (
+        <ReactMarkdown
+          key={index}
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw, rehypeSlug]}
+        >
+          {chunk}
+        </ReactMarkdown>
+      ))}
+      {isRendering && (
+        <div className="flex items-center justify-center py-4 text-sm text-gray-400">
+          <div className="animate-spin h-4 w-4 border-2 border-primary-500 rounded-full border-t-transparent mr-2" />
+          加载中...
+        </div>
+      )}
+    </div>
+  );
+});
+
+OptimizedMarkdownContent.displayName = 'OptimizedMarkdownContent';
 
 export const BlogView: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -74,14 +247,22 @@ export const BlogView: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  // 目录相关的 hooks（必须在顶层）
+  
+  // 目录相关的 hooks
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeHeading, setActiveHeading] = useState<string>('');
   const [tocExpanded, setTocExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const tocNavRef = useRef<HTMLElement>(null);
   const tocContainerRef = useRef<HTMLElement>(null);
-  const [tocTop, setTocTop] = useState(100); // 目录的 top 位置
+  const [tocTop, setTocTop] = useState(100);
+  
+  // 页面可见性
+  const isVisible = usePageVisibility();
+  
+  // 缓存 DOM 查询结果
+  const headingElementsCacheRef = useRef<Map<string, HTMLElement>>(new Map());
+  
   const PAGE_SIZE = 12;
 
   // 根据路由参数加载博客详情
@@ -89,16 +270,13 @@ export const BlogView: React.FC = () => {
     if (id) {
       const blogId = parseInt(id, 10);
       if (!isNaN(blogId)) {
-        // 如果博客已经在列表中，直接选择
         const post = posts.find(p => p.id === blogId);
         if (post) {
           setSelectedPost(post);
         } else {
-          // 如果博客不在当前列表中，通过 API 获取
           fetchBlog(blogId)
             .then(singleBlog => {
               setSelectedPost(singleBlog);
-              // 如果博客不在当前列表中，也添加到列表中以便后续使用
               if (!posts.find(p => p.id === blogId)) {
                 setPosts(prev => [singleBlog, ...prev]);
               }
@@ -114,7 +292,7 @@ export const BlogView: React.FC = () => {
     }
   }, [id, posts]);
 
-  // 监听来自首页的博客选择事件（用于从首页跳转）
+  // 监听来自首页的博客选择事件
   useEffect(() => {
     const handleSelectBlog = async (event: CustomEvent<{ blogId: number }>) => {
       const blogId = event.detail.blogId;
@@ -146,17 +324,18 @@ export const BlogView: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // 无限滚动加载
+  // 无限滚动加载 - 添加页面可见性检测
   useEffect(() => {
-    if (!hasMore || loading || loadingMore) return;
+    if (!hasMore || loading || loadingMore || !isVisible) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        // 只在页面可见时加载
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !document.hidden) {
           loadMorePosts();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: '200px' } // 提前 200px 开始加载
     );
 
     if (loadMoreRef.current) {
@@ -168,7 +347,7 @@ export const BlogView: React.FC = () => {
         observer.unobserve(loadMoreRef.current);
       }
     };
-  }, [hasMore, loading, loadingMore, selectedCategory]);
+  }, [hasMore, loading, loadingMore, selectedCategory, isVisible]);
 
   const loadMorePosts = async () => {
     if (loadingMore || !hasMore) return;
@@ -201,57 +380,158 @@ export const BlogView: React.FC = () => {
     ? posts
     : posts.filter(p => (p.category?.name?.trim() || '未分类') === selectedCategory);
 
-  // 在内容渲染后提取标题（只在有选中文章时执行）
+  // 标题提取触发标志
+  const [shouldExtractHeadings, setShouldExtractHeadings] = useState(false);
+  const renderCompleteRef = useRef(false);
+
+  // 当 Markdown 渲染完成时触发标题提取
+  const handleMarkdownRenderComplete = useCallback(() => {
+    renderCompleteRef.current = true;
+    setShouldExtractHeadings(true);
+  }, []);
+
+  // 当文章变化时，重置标志
   useEffect(() => {
-    if (!selectedPost) {
+    if (selectedPost) {
+      renderCompleteRef.current = false;
+      setShouldExtractHeadings(false);
       setHeadings([]);
+    }
+  }, [selectedPost?.id]);
+
+  // 优化的标题提取 - 监听渲染完成标志
+  useEffect(() => {
+    if (!selectedPost || !isVisible) {
+      setHeadings([]);
+      setShouldExtractHeadings(false);
       return;
     }
 
-    // 使用 setTimeout 确保 DOM 已更新
-    const timer = setTimeout(() => {
+    if (!shouldExtractHeadings) {
+      return;
+    }
+
+    const extractHeadings = () => {
       const extractedHeadings = extractHeadingsFromDOM();
       setHeadings(extractedHeadings);
-    }, 100);
+      
+      // 缓存标题元素
+      headingElementsCacheRef.current.clear();
+      extractedHeadings.forEach(heading => {
+        const element = document.getElementById(heading.id);
+        if (element) {
+          headingElementsCacheRef.current.set(heading.id, element);
+        }
+      });
+      
+      // 重置标志
+      setShouldExtractHeadings(false);
+    };
 
-    return () => clearTimeout(timer);
-  }, [selectedPost]);
+    // 使用 MutationObserver 监听 DOM 变化，确保所有标题都已渲染
+    let observer: MutationObserver | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  // 监听滚动，高亮当前阅读位置（只在有标题时执行）
+    if (contentRef.current) {
+      // 先延迟一点，确保所有块都已渲染
+      timeoutId = setTimeout(() => {
+        extractHeadings();
+        
+        // 如果还没提取到，使用 MutationObserver 继续监听
+        if (contentRef.current) {
+          observer = new MutationObserver(() => {
+            const headings = extractHeadingsFromDOM();
+            if (headings.length > 0) {
+              setHeadings(headings);
+              headingElementsCacheRef.current.clear();
+              headings.forEach(heading => {
+                const element = document.getElementById(heading.id);
+                if (element) {
+                  headingElementsCacheRef.current.set(heading.id, element);
+                }
+              });
+              setShouldExtractHeadings(false);
+              observer?.disconnect();
+            }
+          });
+
+          observer.observe(contentRef.current, {
+            childList: true,
+            subtree: true,
+          });
+
+          // 最多监听 3 秒
+          setTimeout(() => {
+            observer?.disconnect();
+            setShouldExtractHeadings(false);
+          }, 3000);
+        }
+      }, 500);
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (observer) observer.disconnect();
+    };
+  }, [selectedPost, isVisible, shouldExtractHeadings]);
+
+  // 优化的滚动监听 - 使用节流，减少更新频率以降低功耗
   useEffect(() => {
-    if (headings.length === 0) {
+    if (headings.length === 0 || !isVisible) {
       setActiveHeading('');
       return;
     }
 
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 150; // 偏移量
+    // 使用更激进的节流 - 每 200ms 最多更新一次
+    const handleScroll = throttle(() => {
+      // 固定顶部栏高度约 80px，加上一些偏移量
+      const scrollPosition = window.scrollY + 100;
 
+      // 从后往前查找，找到第一个位置小于等于滚动位置的标题
       for (let i = headings.length - 1; i >= 0; i--) {
         const heading = headings[i];
-        const element = document.getElementById(heading.id);
+        let element = headingElementsCacheRef.current.get(heading.id);
+        
+        if (!element) {
+          element = document.getElementById(heading.id);
+          if (element) {
+            headingElementsCacheRef.current.set(heading.id, element);
+          }
+        }
+        
         if (element) {
           const offsetTop = element.offsetTop;
           if (scrollPosition >= offsetTop) {
             setActiveHeading(heading.id);
-            break;
+            return;
           }
         }
       }
-    };
+      
+      // 如果没有找到，设置为第一个标题
+      if (headings.length > 0) {
+        setActiveHeading(headings[0].id);
+      }
+    }, 200); // 增加到 200ms，减少更新频率
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // 初始检查
 
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [headings]);
+  }, [headings, isVisible]);
 
-  // 目录自动滚动到当前激活的标题
+  // 目录自动滚动到当前激活的标题 - 使用节流减少滚动频率
+  const lastScrollTimeRef = useRef<number>(0);
   useEffect(() => {
-    if (!activeHeading || !tocNavRef.current) return;
+    if (!activeHeading || !tocNavRef.current || !isVisible) return;
+
+    // 限制滚动频率 - 至少间隔 500ms 才滚动一次
+    const now = Date.now();
+    if (now - lastScrollTimeRef.current < 500) {
+      return;
+    }
 
     const nav = tocNavRef.current;
-    // 通过 data-heading-id 属性找到激活的按钮
     const activeButton = nav.querySelector(`[data-heading-id="${activeHeading}"]`) as HTMLElement;
     
     if (!activeButton) return;
@@ -259,71 +539,62 @@ export const BlogView: React.FC = () => {
     const navRect = nav.getBoundingClientRect();
     const buttonRect = activeButton.getBoundingClientRect();
 
-    // 如果激活的按钮不在可视区域内，则滚动
-    if (buttonRect.top < navRect.top) {
-      // 按钮在可视区域上方，向上滚动
-      nav.scrollTo({
-        top: activeButton.offsetTop - nav.offsetTop - 20,
-        behavior: 'smooth'
-      });
-    } else if (buttonRect.bottom > navRect.bottom) {
-      // 按钮在可视区域下方，向下滚动
-      nav.scrollTo({
-        top: activeButton.offsetTop - nav.offsetTop - nav.clientHeight + activeButton.offsetHeight + 20,
-        behavior: 'smooth'
-      });
-    }
-  }, [activeHeading]);
-
-  // 检测导航栏可见性，动态调整目录位置
-  useEffect(() => {
-    if (!selectedPost) return;
-
-    const handleScroll = () => {
-      // 查找导航栏元素
-      const navbar = document.querySelector('nav');
-      if (!navbar) return;
-
-      const navbarRect = navbar.getBoundingClientRect();
-      const isNavbarVisible = navbarRect.bottom > 0;
-
-      // 计算目录应该的位置
-      let newTop = 100; // 默认位置（导航栏可见时）
-      
-      if (!isNavbarVisible) {
-        // 导航栏不可见时，目录往上移
-        newTop = 20; // 更靠近顶部
+    // 只有在按钮完全不可见时才滚动
+    if (buttonRect.top < navRect.top || buttonRect.bottom > navRect.bottom) {
+      lastScrollTimeRef.current = now;
+      if (buttonRect.top < navRect.top) {
+        nav.scrollTo({
+          top: activeButton.offsetTop - nav.offsetTop - 20,
+          behavior: 'smooth'
+        });
+      } else if (buttonRect.bottom > navRect.bottom) {
+        nav.scrollTo({
+          top: activeButton.offsetTop - nav.offsetTop - nav.clientHeight + activeButton.offsetHeight + 20,
+          behavior: 'smooth'
+        });
       }
+    }
+  }, [activeHeading, isVisible]);
 
-      // 确保目录不会超出视口底部或遮挡 Footer
+  // 优化的目录位置检测 - 顶部栏现在是固定的，所以目录位置也是固定的
+  useEffect(() => {
+    if (!selectedPost || !isVisible) return;
+
+    const handleScroll = throttle(() => {
+      // 固定顶部栏高度约 80px，目录从 100px 开始
+      let newTop = 100;
+
       const viewportHeight = window.innerHeight;
       const footer = document.querySelector('footer');
       const footerRect = footer?.getBoundingClientRect();
       
-      // 估算目录高度（标题 + 内容区域）
-      const estimatedTocHeight = 400; // 可以根据实际情况调整
+      // 目录高度
+      const estimatedTocHeight = 480;
       
-      // 如果底部栏可见，确保目录不遮挡
+      // 如果 footer 进入视口，调整目录位置避免重叠
       if (footerRect && footerRect.top < viewportHeight) {
+        // 确保目录完全在footer上方，留出20px间距
         const maxTop = footerRect.top - estimatedTocHeight - 20;
         if (newTop > maxTop) {
-          newTop = Math.max(20, maxTop);
+          newTop = Math.max(100, maxTop);
         }
       }
       
-      // 确保目录不会超出视口底部
-      if (newTop + estimatedTocHeight > viewportHeight - 20) {
-        newTop = Math.max(20, viewportHeight - estimatedTocHeight - 20);
+      // 确保目录不会超出视口，同时考虑footer高度
+      const footerHeight = footerRect ? footerRect.height : 0;
+      const availableHeight = viewportHeight - newTop - footerHeight - 20;
+      if (availableHeight < estimatedTocHeight) {
+        newTop = Math.max(100, viewportHeight - estimatedTocHeight - footerHeight - 20);
       }
 
       setTocTop(newTop);
-    };
+    }, 300); // 增加到 300ms，进一步减少更新频率
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // 初始检查
+    handleScroll();
 
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [selectedPost]);
+  }, [selectedPost, isVisible]);
 
   if (loading) {
     return (
@@ -348,21 +619,18 @@ export const BlogView: React.FC = () => {
     return (
       <div className="max-w-7xl mx-auto pt-4 pb-12 px-4 md:px-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* 目录侧边栏占位 - 保持布局 */}
-          {headings.length > 0 && (
-            <aside className="hidden lg:block lg:w-64 flex-shrink-0">
-              <div className="w-full" />
-            </aside>
-          )}
+          {/* 目录侧边栏占位 - 始终显示，避免内容占用目录空间 */}
+          <aside className="hidden lg:block lg:w-64 flex-shrink-0">
+            <div className="w-full" />
+          </aside>
 
           {/* 文章内容 */}
-          <article className="flex-1 min-w-0 bg-white/95 dark:bg-gray-900/80 rounded-3xl shadow-xl overflow-hidden border border-gray-100/60 dark:border-gray-800/80 backdrop-blur-2xl">
+          <article className="flex-1 min-w-0 bg-slate-50/95 dark:bg-slate-800/80 rounded-3xl shadow-xl overflow-hidden border border-gray-200/60 dark:border-slate-700/80 backdrop-blur-2xl">
             {selectedPost.cover_image && (
-              <img
+              <LazyImage
                 src={selectedPost.cover_image}
                 alt={selectedPost.title}
                 className="w-full h-auto object-cover"
-                loading="lazy"
               />
             )}
 
@@ -388,20 +656,18 @@ export const BlogView: React.FC = () => {
                 ))}
               </div>
 
-              <div ref={contentRef} className="markdown-content max-w-none leading-relaxed text-gray-700 dark:text-gray-200">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw, rehypeSlug]}
-                >
-                  {selectedPost.content}
-                </ReactMarkdown>
+              <div ref={contentRef}>
+                <OptimizedMarkdownContent 
+                  content={selectedPost.content} 
+                  onRenderComplete={handleMarkdownRenderComplete}
+                />
               </div>
             </div>
           </article>
         </div>
 
-        {/* 固定目录 - 始终在视口中可见 */}
-        {headings.length > 0 && (
+        {/* 固定目录 - 始终显示容器，避免突然出现 */}
+        {selectedPost && (
           <>
             {/* 移动端目录 */}
             <div className="lg:hidden fixed bottom-4 right-4 z-40">
@@ -415,7 +681,7 @@ export const BlogView: React.FC = () => {
                 </svg>
               </button>
               {tocExpanded && (
-                <div className="absolute bottom-16 right-0 w-72 glass-card rounded-2xl border border-gray-200/60 dark:border-gray-800/80 p-4 shadow-xl flex flex-col" style={{ maxHeight: '60vh' }}>
+                <div className="absolute bottom-16 right-0 w-72 glass-card rounded-2xl border border-gray-200/60 dark:border-gray-800/80 p-4 shadow-xl flex flex-col animate-fade-in" style={{ maxHeight: '50vh' }}>
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -432,40 +698,48 @@ export const BlogView: React.FC = () => {
                       </svg>
                     </button>
                   </div>
-                  <nav className="space-y-1 overflow-y-auto flex-1 min-h-0 toc-scroll" style={{ maxHeight: 'calc(60vh - 80px)' }}>
-                    {headings.map((heading) => (
-                      <button
-                        key={heading.id}
-                        data-heading-id={heading.id}
-                        onClick={() => {
-                          scrollToHeading(heading.id);
-                          setTocExpanded(false);
-                        }}
-                        className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
-                          activeHeading === heading.id
-                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
-                        }`}
-                        style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem` }}
-                      >
-                        <span className="truncate block">{heading.text}</span>
-                      </button>
-                    ))}
+                  <nav className="space-y-1 overflow-y-auto flex-1 min-h-0 toc-scroll" style={{ maxHeight: 'calc(50vh - 80px)' }}>
+                    {headings.length > 0 ? (
+                      headings.map((heading) => (
+                        <button
+                          key={heading.id}
+                          data-heading-id={heading.id}
+                          onClick={() => {
+                            scrollToHeading(heading.id);
+                            setTocExpanded(false);
+                          }}
+                          className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                            activeHeading === heading.id
+                              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                          }`}
+                          style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem` }}
+                        >
+                          <span className="truncate block">{heading.text}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-center py-8 text-sm text-gray-400">
+                        <div className="animate-spin h-4 w-4 border-2 border-primary-500 rounded-full border-t-transparent mr-2" />
+                        加载目录中...
+                      </div>
+                    )}
                   </nav>
                 </div>
               )}
             </div>
 
-            {/* 桌面端固定目录 - 左侧与导航栏对齐，动态调整位置 */}
+            {/* 桌面端固定目录 */}
             <aside 
               ref={tocContainerRef}
-              className="hidden lg:block fixed z-40 w-64 toc-fixed" 
+              className="hidden lg:block fixed z-40 w-64 toc-fixed animate-fade-in" 
               style={{ 
                 top: `${tocTop}px`,
-                transition: 'top 0.2s ease-out',
+                transition: 'top 0.2s ease-out, opacity 0.3s ease-out',
+                opacity: headings.length > 0 ? 1 : 0.7,
               }}
             >
-              <div className="glass-card rounded-2xl border border-gray-200/60 dark:border-gray-800/80 p-5 backdrop-blur-sm shadow-xl flex flex-col" style={{ maxHeight: `calc(100vh - ${tocTop + 40}px)` }}>
+              <div className="glass-card rounded-2xl border border-gray-200/60 dark:border-gray-800/80 p-5 backdrop-blur-sm shadow-xl flex flex-col" style={{ maxHeight: '480px' }}>
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2 flex-shrink-0">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -475,23 +749,30 @@ export const BlogView: React.FC = () => {
                 <nav 
                   ref={tocNavRef}
                   className="space-y-1 overflow-y-auto flex-1 min-h-0 toc-scroll" 
-                  style={{ maxHeight: 'calc(100vh - 200px)' }}
+                  style={{ maxHeight: '420px' }}
                 >
-                  {headings.map((heading) => (
-                    <button
-                      key={heading.id}
-                      data-heading-id={heading.id}
-                      onClick={() => scrollToHeading(heading.id)}
-                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
-                        activeHeading === heading.id
-                          ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
-                      }`}
-                      style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem` }}
-                    >
-                      <span className="truncate block">{heading.text}</span>
-                    </button>
-                  ))}
+                  {headings.length > 0 ? (
+                    headings.map((heading) => (
+                      <button
+                        key={heading.id}
+                        data-heading-id={heading.id}
+                        onClick={() => scrollToHeading(heading.id)}
+                        className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                          activeHeading === heading.id
+                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                        }`}
+                        style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem` }}
+                      >
+                        <span className="truncate block">{heading.text}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center py-8 text-sm text-gray-400">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary-500 rounded-full border-t-transparent mr-2" />
+                      加载目录中...
+                    </div>
+                  )}
                 </nav>
               </div>
             </aside>
@@ -502,8 +783,8 @@ export const BlogView: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-12 px-4 md:px-6">
-      <div className="mb-12 text-center md:text-left space-y-4">
+    <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
+      <div className="mb-16 text-center md:text-left space-y-6">
         <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 text-xs font-semibold tracking-[0.3em] uppercase">
           Blog
         </div>
@@ -520,7 +801,7 @@ export const BlogView: React.FC = () => {
               onClick={() => setSelectedCategory(cat)}
               className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat
                   ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30'
-                  : 'bg-white/90 dark:bg-gray-900/60 text-gray-600 dark:text-gray-300 border border-gray-200/70 dark:border-gray-700 hover:border-primary-300'
+                  : 'bg-slate-50/90 dark:bg-slate-800/60 text-gray-600 dark:text-gray-300 border border-gray-200/70 dark:border-slate-700 hover:border-primary-300'
                 }`}
             >
               {cat}
@@ -540,7 +821,7 @@ export const BlogView: React.FC = () => {
           return (
             <article
               key={post.id}
-              className="group flex flex-col bg-white/90 dark:bg-gray-900/70 rounded-3xl border border-gray-100/70 dark:border-gray-800 overflow-hidden shadow-md hover:shadow-2xl transition-all backdrop-blur w-full max-w-[420px] justify-self-center"
+              className="group flex flex-col bg-slate-50/90 dark:bg-slate-800/70 rounded-3xl border border-gray-200/70 dark:border-slate-700 overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 backdrop-blur w-full max-w-[420px] justify-self-center"
             >
               <button
                 type="button"
@@ -617,3 +898,4 @@ export const BlogView: React.FC = () => {
     </div>
   );
 };
+

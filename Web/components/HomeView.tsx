@@ -197,7 +197,7 @@ export const HomeView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-cyber-dark">
+      <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900">
         <div className="relative">
           <div className="w-16 h-16 border-4 border-cyber-accent/30 dark:border-cyber-accent/30 rounded-full"></div>
           <div className="absolute top-0 left-0 w-16 h-16 border-4 border-cyber-accent dark:border-cyber-accent border-t-transparent rounded-full animate-spin"></div>
@@ -207,10 +207,10 @@ export const HomeView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen font-sans selection:bg-cyber-accent/30 selection:text-white overflow-x-hidden bg-gray-50 dark:bg-cyber-dark text-gray-900 dark:text-white">
+    <div className="min-h-screen font-sans selection:bg-cyber-accent/30 selection:text-white overflow-x-hidden bg-slate-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
       
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Abstract Background Elements - 优化：减少 blur 半径 */}
         <div className="absolute inset-0 z-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyber-glow/10 dark:bg-cyber-glow/20 rounded-full blur-[64px] dark:blur-[80px] animate-pulse-slow will-change-transform"></div>
@@ -287,7 +287,7 @@ export const HomeView: React.FC = () => {
 
       {/* AI & Tech Projects Section */}
       {projects.length > 0 && (
-        <section id="projects" className="py-24 bg-white dark:bg-slate-950 relative">
+        <section id="projects" className="py-24 bg-slate-100 dark:bg-slate-800 relative">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="px-6 sm:px-8">
             <div className="flex items-center gap-4 mb-16">
@@ -305,7 +305,7 @@ export const HomeView: React.FC = () => {
                 return (
                 <div 
                   key={project.id} 
-                  className="group relative bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden hover:border-cyber-accent/50 dark:hover:border-cyber-accent/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] dark:hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] cursor-pointer"
+                  className="group relative bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/50 rounded-2xl overflow-hidden hover:border-cyber-accent/50 dark:hover:border-cyber-accent/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] dark:hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] cursor-pointer"
                   onClick={() => window.open(projectUrl, '_blank')}
                 >
                   <div className="aspect-video overflow-hidden">
@@ -365,7 +365,7 @@ export const HomeView: React.FC = () => {
 
       {/* Photography Section */}
       {photos.length > 0 && (
-        <section id="photography" className="py-24 bg-gray-100 dark:bg-cyber-dark relative">
+        <section id="photography" className="py-24 bg-slate-50 dark:bg-slate-900 relative">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="px-6 sm:px-8">
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
@@ -421,7 +421,7 @@ export const HomeView: React.FC = () => {
 
       {/* Blog Section */}
       {blogs.length > 0 && (
-        <section id="blog" className="py-24 bg-white dark:bg-slate-950 relative border-t border-gray-200 dark:border-white/5">
+        <section id="blog" className="py-24 bg-slate-100 dark:bg-slate-800 relative border-t border-gray-200 dark:border-white/5">
           <div className="max-w-4xl mx-auto px-4 md:px-6">
             <div className="flex items-center gap-4 mb-16 justify-center">
               <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-xl">
@@ -436,7 +436,7 @@ export const HomeView: React.FC = () => {
               {blogs.map((post) => (
                 <article 
                   key={post.id} 
-                  className="group relative bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-900 border border-gray-200 dark:border-white/5 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 p-8 rounded-3xl transition-all duration-300 cursor-pointer"
+                  className="group relative bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700/50 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 p-8 rounded-3xl transition-all duration-300 cursor-pointer"
                   onClick={() => navigate(`/blog/${post.id}`)}
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
