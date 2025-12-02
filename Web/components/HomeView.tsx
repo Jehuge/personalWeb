@@ -4,6 +4,7 @@ import { BlogPost, PhotoWork, AIDemo } from '../types';
 import { fetchHomeOverview } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 import { useTheme } from './ThemeContext';
+import Loader from './Loader';
 
 // 从列表中随机取出若干元素（不修改原数组）
 const pickRandomItems = <T,>(items: T[], count: number): T[] => {
@@ -173,6 +174,9 @@ export const HomeView: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      const MIN_LOADING_MS = 900;
+      const start = performance.now();
+
       try {
         const data = await fetchHomeOverview();
         const allBlogs: BlogPost[] = data.blogs || [];
@@ -191,7 +195,13 @@ export const HomeView: React.FC = () => {
       } catch (err) {
         console.error('Failed to load homepage data', err);
       } finally {
-        setLoading(false);
+        const elapsed = performance.now() - start;
+        const remaining = MIN_LOADING_MS - elapsed;
+        if (remaining > 0) {
+          setTimeout(() => setLoading(false), remaining);
+        } else {
+          setLoading(false);
+        }
       }
     };
     loadData();
@@ -222,12 +232,7 @@ export const HomeView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-cyber-accent/30 dark:border-cyber-accent/30 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-cyber-accent dark:border-cyber-accent border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
+      <Loader fullscreen />
     );
   }
 

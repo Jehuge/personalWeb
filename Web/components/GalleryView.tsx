@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
 import { fetchPhotos, fetchPhoto } from '../services/dataService';
 import { LazyImage } from './LazyImage';
+import Loader from './Loader';
 
 // 检查页面是否可见
 const usePageVisibility = () => {
@@ -98,6 +99,7 @@ export const GalleryView: React.FC = () => {
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('全部');
@@ -115,34 +117,67 @@ export const GalleryView: React.FC = () => {
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
   const isVisible = usePageVisibility();
 
-  // 根据路由参数加载照片详情
+  // 根据路由参数加载照片详情（带最小加载时间与统一 Loader）
   useEffect(() => {
-    if (id) {
-      const photoId = parseInt(id, 10);
-      if (!isNaN(photoId)) {
-        // 如果照片已经在列表中，直接选择
-        const photo = photos.find(p => p.id === photoId);
-        if (photo) {
-          setSelectedPhoto(photo);
-        } else {
-          // 如果照片不在当前列表中，通过 API 获取
-          fetchPhoto(photoId)
-            .then(singlePhoto => {
-              setSelectedPhoto(singlePhoto);
-              // 如果照片不在当前列表中，也添加到列表中以便后续使用
-              if (!photos.find(p => p.id === photoId)) {
-                setPhotos(prev => [singlePhoto, ...prev]);
+    let cancelled = false;
+
+    const loadDetail = async () => {
+      if (id) {
+        const photoId = parseInt(id, 10);
+        if (!isNaN(photoId)) {
+          const MIN_LOADING_MS = 900;
+          const start = performance.now();
+          setDetailLoading(true);
+
+          try {
+            // 如果照片已经在列表中，直接选择
+            const photo = photos.find(p => p.id === photoId);
+            if (photo) {
+              if (!cancelled) {
+                setSelectedPhoto(photo);
               }
-            })
-            .catch(error => {
+            } else {
+              // 如果照片不在当前列表中，通过 API 获取
+              const singlePhoto = await fetchPhoto(photoId);
+              if (!cancelled) {
+                setSelectedPhoto(singlePhoto);
+                // 如果照片不在当前列表中，也添加到列表中以便后续使用
+                if (!photos.find(p => p.id === photoId)) {
+                  setPhotos(prev => [singlePhoto, ...prev]);
+                }
+              }
+            }
+          } catch (error) {
+            if (!cancelled) {
               console.error('Failed to fetch photo:', error);
               setError('照片加载失败，请稍后重试');
-            });
+            }
+          } finally {
+            const elapsed = performance.now() - start;
+            const remaining = MIN_LOADING_MS - elapsed;
+            const finish = () => {
+              if (!cancelled) {
+                setDetailLoading(false);
+              }
+            };
+            if (remaining > 0) {
+              setTimeout(finish, remaining);
+            } else {
+              finish();
+            }
+          }
         }
+      } else {
+        setSelectedPhoto(null);
+        setDetailLoading(false);
       }
-    } else {
-      setSelectedPhoto(null);
-    }
+    };
+
+    loadDetail();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, photos]);
 
   // 监听来自首页的图片选择事件（用于从首页跳转）
@@ -213,6 +248,9 @@ export const GalleryView: React.FC = () => {
     setPhotos([]);
     setCurrentPage(0);
     setHasMore(true);
+    const MIN_LOADING_MS = 900;
+    const start = performance.now();
+
     fetchPhotos({ skip: 0, limit: PAGE_SIZE })
       .then(data => {
         setPhotos(data);
@@ -223,7 +261,15 @@ export const GalleryView: React.FC = () => {
         console.error('Failed to load photos', err);
         setError('作品加载失败，请稍后再试');
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        const elapsed = performance.now() - start;
+        const remaining = MIN_LOADING_MS - elapsed;
+        if (remaining > 0) {
+          setTimeout(() => setLoading(false), remaining);
+        } else {
+          setLoading(false);
+        }
+      });
   }, []);
 
   // 无限滚动加载 - 添加页面可见性检测
@@ -364,11 +410,7 @@ export const GalleryView: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center p-20">
-        <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent" />
-      </div>
-    );
+    return <Loader />;
   }
 
   if (error) {
@@ -377,6 +419,10 @@ export const GalleryView: React.FC = () => {
         {error}
       </div>
     );
+  }
+
+  if (detailLoading) {
+    return <Loader />;
   }
 
   if (selectedPhoto) {
@@ -388,9 +434,9 @@ export const GalleryView: React.FC = () => {
     return (
       <div className="w-full py-12 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto bg-slate-50 dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden p-6 lg:p-10">
-          <div className="grid gap-8 lg:gap-16 lg:grid-cols-[1.8fr,1fr] items-start">
-            {/* 图片区域 - 左侧 */}
-            <div className="space-y-6 lg:sticky lg:top-24">
+          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+            {/* 图片区域 - 左侧（保持在左） */}
+            <div className="lg:flex-1 space-y-6 lg:sticky lg:top-24 w-full">
               <div
                 className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl"
                 style={{ aspectRatio: detailAspectRatio }}
@@ -420,7 +466,7 @@ export const GalleryView: React.FC = () => {
             </div>
 
             {/* 信息区域 - 右侧 */}
-            <div className="space-y-6 lg:space-y-8">
+            <div className="lg:w-96 xl:w-[28rem] space-y-6 lg:space-y-8 w-full">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold tracking-wide text-gray-600 dark:text-gray-300">

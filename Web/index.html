@@ -17,6 +17,12 @@
       --bg-dark-secondary: #1a1f2e; /* 稍浅的深灰色 */
     }
     
+    html {
+      /* 始终预留滚动条空间，避免不同页面内容高度不同时触发布局抖动 */
+      overflow-y: scroll;
+      scrollbar-gutter: stable;
+    }
+
     body {
       font-family: 'Inter', sans-serif;
       color: #0f172a;
@@ -102,6 +108,11 @@
     /* Markdown content styles */
     .markdown-content {
       line-height: 1.8;
+      color: #1f2933;
+    }
+
+    .dark .markdown-content {
+      color: #d6e3ff;
     }
 
     .markdown-content h1,
@@ -114,6 +125,16 @@
       margin-top: 1.5em;
       margin-bottom: 0.75em;
       line-height: 1.3;
+      color: #0f172a;
+    }
+
+    .dark .markdown-content h1,
+    .dark .markdown-content h2,
+    .dark .markdown-content h3,
+    .dark .markdown-content h4,
+    .dark .markdown-content h5,
+    .dark .markdown-content h6 {
+      color: #f8fbff;
     }
 
     .markdown-content h1 {
@@ -146,16 +167,31 @@
 
     .markdown-content p {
       margin-bottom: 1em;
+      color: inherit;
+    }
+
+    .dark .markdown-content p {
+      color: #cfd8f6;
     }
 
     .markdown-content ul,
     .markdown-content ol {
       margin: 1em 0;
       padding-left: 2em;
+      color: inherit;
+    }
+
+    .dark .markdown-content ul,
+    .dark .markdown-content ol {
+      color: #cbd5f5;
     }
 
     .markdown-content li {
       margin: 0.5em 0;
+    }
+
+    .dark .markdown-content li {
+      color: #cbd5f5;
     }
 
     .markdown-content blockquote {

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AIDemo, AIProject } from '../types';
 import { fetchAIDemos, fetchAIProjects } from '../services/dataService';
 import PlayButton from './PlayButton';
+import Loader from './Loader';
 
 // 检查页面是否可见
 const usePageVisibility = () => {
@@ -75,6 +76,9 @@ export const AIProjectView: React.FC = () => {
   // 初始加载 AI Projects（仅用于 Spotlight，只加载少量数据）
   useEffect(() => {
     setProjectsLoading(true);
+    const MIN_LOADING_MS = 900;
+    const start = performance.now();
+
     fetchAIProjects({ skip: 0, limit: 5 })
       .then((data) => {
         setProjects(data);
@@ -82,7 +86,15 @@ export const AIProjectView: React.FC = () => {
       .catch((err) => {
         console.error('Failed to load AI projects', err);
       })
-      .finally(() => setProjectsLoading(false));
+      .finally(() => {
+        const elapsed = performance.now() - start;
+        const remaining = MIN_LOADING_MS - elapsed;
+        if (remaining > 0) {
+          setTimeout(() => setProjectsLoading(false), remaining);
+        } else {
+          setProjectsLoading(false);
+        }
+      });
   }, []);
 
   // 初始加载 AI Demos
@@ -91,6 +103,9 @@ export const AIProjectView: React.FC = () => {
     setDemos([]);
     setDemosPage(0);
     setDemosHasMore(true);
+    const MIN_LOADING_MS = 900;
+    const start = performance.now();
+
     fetchAIDemos({ skip: 0, limit: DEMOS_PAGE_SIZE })
       .then((data) => {
         setDemos(data);
@@ -101,7 +116,15 @@ export const AIProjectView: React.FC = () => {
         console.error('Failed to load AI demos', err);
         setDemosError('AI Demo 列表暂时不可用。');
       })
-      .finally(() => setDemosLoading(false));
+      .finally(() => {
+        const elapsed = performance.now() - start;
+        const remaining = MIN_LOADING_MS - elapsed;
+        if (remaining > 0) {
+          setTimeout(() => setDemosLoading(false), remaining);
+        } else {
+          setDemosLoading(false);
+        }
+      });
   }, []);
 
   // AI Demos 无限滚动 - 添加页面可见性检测
@@ -154,6 +177,10 @@ export const AIProjectView: React.FC = () => {
   const featuredProject = useMemo(() => {
     return projects.find((p) => p.is_featured) || projects[0];
   }, [projects]);
+
+  if (projectsLoading && demosLoading) {
+    return <Loader />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">

@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from './ThemeContext';
+import ThemeSwitch from './ThemeSwitch';
 
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleMobileThemeToggle = () => {
+    toggleTheme();
+    setIsMobileMenuOpen(false);
+  };
 
   const navItems = [
     { id: 'home', path: '/', label: '首页' },
@@ -72,40 +78,44 @@ export const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center space-x-2">
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
-              const shared = 'px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-300';
+              const shared =
+                'relative px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-300 overflow-hidden group';
               const activeClass =
-                'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/40 ring-1 ring-white/70 dark:bg-[#cfe2ff] dark:text-[#0b1120] dark:shadow-[#a5b4fc]/40';
+                'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/40 ring-1 ring-white/70 dark:bg-[#cfe2ff] dark:text-[#0b1120] dark:shadow-[#a5b4fc]/40 translate-y-0';
               const inactiveClass =
-                'text-gray-700 hover:text-primary-600 hover:bg-primary-50 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20';
+                'text-gray-700 hover:text-primary-600 hover:bg-primary-50 hover:-translate-y-[1px] hover:shadow-md hover:shadow-primary-500/20 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20 dark:hover:shadow-[0_0_24px_rgba(129,140,248,0.45)]';
               return (
                 <Link
                   key={item.id}
                   to={item.path}
                   className={`${shared} ${isCurrent ? activeClass : inactiveClass}`}
                 >
-                  {item.label}
+                  <span className="relative z-10">{item.label}</span>
+                  {/* 柔和的背景光晕 */}
+                  <span
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/40 via-purple-500/25 to-sky-400/30 blur-xl transition-opacity duration-300 ${
+                      isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
+                    }`}
+                  />
+                  {/* 底部滑动条指示器 */}
+                  <span
+                    className={`pointer-events-none absolute left-4 right-4 -bottom-1 h-[2px] rounded-full bg-gradient-to-r from-primary-500 via-sky-400 to-purple-500 transform origin-center transition-transform duration-300 ${
+                      isCurrent ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                    }`}
+                  />
                 </Link>
               );
             })}
 
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2" />
 
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700/70 transition-colors border border-transparent dark:border-slate-600/60"
-              aria-label="切换主题"
-            >
-              {theme === 'light' ? (
-                <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              )}
-            </button>
+            {/* Theme Toggle - BB8 Switch */}
+            <ThemeSwitch
+              checked={theme === 'dark'}
+              onToggle={toggleTheme}
+              size={6}
+              className="translate-y-[4px]"
+            />
           </div>
 
           {/* Mobile menu button */}
@@ -150,15 +160,17 @@ export const Navbar: React.FC = () => {
                 </Link>
               );
             })}
-            <button
-              onClick={() => {
-                toggleTheme();
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full text-left px-3 py-3 rounded-xl text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              {theme === 'light' ? '切换到夜间模式' : '切换到日间模式'}
-            </button>
+            <div className="flex items-center justify-between px-3 py-3">
+              <span className="text-base font-medium text-gray-700 dark:text-gray-300">
+                主题
+              </span>
+              <ThemeSwitch
+                checked={theme === 'dark'}
+                onToggle={handleMobileThemeToggle}
+                size={7}
+                className="translate-y-[4px]"
+              />
+            </div>
           </div>
           </div>
         </div>
