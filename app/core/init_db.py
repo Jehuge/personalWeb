@@ -6,7 +6,7 @@ import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
 from app.core.database import Base
 from app.core.config import settings
-from app.models import user, blog, photo, ai_project  # noqa
+from app.models import user, blog, photo, ai_project, ai_demo, ai_image  # noqa
 
 
 async def init_db():

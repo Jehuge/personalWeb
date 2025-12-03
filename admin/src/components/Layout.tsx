@@ -61,6 +61,11 @@ const menuItems = [
     label: 'AI Lab Demo',
   },
   {
+    key: '/ai-images',
+    icon: <PictureOutlined />,
+    label: 'AI 图片',
+  },
+  {
     key: '/users',
     icon: <TeamOutlined />,
     label: '用户管理',
@@ -85,6 +90,8 @@ const routeTitles: Record<string, string> = {
   '/ai-projects/new': '新建AI项目',
   '/ai-demos': 'AI Lab Demo',
   '/ai-demos/new': '新建AI Demo',
+  '/ai-images': 'AI 图片管理',
+  '/ai-images/new': '新建 AI 图片',
   '/users': '用户管理',
   '/media': '媒体资源',
 }
@@ -94,6 +101,7 @@ const dynamicRouteMatchers: Array<{ pattern: RegExp; title: string }> = [
   { pattern: /^\/photos\/\d+$/, title: '编辑照片' },
   { pattern: /^\/ai-projects\/\d+$/, title: '编辑AI项目' },
   { pattern: /^\/ai-demos\/\d+$/, title: '编辑AI Demo' },
+  { pattern: /^\/ai-images\/\d+$/, title: '编辑 AI 图片' },
 ]
 
 const baseTab = { key: '/', label: '仪表盘', closable: false }
@@ -243,4 +251,3 @@ export default function Layout() {
     </AntLayout>
   )
 }
-

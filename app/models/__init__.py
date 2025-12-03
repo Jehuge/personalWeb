@@ -3,6 +3,7 @@ from app.models.blog import Blog, Category, Tag
 from app.models.photo import Photo, PhotoCategory
 from app.models.ai_project import AIProject
 from app.models.ai_demo import AIDemo
+from app.models.ai_image import AIImage
 
 __all__ = [
     "User",
@@ -13,5 +14,5 @@ __all__ = [
     "PhotoCategory",
     "AIProject",
     "AIDemo",
+    "AIImage",
 ]
-

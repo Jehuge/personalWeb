@@ -79,7 +79,7 @@ export const Navbar: React.FC = () => {
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
-                'relative px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-300 overflow-hidden group';
+                'relative px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
               const activeClass =
                 'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/40 ring-1 ring-white/70 dark:bg-[#cfe2ff] dark:text-[#0b1120] dark:shadow-[#a5b4fc]/40 translate-y-0';
               const inactiveClass =
@@ -90,7 +90,13 @@ export const Navbar: React.FC = () => {
                   to={item.path}
                   className={`${shared} ${isCurrent ? activeClass : inactiveClass}`}
                 >
-                  <span className="relative z-10">{item.label}</span>
+                  <span
+                    className={`relative z-10 transition-transform duration-300 ${
+                      isCurrent ? 'scale-105' : 'group-hover:scale-105'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                   {/* 柔和的背景光晕 */}
                   <span
                     className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/40 via-purple-500/25 to-sky-400/30 blur-xl transition-opacity duration-300 ${
@@ -140,11 +146,13 @@ export const Navbar: React.FC = () => {
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="fixed top-16 left-0 right-0 z-40 md:hidden mx-0 px-4">
-          <div className="bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-[rgba(15,23,42,0.98)] dark:via-[rgba(15,23,42,1)] dark:to-[rgba(15,23,42,0.98)] backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80">
+          {/* Mobile dropdown：浅色模式保持柔和渐变，深色模式改为纯深色背景，和顶部栏一致 */}
+          <div className="bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:bg-slate-900 backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80 transition-transform duration-300 ease-out">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
-              const shared = 'block w-full text-left px-3 py-3 rounded-2xl text-base font-semibold transition-all duration-200';
+              const shared =
+                'block w-full text-left px-3 py-3 rounded-2xl text-base font-semibold transition-all duration-200 ease-out active:scale-[0.97]';
               const activeClass =
                 'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/30 dark:bg-[#cfe2ff] dark:text-[#0b1120]';
               const inactiveClass =
@@ -156,7 +164,13 @@ export const Navbar: React.FC = () => {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`${shared} ${isCurrent ? activeClass : inactiveClass}`}
                 >
-                  {item.label}
+                  <span
+                    className={`inline-block transition-transform duration-200 ${
+                      isCurrent ? 'scale-[1.03]' : 'group-hover:scale-[1.03]'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}

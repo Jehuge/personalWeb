@@ -15,6 +15,8 @@ import AIProjectList from './pages/ai/AIProjectList'
 import AIProjectEdit from './pages/ai/AIProjectEdit'
 import AIDemoList from './pages/ai/AIDemoList'
 import AIDemoEdit from './pages/ai/AIDemoEdit'
+import AIImageList from './pages/ai/AIImageList'
+import AIImageEdit from './pages/ai/AIImageEdit'
 import UserList from './pages/user/UserList'
 import MediaList from './pages/media/MediaList'
 
@@ -53,6 +55,9 @@ function App() {
           <Route path="ai-demos" element={<AIDemoList />} />
           <Route path="ai-demos/new" element={<AIDemoEdit />} />
           <Route path="ai-demos/:id" element={<AIDemoEdit />} />
+          <Route path="ai-images" element={<AIImageList />} />
+          <Route path="ai-images/new" element={<AIImageEdit />} />
+          <Route path="ai-images/:id" element={<AIImageEdit />} />
           <Route path="users" element={<UserList />} />
           <Route path="media" element={<MediaList />} />
         </Route>
@@ -62,4 +67,3 @@ function App() {
 }
 
 export default App
-

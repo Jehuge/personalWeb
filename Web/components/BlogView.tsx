@@ -241,7 +241,6 @@ export const BlogView: React.FC = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
@@ -267,64 +266,31 @@ export const BlogView: React.FC = () => {
   
   const PAGE_SIZE = 12;
 
-  // 根据路由参数加载博客详情（带最小加载时间与统一 Loader）
+  // 根据路由参数加载博客详情
   useEffect(() => {
-    let cancelled = false;
-
-    const loadDetail = async () => {
-      if (id) {
-        const blogId = parseInt(id, 10);
-        if (!isNaN(blogId)) {
-          const MIN_LOADING_MS = 900;
-          const start = performance.now();
-          setDetailLoading(true);
-
-          try {
-            const post = posts.find(p => p.id === blogId);
-            if (post) {
-              if (!cancelled) {
-                setSelectedPost(post);
+    if (id) {
+      const blogId = parseInt(id, 10);
+      if (!isNaN(blogId)) {
+        const post = posts.find(p => p.id === blogId);
+        if (post) {
+          setSelectedPost(post);
+        } else {
+          fetchBlog(blogId)
+            .then(singleBlog => {
+              setSelectedPost(singleBlog);
+              if (!posts.find(p => p.id === blogId)) {
+                setPosts(prev => [singleBlog, ...prev]);
               }
-            } else {
-              const singleBlog = await fetchBlog(blogId);
-              if (!cancelled) {
-                setSelectedPost(singleBlog);
-                if (!posts.find(p => p.id === blogId)) {
-                  setPosts(prev => [singleBlog, ...prev]);
-                }
-              }
-            }
-          } catch (error) {
-            if (!cancelled) {
+            })
+            .catch(error => {
               console.error('Failed to fetch blog:', error);
               setError('博客加载失败，请稍后重试');
-            }
-          } finally {
-            const elapsed = performance.now() - start;
-            const remaining = MIN_LOADING_MS - elapsed;
-            const finish = () => {
-              if (!cancelled) {
-                setDetailLoading(false);
-              }
-            };
-            if (remaining > 0) {
-              setTimeout(finish, remaining);
-            } else {
-              finish();
-            }
-          }
+            });
         }
-      } else {
-        setSelectedPost(null);
-        setDetailLoading(false);
       }
-    };
-
-    loadDetail();
-
-    return () => {
-      cancelled = true;
-    };
+    } else {
+      setSelectedPost(null);
+    }
   }, [id, posts]);
 
   // 监听来自首页的博客选择事件
@@ -643,10 +609,6 @@ export const BlogView: React.FC = () => {
   }, [selectedPost, isVisible]);
 
   if (loading) {
-    return <Loader />;
-  }
-
-  if (detailLoading) {
     return <Loader />;
   }
 

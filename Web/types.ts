@@ -117,6 +117,24 @@ export interface AIDemo {
   published_at?: string | null;
 }
 
+export interface AIImage {
+  id: number;
+  title?: string;
+  image_url: string;
+  thumbnail_url?: string;
+  prompt?: string;
+  negative_prompt?: string;
+  model_name?: string;
+  parameters?: any;
+  category?: string;
+  tags?: string;
+  is_featured: boolean;
+  is_published: boolean;
+  view_count: number;
+  like_count: number;
+  created_at: string;
+}
+
 export interface AIChatMessage {
   id: string;
   role: 'user' | 'model';

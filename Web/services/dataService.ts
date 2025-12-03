@@ -1,4 +1,4 @@
-import { AIDemo, AIProject, BlogPost, PhotoWork } from '../types';
+import { AIDemo, AIImage, AIProject, BlogPost, PhotoWork } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/+$/, '');
 
@@ -98,6 +98,11 @@ export const fetchAIProjects = async (params: PaginationParams = {}): Promise<AI
 export const fetchAIDemos = async (params: PaginationParams = {}): Promise<AIDemo[]> => {
   const { skip = 0, limit = 12 } = params;
   return request<AIDemo[]>(`/ai-demos?published_only=true&skip=${skip}&limit=${limit}`);
+};
+
+export const fetchAIImages = async (params: PaginationParams = {}): Promise<AIImage[]> => {
+  const { skip = 0, limit = 12 } = params;
+  return request<AIImage[]>(`/ai-images?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
 export interface HomeOverview {

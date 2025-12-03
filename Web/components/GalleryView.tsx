@@ -99,7 +99,6 @@ export const GalleryView: React.FC = () => {
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
   const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('全部');
@@ -117,67 +116,34 @@ export const GalleryView: React.FC = () => {
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
   const isVisible = usePageVisibility();
 
-  // 根据路由参数加载照片详情（带最小加载时间与统一 Loader）
+  // 根据路由参数加载照片详情
   useEffect(() => {
-    let cancelled = false;
-
-    const loadDetail = async () => {
-      if (id) {
-        const photoId = parseInt(id, 10);
-        if (!isNaN(photoId)) {
-          const MIN_LOADING_MS = 900;
-          const start = performance.now();
-          setDetailLoading(true);
-
-          try {
-            // 如果照片已经在列表中，直接选择
-            const photo = photos.find(p => p.id === photoId);
-            if (photo) {
-              if (!cancelled) {
-                setSelectedPhoto(photo);
+    if (id) {
+      const photoId = parseInt(id, 10);
+      if (!isNaN(photoId)) {
+        // 如果照片已经在列表中，直接选择
+        const photo = photos.find(p => p.id === photoId);
+        if (photo) {
+          setSelectedPhoto(photo);
+        } else {
+          // 如果照片不在当前列表中，通过 API 获取
+          fetchPhoto(photoId)
+            .then(singlePhoto => {
+              setSelectedPhoto(singlePhoto);
+              // 如果照片不在当前列表中，也添加到列表中以便后续使用
+              if (!photos.find(p => p.id === photoId)) {
+                setPhotos(prev => [singlePhoto, ...prev]);
               }
-            } else {
-              // 如果照片不在当前列表中，通过 API 获取
-              const singlePhoto = await fetchPhoto(photoId);
-              if (!cancelled) {
-                setSelectedPhoto(singlePhoto);
-                // 如果照片不在当前列表中，也添加到列表中以便后续使用
-                if (!photos.find(p => p.id === photoId)) {
-                  setPhotos(prev => [singlePhoto, ...prev]);
-                }
-              }
-            }
-          } catch (error) {
-            if (!cancelled) {
+            })
+            .catch(error => {
               console.error('Failed to fetch photo:', error);
               setError('照片加载失败，请稍后重试');
-            }
-          } finally {
-            const elapsed = performance.now() - start;
-            const remaining = MIN_LOADING_MS - elapsed;
-            const finish = () => {
-              if (!cancelled) {
-                setDetailLoading(false);
-              }
-            };
-            if (remaining > 0) {
-              setTimeout(finish, remaining);
-            } else {
-              finish();
-            }
-          }
+            });
         }
-      } else {
-        setSelectedPhoto(null);
-        setDetailLoading(false);
       }
-    };
-
-    loadDetail();
-
-    return () => {
-      cancelled = true;
-    };
+    } else {
+      setSelectedPhoto(null);
+    }
   }, [id, photos]);
 
   // 监听来自首页的图片选择事件（用于从首页跳转）
@@ -419,10 +385,6 @@ export const GalleryView: React.FC = () => {
         {error}
       </div>
     );
-  }
-
-  if (detailLoading) {
-    return <Loader />;
   }
 
   if (selectedPhoto) {
