@@ -61,7 +61,7 @@ const resolveDemoUrl = (demo: AIDemo) => {
 };
 
 export const AIProjectView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'projects' | 'demos' | 'gallery'>('projects');
+  const [activeTab, setActiveTab] = useState<'projects' | 'demos' | 'gallery'>('gallery');
   
   // Projects State
   const [projects, setProjects] = useState<AIProject[]>([]);
@@ -181,8 +181,12 @@ export const AIProjectView: React.FC = () => {
         setDemosPage(nextPage);
         setDemosHasMore(newDemos.length === PAGE_SIZE);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load more demos', err);
+      // 如果是客户端错误（4xx），停止加载更多
+      if (err?.status && err.status >= 400 && err.status < 500) {
+        setDemosHasMore(false);
+      }
     } finally {
       setDemosLoadingMore(false);
     }
@@ -201,8 +205,12 @@ export const AIProjectView: React.FC = () => {
         setImagesPage(nextPage);
         setImagesHasMore(newImages.length === PAGE_SIZE);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load more images', err);
+      // 如果是客户端错误（4xx），停止加载更多
+      if (err?.status && err.status >= 400 && err.status < 500) {
+        setImagesHasMore(false);
+      }
     } finally {
       setImagesLoadingMore(false);
     }
@@ -228,15 +236,15 @@ export const AIProjectView: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex justify-center gap-4 mb-8">
-           <button
-            onClick={() => setActiveTab('projects')}
+          <button
+            onClick={() => setActiveTab('gallery')}
             className={`px-6 py-2 rounded-full transition-all duration-300 ${
-              activeTab === 'projects'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+              activeTab === 'gallery'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            精选项目
+            图库
           </button>
           <button
             onClick={() => setActiveTab('demos')}
@@ -249,14 +257,14 @@ export const AIProjectView: React.FC = () => {
             Demos
           </button>
           <button
-            onClick={() => setActiveTab('gallery')}
+            onClick={() => setActiveTab('projects')}
             className={`px-6 py-2 rounded-full transition-all duration-300 ${
-              activeTab === 'gallery'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+              activeTab === 'projects'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            图库
+            精选项目
           </button>
         </div>
       </div>

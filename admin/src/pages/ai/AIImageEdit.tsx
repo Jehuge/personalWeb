@@ -5,7 +5,6 @@ import {
   Card,
   Form,
   Input,
-  InputNumber,
   message,
   Space,
   Switch,
@@ -20,27 +19,12 @@ import { extractErrorMessage } from '../../utils/error'
 
 const { TextArea } = Input
 
-interface AIImageForm {
-  title?: string
-  image_url: string
-  thumbnail_url?: string
-  prompt?: string
-  negative_prompt?: string
-  model_name?: string
-  parameters?: string // JSON string for editing
-  category?: string
-  tags?: string
-  is_featured?: boolean
-  is_published?: boolean
-}
-
 export default function AIImageEdit() {
   const navigate = useNavigate()
   const { id } = useParams()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string>('')
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>('')
 
   const isEdit = !!id
 
@@ -60,7 +44,6 @@ export default function AIImageEdit() {
       }
       form.setFieldsValue(formData)
       setImageUrl(data.image_url || '')
-      setThumbnailUrl(data.thumbnail_url || '')
     } catch (error: any) {
       message.error(extractErrorMessage(error, '获取图片详情失败'))
       navigate('/ai-images')
@@ -78,7 +61,6 @@ export default function AIImageEdit() {
       const url = data.url
       const thumb = data.thumbnail_url
       setImageUrl(url)
-      setThumbnailUrl(thumb)
       form.setFieldsValue({ image_url: url, thumbnail_url: thumb })
       message.success('图片上传成功')
       return false

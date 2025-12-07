@@ -11,7 +11,7 @@ import {
   Tag,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { EditOutlined, EyeOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
 import PageHeader from '../../components/PageHeader'
