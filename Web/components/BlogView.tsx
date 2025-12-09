@@ -778,7 +778,7 @@ export const BlogView: React.FC = () => {
                 onClick={() => navigate(`/blog/${post.id}`)}
                 className="text-left flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
               >
-                <div className="relative h-56 bg-gradient-to-br from-primary-500/20 to-purple-500/30">
+                <div className="relative h-56 bg-gradient-to-br from-primary-500/20 to-cyan-500/30">
                   {coverImage ? (
                     <LazyImage
                       src={coverImage}

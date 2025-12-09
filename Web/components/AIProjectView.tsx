@@ -212,7 +212,7 @@ export const AIProjectView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="text-center mb-16 animate-fade-in">
-        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 mb-4">
+        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-cyan-500 to-pink-500 mb-4">
           AI 实验室
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
@@ -224,7 +224,7 @@ export const AIProjectView: React.FC = () => {
           <button
             onClick={() => setActiveTab('gallery')}
             className={`px-6 py-2 rounded-full transition-all duration-300 ${activeTab === 'gallery'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+              ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
           >
@@ -546,7 +546,7 @@ export const AIProjectView: React.FC = () => {
                   <div className="space-y-6">
                     {selectedImage.prompt && (
                       <div>
-                        <label className="text-xs font-semibold text-purple-400 uppercase tracking-wider">提示词 (Prompt)</label>
+                        <label className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">提示词 (Prompt)</label>
                         <p className="text-sm text-gray-300 mt-1 leading-relaxed">{selectedImage.prompt}</p>
                       </div>
                     )}

@@ -16,14 +16,14 @@ export default {
           900: '#0c4a6e',
         },
         accent: {
-          500: '#8b5cf6',
-          600: '#7c3aed',
+          500: '#06b6d4',
+          600: '#0891b2',
         },
         cyber: {
           dark: '#020617',
           panel: '#0f172a',
           accent: '#06b6d4',
-          glow: '#8b5cf6',
+          glow: '#06b6d4',
         }
       },
       fontFamily: {

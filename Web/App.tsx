@@ -4,7 +4,9 @@ import { ThemeProvider } from './components/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { BlogView } from './components/BlogView';
 import { GalleryView } from './components/GalleryView';
-import { AIProjectView } from './components/AIProjectView';
+import { AIImageGalleryView } from './components/AIImageGalleryView';
+import { AIDemoView } from './components/AIDemoView';
+import { AIProjectListView } from './components/AIProjectListView';
 import { Footer } from './components/Footer';
 import { HomeView } from './components/HomeView';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -24,7 +26,9 @@ function AppContent() {
             <Route path="/blog/:id" element={<BlogView />} />
             <Route path="/gallery" element={<GalleryView />} />
             <Route path="/gallery/:id" element={<GalleryView />} />
-            <Route path="/ai" element={<AIProjectView />} />
+            <Route path="/ai-gallery" element={<AIImageGalleryView />} />
+            <Route path="/ai-demo" element={<AIDemoView />} />
+            <Route path="/ai-project" element={<AIProjectListView />} />
           </Routes>
         </main>
         <Footer />

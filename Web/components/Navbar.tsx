@@ -18,7 +18,9 @@ export const Navbar: React.FC = () => {
     { id: 'home', path: '/', label: '首页' },
     { id: 'blog', path: '/blog', label: '博客' },
     { id: 'gallery', path: '/gallery', label: '摄影' },
-    { id: 'ai', path: '/ai', label: 'AI 实验室' },
+    { id: 'ai-gallery', path: '/ai-gallery', label: 'AI 图库' },
+    { id: 'ai-demo', path: '/ai-demo', label: 'AI Demo' },
+    { id: 'ai-project', path: '/ai-project', label: 'AI 项目' },
   ];
 
   // 判断是否在详情页（有 ID 参数）
@@ -64,7 +66,7 @@ export const Navbar: React.FC = () => {
               </button>
             ) : (
               <Link to="/" className="flex-shrink-0 flex items-center cursor-pointer group">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg mr-2 flex items-center justify-center text-white font-bold text-lg group-hover:rotate-12 transition-transform shadow-md shadow-primary-500/40">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-cyan-600 rounded-lg mr-2 flex items-center justify-center text-white font-bold text-lg group-hover:rotate-12 transition-transform shadow-md shadow-primary-500/40">
                   T
                 </div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -99,13 +101,13 @@ export const Navbar: React.FC = () => {
                   </span>
                   {/* 柔和的背景光晕 */}
                   <span
-                    className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/40 via-purple-500/25 to-sky-400/30 blur-xl transition-opacity duration-300 ${
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/40 via-cyan-500/25 to-sky-400/30 blur-xl transition-opacity duration-300 ${
                       isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
                     }`}
                   />
                   {/* 底部滑动条指示器 */}
                   <span
-                    className={`pointer-events-none absolute left-4 right-4 -bottom-1 h-[2px] rounded-full bg-gradient-to-r from-primary-500 via-sky-400 to-purple-500 transform origin-center transition-transform duration-300 ${
+                    className={`pointer-events-none absolute left-4 right-4 -bottom-1 h-[2px] rounded-full bg-gradient-to-r from-primary-500 via-sky-400 to-cyan-500 transform origin-center transition-transform duration-300 ${
                       isCurrent ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                     }`}
                   />

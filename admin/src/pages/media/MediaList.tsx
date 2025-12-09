@@ -97,7 +97,7 @@ export default function MediaList() {
     const labels: Record<string, { text: string; color: string; icon: React.ReactNode }> = {
       blog_cover: { text: '博客封面', color: 'blue', icon: <FileImageOutlined /> },
       photo: { text: '摄影作品', color: 'green', icon: <PictureOutlined /> },
-      ai_cover: { text: 'AI项目封面', color: 'purple', icon: <RobotOutlined /> },
+      ai_cover: { text: 'AI项目封面', color: 'cyan', icon: <RobotOutlined /> },
     }
     return labels[type] || { text: type, color: 'default', icon: null }
   }

@@ -131,7 +131,7 @@ export default function Dashboard() {
               children: '精选摄影作品，完善封面描述',
             },
             {
-              color: 'purple',
+              color: 'cyan',
               dot: <ApartmentOutlined />,
               children: '检查 AI 项目数据源是否最新',
             },

@@ -7,13 +7,13 @@
   --color-primary-600: #0284c7;
   --color-primary-900: #0c4a6e;
 
-  --color-accent-500: #8b5cf6;
-  --color-accent-600: #7c3aed;
+  --color-accent-500: #06b6d4;
+  --color-accent-600: #0891b2;
 
   --color-cyber-dark: #020617;
   --color-cyber-panel: #0f172a;
   --color-cyber-accent: #06b6d4;
-  --color-cyber-glow: #8b5cf6;
+  --color-cyber-glow: #06b6d4;
 
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', sans-serif;

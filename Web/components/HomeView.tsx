@@ -299,10 +299,10 @@ export const HomeView: React.FC = () => {
               浏览摄影
             </button>
             <button
-              onClick={() => navigate('/ai')}
+              onClick={() => navigate('/ai-demo')}
               className="px-8 py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-cyber-accent/50 dark:hover:border-cyber-accent/50 hover:text-cyber-accent dark:hover:text-cyber-accent transition-all text-sm font-medium text-gray-700 dark:text-white"
             >
-              AI 实验室
+              AI Demo
             </button>
           </div>
 
