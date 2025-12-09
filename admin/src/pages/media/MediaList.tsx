@@ -236,7 +236,7 @@ export default function MediaList() {
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Statistic
-              title="AI 项目封面"
+              title="个人项目封面"
               value={stats?.ai_covers || 0}
               prefix={<RobotOutlined />}
             />
@@ -259,7 +259,7 @@ export default function MediaList() {
             >
               <Select.Option value="blog_cover">博客封面</Select.Option>
               <Select.Option value="photo">摄影作品</Select.Option>
-              <Select.Option value="ai_cover">AI 项目封面</Select.Option>
+              <Select.Option value="ai_cover">个人项目封面</Select.Option>
             </Select>
           </div>
           <div className="page-toolbar__actions">

@@ -620,7 +620,7 @@ export const BlogView: React.FC = () => {
         {selectedPost && (
           <>
             {/* 移动端目录 */}
-            <div className="lg:hidden fixed bottom-28 right-8 z-40">
+            <div className="lg:hidden fixed bottom-36 right-8 z-40">
               <button
                 onClick={() => setTocExpanded(!tocExpanded)}
                 className="p-3 glass-card rounded-full shadow-lg hover:shadow-xl transition-all"

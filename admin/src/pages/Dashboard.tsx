@@ -67,7 +67,7 @@ export default function Dashboard() {
         stats={[
           { label: '博客', value: stats?.blog_count ?? '--' },
           { label: '摄影作品', value: stats?.photo_count ?? '--' },
-          { label: 'AI 项目', value: stats?.ai_project_count ?? '--' },
+          { label: '个人项目', value: stats?.ai_project_count ?? '--' },
         ]}
         extra={
           <Button icon={<ReloadOutlined />} onClick={fetchStats}>
@@ -97,7 +97,7 @@ export default function Dashboard() {
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Statistic
-                title="AI 项目"
+                title="个人项目"
                 value={stats?.ai_project_count ?? '--'}
                 prefix={<RobotOutlined />}
               />

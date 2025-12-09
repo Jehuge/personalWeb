@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AIDemo } from '../types';
 import { fetchAIDemos } from '../services/dataService';
 import PlayButton from './PlayButton';
@@ -32,6 +32,9 @@ export const AIDemoView: React.FC = () => {
   const [demosError, setDemosError] = useState<string | null>(null);
   const [demosHasMore, setDemosHasMore] = useState(false);
   const [demosPage, setDemosPage] = useState(0);
+  
+  // 使用 useRef 防止组件意外重新挂载导致的重复请求
+  const hasLoadedRef = useRef(false);
 
   const PAGE_SIZE = 12;
 
@@ -51,6 +54,10 @@ export const AIDemoView: React.FC = () => {
       setDemosError('AI Demo 列表暂时不可用。');
       setDemos([]);
       setDemosHasMore(false);
+      // 如果是初始加载失败，重置标志允许重试
+      if (page === 0) {
+        hasLoadedRef.current = false;
+      }
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
@@ -64,9 +71,12 @@ export const AIDemoView: React.FC = () => {
 
   // 初始加载
   useEffect(() => {
-    if (demos.length === 0) {
-      loadDemos(0);
+    // 如果已经加载过，直接返回（防止 StrictMode 或组件重新挂载导致的重复请求）
+    if (hasLoadedRef.current) {
+      return;
     }
+    hasLoadedRef.current = true;
+    loadDemos(0);
   }, []);
 
   const handleDemosPreviousPage = () => {
@@ -94,7 +104,7 @@ export const AIDemoView: React.FC = () => {
           AI 实验 Demo
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          连接 Gemini 与自研 API，将灵感快速变成可交互的体验。
+          连接各大 AI 模型与自研 API，将灵感快速变成可交互的体验。
         </p>
       </div>
 

@@ -20,7 +20,7 @@ export const Navbar: React.FC = () => {
     { id: 'gallery', path: '/gallery', label: '摄影' },
     { id: 'ai-gallery', path: '/ai-gallery', label: 'AI 图库' },
     { id: 'ai-demo', path: '/ai-demo', label: 'AI Demo' },
-    { id: 'ai-project', path: '/ai-project', label: 'AI 项目' },
+    { id: 'ai-project', path: '/ai-project', label: '个人项目' },
   ];
 
   // 判断是否在详情页（有 ID 参数）

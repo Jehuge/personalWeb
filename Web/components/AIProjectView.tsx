@@ -326,7 +326,7 @@ export const AIProjectView: React.FC = () => {
             <div>
               <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">AI 实验 Demo</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                连接 Gemini 与自研 API，将灵感快速变成可交互的体验。
+                连接 各大 AI 模型与自研 API，将灵感快速变成可交互的体验。
               </p>
             </div>
             {demosLoading && demos.length === 0 && (

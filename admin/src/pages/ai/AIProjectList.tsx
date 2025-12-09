@@ -163,7 +163,7 @@ export default function AIProjectList() {
   return (
     <div className="page-shell">
       <PageHeader
-        title="AI 项目"
+        title="个人项目"
         description="管理 AI 相关项目，快速查看发布状态与浏览表现。"
         stats={[
           { label: '项目总数', value: projects.length },

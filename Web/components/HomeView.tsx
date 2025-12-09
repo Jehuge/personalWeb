@@ -172,7 +172,16 @@ export const HomeView: React.FC = () => {
   const photoCount = useCountUp(stats.photo_count, 1500);
   const projectCount = useCountUp(stats.project_count, 1500);
 
+  // 使用 useRef 防止 StrictMode 导致的重复请求
+  const hasLoadedRef = useRef(false);
+  
   useEffect(() => {
+    // 如果已经加载过，直接返回（防止 StrictMode 重复调用）
+    if (hasLoadedRef.current) {
+      return;
+    }
+    hasLoadedRef.current = true;
+
     const loadData = async () => {
       const MIN_LOADING_MS = 900;
       const start = performance.now();
@@ -194,6 +203,8 @@ export const HomeView: React.FC = () => {
         setStats(data.stats || { blog_count: 0, photo_count: 0, project_count: 0 });
       } catch (err) {
         console.error('Failed to load homepage data', err);
+        // 请求失败时重置标志，允许重试
+        hasLoadedRef.current = false;
       } finally {
         const elapsed = performance.now() - start;
         const remaining = MIN_LOADING_MS - elapsed;

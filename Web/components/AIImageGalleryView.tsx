@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AIImage } from '../types';
 import { fetchAIImages } from '../services/dataService';
 import Loader from './Loader';
@@ -9,6 +9,9 @@ export const AIImageGalleryView: React.FC = () => {
   const [imagesHasMore, setImagesHasMore] = useState(false);
   const [imagesPage, setImagesPage] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
+  
+  // 使用 useRef 防止组件意外重新挂载导致的重复请求
+  const hasLoadedRef = useRef(false);
 
   const PAGE_SIZE = 12;
 
@@ -26,6 +29,10 @@ export const AIImageGalleryView: React.FC = () => {
       console.error('Failed to load AI images', err);
       setImages([]);
       setImagesHasMore(false);
+      // 如果是初始加载失败，重置标志允许重试
+      if (page === 0) {
+        hasLoadedRef.current = false;
+      }
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
@@ -39,9 +46,12 @@ export const AIImageGalleryView: React.FC = () => {
 
   // 初始加载
   useEffect(() => {
-    if (images.length === 0) {
-      loadImages(0);
+    // 如果已经加载过，直接返回（防止 StrictMode 或组件重新挂载导致的重复请求）
+    if (hasLoadedRef.current) {
+      return;
     }
+    hasLoadedRef.current = true;
+    loadImages(0);
   }, []);
 
   const handleImagesPreviousPage = () => {

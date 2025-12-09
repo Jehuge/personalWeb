@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AIProject } from '../types';
 import { fetchAIProjects } from '../services/dataService';
 import Loader from './Loader';
@@ -22,31 +22,40 @@ const parseTechStack = (stack?: string | null) => {
 export const AIProjectListView: React.FC = () => {
   const [projects, setProjects] = useState<AIProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  
+  // 使用 useRef 防止组件意外重新挂载导致的重复请求
+  const hasLoadedRef = useRef(false);
 
   // 初始加载 Projects
   useEffect(() => {
-    if (projects.length === 0) {
-      const loadProjects = async () => {
-        const MIN_LOADING_MS = 900;
-        const start = performance.now();
-        setProjectsLoading(true);
-        try {
-          const data = await fetchAIProjects({ skip: 0, limit: 12 });
-          setProjects(data);
-        } catch (err) {
-          console.error('Failed to load AI projects', err);
-        } finally {
-          const elapsed = performance.now() - start;
-          const remaining = MIN_LOADING_MS - elapsed;
-          if (remaining > 0) {
-            setTimeout(() => setProjectsLoading(false), remaining);
-          } else {
-            setProjectsLoading(false);
-          }
-        }
-      };
-      loadProjects();
+    // 如果已经加载过，直接返回（防止 StrictMode 或组件重新挂载导致的重复请求）
+    if (hasLoadedRef.current) {
+      return;
     }
+    hasLoadedRef.current = true;
+
+    const loadProjects = async () => {
+      const MIN_LOADING_MS = 900;
+      const start = performance.now();
+      setProjectsLoading(true);
+      try {
+        const data = await fetchAIProjects({ skip: 0, limit: 12 });
+        setProjects(data);
+      } catch (err) {
+        console.error('Failed to load AI projects', err);
+        // 请求失败时重置标志，允许重试
+        hasLoadedRef.current = false;
+      } finally {
+        const elapsed = performance.now() - start;
+        const remaining = MIN_LOADING_MS - elapsed;
+        if (remaining > 0) {
+          setTimeout(() => setProjectsLoading(false), remaining);
+        } else {
+          setProjectsLoading(false);
+        }
+      }
+    };
+    loadProjects();
   }, []);
 
   if (projectsLoading) {
@@ -57,10 +66,10 @@ export const AIProjectListView: React.FC = () => {
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="text-center mb-16 animate-fade-in">
         <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-cyan-500 to-pink-500 mb-4">
-          AI 精选项目
+          个人项目
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          完整的 AI 应用项目与实验性探索。
+          个人项目与实验性探索。
         </p>
       </div>
 
