@@ -424,36 +424,26 @@ export const HomeView: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredPhotos.map((photo, index) => {
-                // 计算图片的宽高比
-                const aspectRatio = photo.width && photo.height 
-                  ? photo.width / photo.height 
-                  : 4 / 3; // 默认比例
-                
-                return (
-                  <div 
-                    key={photo.id} 
-                    className={`group relative rounded-2xl overflow-hidden cursor-pointer ${index === 0 || index === 3 ? 'md:col-span-2 lg:col-span-1' : ''}`}
-                    onClick={() => navigate(`/gallery/${photo.id}`)}
-                    style={{
-                      aspectRatio: aspectRatio.toString()
-                    }}
-                  >
-                    <img 
-                      src={photo.thumbnail_url || photo.image_url} 
-                      alt={photo.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                      {photo.category && (
-                        <span className="text-cyber-glow text-xs font-mono mb-1">{photo.category.name}</span>
-                      )}
-                      <h3 className="text-white font-bold">{photo.title}</h3>
-                    </div>
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 [column-fill:balance]">
+              {featuredPhotos.map((photo) => (
+                <div 
+                  key={photo.id} 
+                  className="group relative mb-6 break-inside-avoid rounded-2xl overflow-hidden cursor-pointer block"
+                  onClick={() => navigate(`/gallery/${photo.id}`)}
+                >
+                  <img 
+                    src={photo.thumbnail_url || photo.image_url} 
+                    alt={photo.title}
+                    className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                    {photo.category && (
+                      <span className="text-cyber-glow text-xs font-mono mb-1">{photo.category.name}</span>
+                    )}
+                    <h3 className="text-white font-bold">{photo.title}</h3>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
             </div>
           </div>
