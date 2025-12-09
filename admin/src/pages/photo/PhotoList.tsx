@@ -110,6 +110,7 @@ export default function PhotoList() {
       title: '标题',
       dataIndex: 'title',
       ellipsis: true,
+      width: 200,
     },
     {
       title: '分类',

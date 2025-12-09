@@ -90,6 +90,7 @@ export default function AIImageList() {
       title: '标题',
       dataIndex: 'title',
       ellipsis: true,
+      width: 200,
       render: (text) => text || '-',
     },
     {

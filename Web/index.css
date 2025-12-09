@@ -135,6 +135,12 @@
     html.dark .bg-gray-100 {
       background-color: color-mix(in srgb, var(--color-cyber-panel) 88%, black 12%);
     }
+    
+    /* 修复移动端菜单渐变背景在深色模式下的问题 - 强制使用纯色背景 */
+    html.dark .bg-gradient-to-br.from-slate-50.via-slate-100.to-slate-50 {
+      background: rgb(15, 23, 42) !important;
+      background-image: none !important;
+    }
   }
 
   /* 博客卡片在深色下的统一样式 */

@@ -234,6 +234,11 @@ body {
   word-break: break-word;
 }
 
+/* 确保 ellipsis 列有合适的最小宽度 */
+.app-table .ant-table-cell-ellipsis {
+  min-width: 120px;
+}
+
 .app-table .ant-table-thead > tr > th:first-child {
   border-top-left-radius: var(--app-radius-md);
 }

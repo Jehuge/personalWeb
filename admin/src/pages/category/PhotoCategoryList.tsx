@@ -127,6 +127,7 @@ export default function PhotoCategoryList() {
       title: '描述',
       dataIndex: 'description',
       ellipsis: true,
+      width: 200,
     },
     {
       title: '创建时间',

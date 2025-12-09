@@ -65,7 +65,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <Link to="/" className="flex-shrink-0 flex items-center cursor-pointer group">
                 <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg mr-2 flex items-center justify-center text-white font-bold text-lg group-hover:rotate-12 transition-transform shadow-md shadow-primary-500/40">
-                  A
+                  T
                 </div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                   TianJQ<span className="text-primary-500">.Space</span>
@@ -147,7 +147,7 @@ export const Navbar: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="fixed top-16 left-0 right-0 z-40 md:hidden mx-0 px-4">
           {/* Mobile dropdown：浅色模式保持柔和渐变，深色模式改为纯深色背景，和顶部栏一致 */}
-          <div className="bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:bg-slate-900 backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80 transition-transform duration-300 ease-out">
+          <div className={`backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80 transition-transform duration-300 ease-out ${theme === 'dark' ? 'bg-slate-900' : 'bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);

@@ -44,14 +44,14 @@ const resolveDemoUrl = (demo: AIDemo) => {
 
 export const AIProjectView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'projects' | 'demos' | 'gallery'>('gallery');
-  
+
   // Projects State
   const [projects, setProjects] = useState<AIProject[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(true);
-  
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
   // Demos State
   const [demos, setDemos] = useState<AIDemo[]>([]);
-  const [demosLoading, setDemosLoading] = useState(true);
+  const [demosLoading, setDemosLoading] = useState(false);
   const [demosError, setDemosError] = useState<string | null>(null);
   const [demosHasMore, setDemosHasMore] = useState(false);
   const [demosPage, setDemosPage] = useState(0);
@@ -65,19 +65,43 @@ export const AIProjectView: React.FC = () => {
 
   const PAGE_SIZE = 12;
 
+  // 计算是否显示初始加载动画
+  // 计算是否显示初始加载动画
+  const isInitialLoading =
+    (activeTab === 'gallery' && imagesLoading) ||
+    (activeTab === 'demos' && demosLoading) ||
+    (activeTab === 'projects' && projectsLoading);
+
   // 初始加载 Projects
   useEffect(() => {
-    if (activeTab === 'projects' && projects.length === 0) {
-      setProjectsLoading(true);
-      fetchAIProjects({ skip: 0, limit: 12 })
-        .then((data) => setProjects(data))
-        .catch((err) => console.error('Failed to load AI projects', err))
-        .finally(() => setProjectsLoading(false));
+    if (activeTab === 'projects' && projects.length === 0 && !projectsLoading) {
+      const loadProjects = async () => {
+        const MIN_LOADING_MS = 900;
+        const start = performance.now();
+        setProjectsLoading(true);
+        try {
+          const data = await fetchAIProjects({ skip: 0, limit: 12 });
+          setProjects(data);
+        } catch (err) {
+          console.error('Failed to load AI projects', err);
+        } finally {
+          const elapsed = performance.now() - start;
+          const remaining = MIN_LOADING_MS - elapsed;
+          if (remaining > 0) {
+            setTimeout(() => setProjectsLoading(false), remaining);
+          } else {
+            setProjectsLoading(false);
+          }
+        }
+      };
+      loadProjects();
     }
   }, [activeTab]);
 
   // 加载 Demos 数据
   const loadDemos = async (page: number) => {
+    const MIN_LOADING_MS = 900;
+    const start = performance.now();
     setDemosLoading(true);
     setDemosError(null);
     try {
@@ -91,12 +115,20 @@ export const AIProjectView: React.FC = () => {
       setDemos([]);
       setDemosHasMore(false);
     } finally {
-      setDemosLoading(false);
+      const elapsed = performance.now() - start;
+      const remaining = MIN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => setDemosLoading(false), remaining);
+      } else {
+        setDemosLoading(false);
+      }
     }
   };
 
   // 加载 Images 数据
   const loadImages = async (page: number) => {
+    const MIN_LOADING_MS = 900;
+    const start = performance.now();
     setImagesLoading(true);
     try {
       const data = await fetchAIImages({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
@@ -108,23 +140,36 @@ export const AIProjectView: React.FC = () => {
       setImages([]);
       setImagesHasMore(false);
     } finally {
-      setImagesLoading(false);
+      const elapsed = performance.now() - start;
+      const remaining = MIN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => setImagesLoading(false), remaining);
+      } else {
+        setImagesLoading(false);
+      }
     }
   };
 
   // 初始加载 Demos
   useEffect(() => {
-    if (activeTab === 'demos' && demos.length === 0) {
+    if (activeTab === 'demos' && demos.length === 0 && !demosLoading) {
       loadDemos(0);
     }
   }, [activeTab]);
 
-  // 初始加载 Images
+  // 初始加载 Images - 组件挂载时立即加载默认标签页
   useEffect(() => {
-    if (activeTab === 'gallery' && images.length === 0) {
+    if (activeTab === 'gallery' && images.length === 0 && !imagesLoading) {
       loadImages(0);
     }
   }, [activeTab]);
+
+  // 组件首次挂载时立即加载默认标签页（gallery）的数据
+  useEffect(() => {
+    if (images.length === 0) {
+      loadImages(0);
+    }
+  }, []);
 
   // 处理分页
   const handleDemosPreviousPage = () => {
@@ -159,8 +204,9 @@ export const AIProjectView: React.FC = () => {
     return projects.find((p) => p.is_featured) || projects[0];
   }, [projects]);
 
-  if (projectsLoading && activeTab === 'projects') {
-    return <Loader />;
+  // 显示初始加载动画
+  if (isInitialLoading) {
+    return <Loader fullscreen />;
   }
 
   return (
@@ -177,31 +223,28 @@ export const AIProjectView: React.FC = () => {
         <div className="flex justify-center gap-4 mb-8">
           <button
             onClick={() => setActiveTab('gallery')}
-            className={`px-6 py-2 rounded-full transition-all duration-300 ${
-              activeTab === 'gallery'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`px-6 py-2 rounded-full transition-all duration-300 ${activeTab === 'gallery'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
           >
             图库
           </button>
           <button
             onClick={() => setActiveTab('demos')}
-            className={`px-6 py-2 rounded-full transition-all duration-300 ${
-              activeTab === 'demos'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`px-6 py-2 rounded-full transition-all duration-300 ${activeTab === 'demos'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
           >
             Demos
           </button>
           <button
             onClick={() => setActiveTab('projects')}
-            className={`px-6 py-2 rounded-full transition-all duration-300 ${
-              activeTab === 'projects'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`px-6 py-2 rounded-full transition-all duration-300 ${activeTab === 'projects'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
           >
             精选项目
           </button>
@@ -218,7 +261,7 @@ export const AIProjectView: React.FC = () => {
               </p>
             </div>
           </div>
-          
+
           <div className="grid gap-6 md:grid-cols-2">
             {projects.map((project) => (
               <div key={project.id} className="glass-card p-6 rounded-3xl border border-transparent hover:border-emerald-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10">
@@ -229,9 +272,9 @@ export const AIProjectView: React.FC = () => {
                   </span>
                 </div>
                 {project.cover_image && (
-                    <div className="mb-4 rounded-xl overflow-hidden h-48">
-                        <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover" />
-                    </div>
+                  <div className="mb-4 rounded-xl overflow-hidden h-48">
+                    <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover" />
+                  </div>
                 )}
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-3">
                   {project.description || '暂无简介'}
@@ -268,8 +311,8 @@ export const AIProjectView: React.FC = () => {
               </div>
             ))}
           </div>
-          
-           {projects.length === 0 && !projectsLoading && (
+
+          {projects.length === 0 && !projectsLoading && (
             <div className="p-10 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-800/40 rounded-3xl">
               暂无公开的 AI 项目，敬请期待。
             </div>
@@ -321,12 +364,12 @@ export const AIProjectView: React.FC = () => {
                       {demo.category || 'AI Lab'}
                     </div>
                   </div>
-                  
+
                   <div className="p-5 flex flex-col flex-1">
                     <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-                       <span>{demo.is_featured ? '✨ 精选' : '实验'}</span>
-                       <span>•</span>
-                       <span>{new Date(demo.created_at).toLocaleDateString()}</span>
+                      <span>{demo.is_featured ? '✨ 精选' : '实验'}</span>
+                      <span>•</span>
+                      <span>{new Date(demo.created_at).toLocaleDateString()}</span>
                     </div>
                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-500 transition-colors">
                       {demo.title}
@@ -341,9 +384,9 @@ export const AIProjectView: React.FC = () => {
                         </span>
                       ))}
                     </div>
-                    
+
                     <div className="mt-auto">
-                       <PlayButton onClick={() => window.open(targetUrl, '_blank')} />
+                      <PlayButton onClick={() => window.open(targetUrl, '_blank')} />
                     </div>
                   </div>
                 </article>
@@ -357,11 +400,10 @@ export const AIProjectView: React.FC = () => {
               <button
                 onClick={handleDemosPreviousPage}
                 disabled={demosPage === 0 || demosLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  demosPage === 0 || demosLoading
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                }`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${demosPage === 0 || demosLoading
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }`}
               >
                 上一页
               </button>
@@ -371,11 +413,10 @@ export const AIProjectView: React.FC = () => {
               <button
                 onClick={handleDemosNextPage}
                 disabled={!demosHasMore || demosLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  !demosHasMore || demosLoading
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                }`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!demosHasMore || demosLoading
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }`}
               >
                 下一页
               </button>
@@ -430,7 +471,7 @@ export const AIProjectView: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {tags.length > 0 ? (
                         tags.slice(0, 3).map((tag, index) => (
-                          <span 
+                          <span
                             key={index}
                             className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-1 rounded text-xs"
                           >
@@ -453,11 +494,10 @@ export const AIProjectView: React.FC = () => {
               <button
                 onClick={handleImagesPreviousPage}
                 disabled={imagesPage === 0 || imagesLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  imagesPage === 0 || imagesLoading
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                }`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }`}
               >
                 上一页
               </button>
@@ -467,11 +507,10 @@ export const AIProjectView: React.FC = () => {
               <button
                 onClick={handleImagesNextPage}
                 disabled={!imagesHasMore || imagesLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  !imagesHasMore || imagesLoading
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                }`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }`}
               >
                 下一页
               </button>
@@ -483,71 +522,71 @@ export const AIProjectView: React.FC = () => {
               暂无图片
             </div>
           )}
-          
+
           {/* Image Modal */}
           {selectedImage && (
-            <div 
+            <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
               onClick={() => setSelectedImage(null)}
             >
-              <div 
+              <div
                 className="relative max-w-6xl w-full max-h-[90vh] flex flex-col md:flex-row bg-gray-900 rounded-2xl overflow-hidden shadow-2xl"
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
-                   <img 
-                     src={selectedImage.image_url} 
-                     alt={selectedImage.title} 
-                     className="max-w-full max-h-[80vh] md:max-h-full object-contain"
-                   />
+                  <img
+                    src={selectedImage.image_url}
+                    alt={selectedImage.title}
+                    className="max-w-full max-h-[80vh] md:max-h-full object-contain"
+                  />
                 </div>
                 <div className="w-full md:w-96 bg-gray-900 p-6 overflow-y-auto border-l border-gray-800">
-                   <h3 className="text-xl font-bold text-white mb-4">{selectedImage.title || '无标题'}</h3>
-                   
-                   <div className="space-y-6">
-                     {selectedImage.prompt && (
-                       <div>
-                         <label className="text-xs font-semibold text-purple-400 uppercase tracking-wider">提示词 (Prompt)</label>
-                         <p className="text-sm text-gray-300 mt-1 leading-relaxed">{selectedImage.prompt}</p>
-                       </div>
-                     )}
-                     
-                     {selectedImage.negative_prompt && (
-                       <div>
-                         <label className="text-xs font-semibold text-red-400 uppercase tracking-wider">反向提示词 (Negative)</label>
-                         <p className="text-sm text-gray-400 mt-1 leading-relaxed">{selectedImage.negative_prompt}</p>
-                       </div>
-                     )}
+                  <h3 className="text-xl font-bold text-white mb-4">{selectedImage.title || '无标题'}</h3>
 
-                     <div className="grid grid-cols-2 gap-4">
-                       <div>
-                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">模型</label>
-                         <p className="text-sm text-white mt-1">{selectedImage.model_name || '未知'}</p>
-                       </div>
-                       <div>
-                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">创建时间</label>
-                         <p className="text-sm text-white mt-1">{new Date(selectedImage.created_at).toLocaleDateString()}</p>
-                       </div>
-                     </div>
+                  <div className="space-y-6">
+                    {selectedImage.prompt && (
+                      <div>
+                        <label className="text-xs font-semibold text-purple-400 uppercase tracking-wider">提示词 (Prompt)</label>
+                        <p className="text-sm text-gray-300 mt-1 leading-relaxed">{selectedImage.prompt}</p>
+                      </div>
+                    )}
 
-                     {selectedImage.parameters && (
-                       <div>
-                         <label className="text-xs font-semibold text-blue-400 uppercase tracking-wider">生成参数</label>
-                         <pre className="mt-2 p-3 bg-gray-800 rounded-lg text-xs text-gray-300 overflow-x-auto">
-                           {typeof selectedImage.parameters === 'string' 
-                             ? selectedImage.parameters 
-                             : JSON.stringify(selectedImage.parameters, null, 2)}
-                         </pre>
-                       </div>
-                     )}
-                   </div>
-                   
-                   <button 
-                     onClick={() => setSelectedImage(null)}
-                     className="absolute top-4 right-4 md:hidden text-white/50 hover:text-white"
-                   >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                   </button>
+                    {selectedImage.negative_prompt && (
+                      <div>
+                        <label className="text-xs font-semibold text-red-400 uppercase tracking-wider">反向提示词 (Negative)</label>
+                        <p className="text-sm text-gray-400 mt-1 leading-relaxed">{selectedImage.negative_prompt}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">模型</label>
+                        <p className="text-sm text-white mt-1">{selectedImage.model_name || '未知'}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">创建时间</label>
+                        <p className="text-sm text-white mt-1">{new Date(selectedImage.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    {selectedImage.parameters && (
+                      <div>
+                        <label className="text-xs font-semibold text-blue-400 uppercase tracking-wider">生成参数</label>
+                        <pre className="mt-2 p-3 bg-gray-800 rounded-lg text-xs text-gray-300 overflow-x-auto">
+                          {typeof selectedImage.parameters === 'string'
+                            ? selectedImage.parameters
+                            : JSON.stringify(selectedImage.parameters, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedImage(null)}
+                    className="absolute top-4 right-4 md:hidden text-white/50 hover:text-white"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
                 </div>
               </div>
             </div>
