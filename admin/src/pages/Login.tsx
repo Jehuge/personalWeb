@@ -48,7 +48,7 @@ export default function Login() {
             <Text type="secondary">PERSONAL WEB ADMIN</Text>
             <h1>让内容管理体验更优雅</h1>
             <p>
-              新的后台界面覆盖博客、摄影、AI 项目的全链路管理体验。通过更清晰的视觉层级与交互设计，
+              新的后台界面覆盖博客、摄影、个人项目的全链路管理体验。通过更清晰的视觉层级与交互设计，
               帮助你在忙碌的创作中也能保持高效、有序。
             </p>
             <Space direction="vertical" size={4}>

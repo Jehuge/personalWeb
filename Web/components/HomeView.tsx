@@ -196,7 +196,7 @@ export const HomeView: React.FC = () => {
         setPhotos(allPhotos);
         setProjects(allProjects);
 
-        // 随机挑选首页展示内容：AI 项目 2 个、博客 2 篇、照片约两排（最多 6 张）
+        // 随机挑选首页展示内容：个人项目 2 个、博客 2 篇、照片约两排（最多 6 张）
         setFeaturedBlogs(pickRandomItems(allBlogs, 2));
         setFeaturedProjects(pickRandomItems(allProjects, 2));
         setFeaturedPhotos(pickRandomItems(allPhotos, 6));
@@ -292,7 +292,7 @@ export const HomeView: React.FC = () => {
               <div className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyber-accent to-emerald-400 dark:to-emerald-400 mb-2">
                 {projectCount.count}+
               </div>
-              <div className="text-gray-600 dark:text-slate-400 text-sm md:text-base">AI 项目</div>
+              <div className="text-gray-600 dark:text-slate-400 text-sm md:text-base">个人项目</div>
             </div>
           </div>
 

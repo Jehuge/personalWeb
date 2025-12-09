@@ -83,11 +83,28 @@ export const AIProjectListView: React.FC = () => {
                   {project.is_published ? '已发布' : '草稿'}
                 </span>
               </div>
-              {project.cover_image && (
-                <div className="mb-4 rounded-xl overflow-hidden h-48">
+              <div className="mb-4 rounded-xl overflow-hidden h-48 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 border border-dashed border-gray-200/80 dark:border-gray-700/80 flex items-center justify-center">
+                {project.cover_image ? (
                   <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover" />
-                </div>
-              )}
+                ) : (
+                  <div className="text-gray-500 dark:text-gray-400 text-sm flex flex-col items-center gap-2">
+                    <svg
+                      className="w-10 h-10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="4" width="18" height="14" rx="2" ry="2" />
+                      <path d="M3 13l4-4 3 3 4-4 5 5" />
+                      <path d="M14 14h0.01" />
+                    </svg>
+                    <span>暂无封面</span>
+                  </div>
+                )}
+              </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-3">
                 {project.description || '暂无简介'}
               </p>
@@ -99,16 +116,6 @@ export const AIProjectListView: React.FC = () => {
                 ))}
               </div>
               <div className="flex gap-3 mt-auto">
-                {project.demo_url && (
-                  <a
-                    href={project.demo_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-2xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 transition-transform hover:scale-105"
-                  >
-                    在线体验
-                  </a>
-                )}
                 {project.github_url && (
                   <a
                     href={project.github_url}
@@ -126,7 +133,7 @@ export const AIProjectListView: React.FC = () => {
 
         {projects.length === 0 && !projectsLoading && (
           <div className="p-10 text-center text-sm text-gray-500 bg-gray-50 dark:bg-gray-800/40 rounded-3xl">
-            暂无公开的 AI 项目，敬请期待。
+            暂无公开的个人项目，敬请期待。
           </div>
         )}
       </section>
