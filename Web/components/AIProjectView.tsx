@@ -1,26 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AIDemo, AIImage, AIProject } from '../types';
 import { fetchAIDemos, fetchAIImages, fetchAIProjects } from '../services/dataService';
 import PlayButton from './PlayButton';
 import Loader from './Loader';
-
-// 检查页面是否可见
-const usePageVisibility = () => {
-  const [isVisible, setIsVisible] = useState(!document.hidden);
-  
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsVisible(!document.hidden);
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-  
-  return isVisible;
-};
 
 const parseTechStack = (stack?: string | null) => {
   if (!stack) return [];
@@ -70,23 +52,18 @@ export const AIProjectView: React.FC = () => {
   // Demos State
   const [demos, setDemos] = useState<AIDemo[]>([]);
   const [demosLoading, setDemosLoading] = useState(true);
-  const [demosLoadingMore, setDemosLoadingMore] = useState(false);
   const [demosError, setDemosError] = useState<string | null>(null);
-  const [demosHasMore, setDemosHasMore] = useState(true);
+  const [demosHasMore, setDemosHasMore] = useState(false);
   const [demosPage, setDemosPage] = useState(0);
-  const demosLoadMoreRef = useRef<HTMLDivElement>(null);
 
   // Images State
   const [images, setImages] = useState<AIImage[]>([]);
   const [imagesLoading, setImagesLoading] = useState(true);
-  const [imagesLoadingMore, setImagesLoadingMore] = useState(false);
-  const [imagesHasMore, setImagesHasMore] = useState(true);
+  const [imagesHasMore, setImagesHasMore] = useState(false);
   const [imagesPage, setImagesPage] = useState(0);
-  const imagesLoadMoreRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
 
   const PAGE_SIZE = 12;
-  const isVisible = usePageVisibility();
 
   // 初始加载 Projects
   useEffect(() => {
@@ -99,120 +76,82 @@ export const AIProjectView: React.FC = () => {
     }
   }, [activeTab]);
 
+  // 加载 Demos 数据
+  const loadDemos = async (page: number) => {
+    setDemosLoading(true);
+    setDemosError(null);
+    try {
+      const data = await fetchAIDemos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setDemos(data);
+      setDemosHasMore(data.length === PAGE_SIZE);
+      setDemosPage(page);
+    } catch (err: any) {
+      console.error('Failed to load AI demos', err);
+      setDemosError('AI Demo 列表暂时不可用。');
+      setDemos([]);
+      setDemosHasMore(false);
+    } finally {
+      setDemosLoading(false);
+    }
+  };
+
+  // 加载 Images 数据
+  const loadImages = async (page: number) => {
+    setImagesLoading(true);
+    try {
+      const data = await fetchAIImages({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setImages(data);
+      setImagesHasMore(data.length === PAGE_SIZE);
+      setImagesPage(page);
+    } catch (err) {
+      console.error('Failed to load AI images', err);
+      setImages([]);
+      setImagesHasMore(false);
+    } finally {
+      setImagesLoading(false);
+    }
+  };
+
   // 初始加载 Demos
   useEffect(() => {
     if (activeTab === 'demos' && demos.length === 0) {
-      setDemosLoading(true);
-      fetchAIDemos({ skip: 0, limit: PAGE_SIZE })
-        .then((data) => {
-          setDemos(data);
-          setDemosHasMore(data.length === PAGE_SIZE);
-        })
-        .catch((err) => {
-          console.error('Failed to load AI demos', err);
-          setDemosError('AI Demo 列表暂时不可用。');
-        })
-        .finally(() => setDemosLoading(false));
+      loadDemos(0);
     }
   }, [activeTab]);
 
   // 初始加载 Images
   useEffect(() => {
     if (activeTab === 'gallery' && images.length === 0) {
-      setImagesLoading(true);
-      fetchAIImages({ skip: 0, limit: PAGE_SIZE })
-        .then((data) => {
-          setImages(data);
-          setImagesHasMore(data.length === PAGE_SIZE);
-        })
-        .catch((err) => console.error('Failed to load AI images', err))
-        .finally(() => setImagesLoading(false));
+      loadImages(0);
     }
   }, [activeTab]);
 
-  // Demos 无限滚动
-  useEffect(() => {
-    if (activeTab !== 'demos' || !demosHasMore || demosLoading || demosLoadingMore || !isVisible) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && demosHasMore && !demosLoadingMore && !document.hidden) {
-          loadMoreDemos();
-        }
-      },
-      { threshold: 0.1, rootMargin: '200px' }
-    );
-
-    if (demosLoadMoreRef.current) observer.observe(demosLoadMoreRef.current);
-    return () => {
-      if (demosLoadMoreRef.current) observer.unobserve(demosLoadMoreRef.current);
-    };
-  }, [demosHasMore, demosLoading, demosLoadingMore, isVisible, activeTab]);
-
-  // Images 无限滚动
-  useEffect(() => {
-    if (activeTab !== 'gallery' || !imagesHasMore || imagesLoading || imagesLoadingMore || !isVisible) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && imagesHasMore && !imagesLoadingMore && !document.hidden) {
-          loadMoreImages();
-        }
-      },
-      { threshold: 0.1, rootMargin: '200px' }
-    );
-
-    if (imagesLoadMoreRef.current) observer.observe(imagesLoadMoreRef.current);
-    return () => {
-      if (imagesLoadMoreRef.current) observer.unobserve(imagesLoadMoreRef.current);
-    };
-  }, [imagesHasMore, imagesLoading, imagesLoadingMore, isVisible, activeTab]);
-
-  const loadMoreDemos = async () => {
-    if (demosLoadingMore || !demosHasMore) return;
-    setDemosLoadingMore(true);
-    const nextPage = demosPage + 1;
-    try {
-      const newDemos = await fetchAIDemos({ skip: nextPage * PAGE_SIZE, limit: PAGE_SIZE });
-      if (newDemos.length === 0) {
-        setDemosHasMore(false);
-      } else {
-        setDemos(prev => [...prev, ...newDemos]);
-        setDemosPage(nextPage);
-        setDemosHasMore(newDemos.length === PAGE_SIZE);
-      }
-    } catch (err: any) {
-      console.error('Failed to load more demos', err);
-      // 如果是客户端错误（4xx），停止加载更多
-      if (err?.status && err.status >= 400 && err.status < 500) {
-        setDemosHasMore(false);
-      }
-    } finally {
-      setDemosLoadingMore(false);
+  // 处理分页
+  const handleDemosPreviousPage = () => {
+    if (demosPage > 0) {
+      loadDemos(demosPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const loadMoreImages = async () => {
-    if (imagesLoadingMore || !imagesHasMore) return;
-    setImagesLoadingMore(true);
-    const nextPage = imagesPage + 1;
-    try {
-      const newImages = await fetchAIImages({ skip: nextPage * PAGE_SIZE, limit: PAGE_SIZE });
-      if (newImages.length === 0) {
-        setImagesHasMore(false);
-      } else {
-        setImages(prev => [...prev, ...newImages]);
-        setImagesPage(nextPage);
-        setImagesHasMore(newImages.length === PAGE_SIZE);
-      }
-    } catch (err: any) {
-      console.error('Failed to load more images', err);
-      // 如果是客户端错误（4xx），停止加载更多
-      if (err?.status && err.status >= 400 && err.status < 500) {
-        setImagesHasMore(false);
-      }
-    } finally {
-      setImagesLoadingMore(false);
+  const handleDemosNextPage = () => {
+    if (demosHasMore) {
+      loadDemos(demosPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleImagesPreviousPage = () => {
+    if (imagesPage > 0) {
+      loadImages(imagesPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleImagesNextPage = () => {
+    if (imagesHasMore) {
+      loadImages(imagesPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -412,11 +351,40 @@ export const AIProjectView: React.FC = () => {
             })}
           </div>
 
-          {demosHasMore && (
-            <div ref={demosLoadMoreRef} className="flex justify-center py-8">
-              {demosLoadingMore && (
-                <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent" />
-              )}
+          {/* 分页控件 */}
+          {demos.length > 0 && (
+            <div className="flex items-center justify-center gap-4 py-8">
+              <button
+                onClick={handleDemosPreviousPage}
+                disabled={demosPage === 0 || demosLoading}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  demosPage === 0 || demosLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                上一页
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                第 {demosPage + 1} 页
+              </span>
+              <button
+                onClick={handleDemosNextPage}
+                disabled={!demosHasMore || demosLoading}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  !demosHasMore || demosLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                下一页
+              </button>
+            </div>
+          )}
+
+          {demos.length === 0 && !demosLoading && (
+            <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
+              暂无 Demo
             </div>
           )}
         </section>
@@ -479,11 +447,40 @@ export const AIProjectView: React.FC = () => {
             })}
           </div>
 
-          {imagesHasMore && (
-            <div ref={imagesLoadMoreRef} className="flex justify-center py-8">
-              {imagesLoadingMore && (
-                <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent" />
-              )}
+          {/* 分页控件 */}
+          {images.length > 0 && (
+            <div className="flex items-center justify-center gap-4 py-8">
+              <button
+                onClick={handleImagesPreviousPage}
+                disabled={imagesPage === 0 || imagesLoading}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  imagesPage === 0 || imagesLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                上一页
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                第 {imagesPage + 1} 页
+              </span>
+              <button
+                onClick={handleImagesNextPage}
+                disabled={!imagesHasMore || imagesLoading}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  !imagesHasMore || imagesLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                下一页
+              </button>
+            </div>
+          )}
+
+          {images.length === 0 && !imagesLoading && (
+            <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
+              暂无图片
             </div>
           )}
           

@@ -5,24 +5,6 @@ import { fetchPhotos, fetchPhoto } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 import Loader from './Loader';
 
-// 检查页面是否可见
-const usePageVisibility = () => {
-  const [isVisible, setIsVisible] = useState(!document.hidden);
-  
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsVisible(!document.hidden);
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-  
-  return isVisible;
-};
-
 type ParsedExifData = {
   make: string;
   model: string;
@@ -99,7 +81,6 @@ export const GalleryView: React.FC = () => {
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('全部');
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWork | null>(null);
@@ -109,12 +90,10 @@ export const GalleryView: React.FC = () => {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const PAGE_SIZE = 18;
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
-  const isVisible = usePageVisibility();
 
   // 根据路由参数加载照片详情
   useEffect(() => {
@@ -208,80 +187,51 @@ export const GalleryView: React.FC = () => {
     });
   }, [selectedPhoto]);
 
-  // 初始加载
-  useEffect(() => {
+  // 加载照片数据
+  const loadPhotos = async (page: number) => {
     setLoading(true);
-    setPhotos([]);
-    setCurrentPage(0);
-    setHasMore(true);
+    setError(null);
     const MIN_LOADING_MS = 900;
     const start = performance.now();
 
-    fetchPhotos({ skip: 0, limit: PAGE_SIZE })
-      .then(data => {
-        setPhotos(data);
-        setHasMore(data.length === PAGE_SIZE);
-        setError(null);
-      })
-      .catch(err => {
-        console.error('Failed to load photos', err);
-        setError('作品加载失败，请稍后再试');
-      })
-      .finally(() => {
-        const elapsed = performance.now() - start;
-        const remaining = MIN_LOADING_MS - elapsed;
-        if (remaining > 0) {
-          setTimeout(() => setLoading(false), remaining);
-        } else {
-          setLoading(false);
-        }
-      });
+    try {
+      const data = await fetchPhotos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setPhotos(data);
+      setHasMore(data.length === PAGE_SIZE);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error('Failed to load photos', err);
+      setError('作品加载失败，请稍后再试');
+      setPhotos([]);
+      setHasMore(false);
+    } finally {
+      const elapsed = performance.now() - start;
+      const remaining = MIN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => setLoading(false), remaining);
+      } else {
+        setLoading(false);
+      }
+    }
+  };
+
+  // 初始加载
+  useEffect(() => {
+    loadPhotos(0);
   }, []);
 
-  // 无限滚动加载 - 添加页面可见性检测
-  useEffect(() => {
-    if (!hasMore || loading || loadingMore || !isVisible) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // 只在页面可见时加载
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !document.hidden) {
-          loadMorePhotos();
-        }
-      },
-      { threshold: 0.1, rootMargin: '200px' } // 提前 200px 开始加载
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+  // 处理分页
+  const handlePreviousPage = () => {
+    if (currentPage > 0) {
+      loadPhotos(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
 
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [hasMore, loading, loadingMore, filter, isVisible]);
-
-  const loadMorePhotos = async () => {
-    if (loadingMore || !hasMore) return;
-    
-    setLoadingMore(true);
-    const nextPage = currentPage + 1;
-    
-    try {
-      const newPhotos = await fetchPhotos({ skip: nextPage * PAGE_SIZE, limit: PAGE_SIZE });
-      if (newPhotos.length === 0) {
-        setHasMore(false);
-      } else {
-        setPhotos(prev => [...prev, ...newPhotos]);
-        setCurrentPage(nextPage);
-        setHasMore(newPhotos.length === PAGE_SIZE);
-      }
-    } catch (err) {
-      console.error('Failed to load more photos', err);
-    } finally {
-      setLoadingMore(false);
+  const handleNextPage = () => {
+    if (hasMore) {
+      loadPhotos(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -661,18 +611,40 @@ export const GalleryView: React.FC = () => {
         })}
       </div>
 
-      {/* 无限滚动触发器 */}
-      {hasMore && (
-        <div ref={loadMoreRef} className="flex justify-center py-8">
-          {loadingMore && (
-            <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent" />
-          )}
+      {/* 分页控件 */}
+      {displayPhotos.length > 0 && (
+        <div className="flex items-center justify-center gap-4 py-8">
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 0 || loading}
+            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+              currentPage === 0 || loading
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+            }`}
+          >
+            上一页
+          </button>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            第 {currentPage + 1} 页
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={!hasMore || loading}
+            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+              !hasMore || loading
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+            }`}
+          >
+            下一页
+          </button>
         </div>
       )}
 
-      {!hasMore && displayPhotos.length > 0 && (
-        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
-          已加载全部作品
+      {displayPhotos.length === 0 && !loading && (
+        <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
+          暂无作品
         </div>
       )}
     </div>

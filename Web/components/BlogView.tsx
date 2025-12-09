@@ -105,30 +105,11 @@ const rafThrottle = <T extends (...args: any[]) => any>(
   };
 };
 
-// 检查页面是否可见
-const usePageVisibility = () => {
-  const [isVisible, setIsVisible] = useState(!document.hidden);
-  
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsVisible(!document.hidden);
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-  
-  return isVisible;
-};
-
 // 优化的 Markdown 内容组件 - 分块渲染
 const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () => void }>(({ content, onRenderComplete }) => {
   const [renderedChunks, setRenderedChunks] = useState<string[]>([]);
   const [isRendering, setIsRendering] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isVisible = usePageVisibility();
   const renderTaskRef = useRef<number | null>(null);
   
   // 将内容按段落分割成块 - 增加块大小以减少渲染频率
@@ -158,11 +139,6 @@ const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () =
   
   // 分块渲染逻辑
   useEffect(() => {
-    if (!isVisible) {
-      // 页面不可见时暂停渲染
-      return;
-    }
-    
     setIsRendering(true);
     setRenderedChunks([]);
     
@@ -170,10 +146,10 @@ const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () =
     const totalChunks = chunks.length;
     
     const renderNextChunk = () => {
-      if (currentIndex >= totalChunks || !isVisible) {
+      if (currentIndex >= totalChunks) {
         setIsRendering(false);
         // 所有块渲染完成后，通知父组件
-        if (currentIndex >= totalChunks && onRenderComplete) {
+        if (onRenderComplete) {
           // 延迟一点确保 DOM 已更新
           setTimeout(() => {
             onRenderComplete();
@@ -211,7 +187,7 @@ const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () =
         }
       }
     };
-  }, [chunks, isVisible, onRenderComplete]);
+  }, [chunks, onRenderComplete]);
   
   return (
     <div ref={containerRef} className="markdown-content max-w-none leading-relaxed text-gray-700 dark:text-gray-200">
@@ -241,13 +217,11 @@ export const BlogView: React.FC = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   
   // 目录相关的 hooks
   const [headings, setHeadings] = useState<Heading[]>([]);
@@ -257,9 +231,6 @@ export const BlogView: React.FC = () => {
   const tocNavRef = useRef<HTMLElement>(null);
   const tocContainerRef = useRef<HTMLElement>(null);
   const [tocTop, setTocTop] = useState(100);
-  
-  // 页面可见性
-  const isVisible = usePageVisibility();
   
   // 缓存 DOM 查询结果
   const headingElementsCacheRef = useRef<Map<string, HTMLElement>>(new Map());
@@ -306,80 +277,51 @@ export const BlogView: React.FC = () => {
     };
   }, [navigate]);
 
-  // 初始加载
-  useEffect(() => {
+  // 加载博客数据
+  const loadPosts = async (page: number) => {
     setLoading(true);
-    setPosts([]);
-    setCurrentPage(0);
-    setHasMore(true);
+    setError(null);
     const MIN_LOADING_MS = 900;
     const start = performance.now();
 
-    fetchPosts({ skip: 0, limit: PAGE_SIZE })
-      .then(data => {
-        setPosts(data);
-        setHasMore(data.length === PAGE_SIZE);
-        setError(null);
-      })
-      .catch(err => {
-        console.error('Failed to load blogs', err);
-        setError('内容加载失败，请稍后重试');
-      })
-      .finally(() => {
-        const elapsed = performance.now() - start;
-        const remaining = MIN_LOADING_MS - elapsed;
-        if (remaining > 0) {
-          setTimeout(() => setLoading(false), remaining);
-        } else {
-          setLoading(false);
-        }
-      });
+    try {
+      const data = await fetchPosts({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setPosts(data);
+      setHasMore(data.length === PAGE_SIZE);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error('Failed to load blogs', err);
+      setError('内容加载失败，请稍后重试');
+      setPosts([]);
+      setHasMore(false);
+    } finally {
+      const elapsed = performance.now() - start;
+      const remaining = MIN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => setLoading(false), remaining);
+      } else {
+        setLoading(false);
+      }
+    }
+  };
+
+  // 初始加载
+  useEffect(() => {
+    loadPosts(0);
   }, []);
 
-  // 无限滚动加载 - 添加页面可见性检测
-  useEffect(() => {
-    if (!hasMore || loading || loadingMore || !isVisible) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // 只在页面可见时加载
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !document.hidden) {
-          loadMorePosts();
-        }
-      },
-      { threshold: 0.1, rootMargin: '200px' } // 提前 200px 开始加载
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+  // 处理分页
+  const handlePreviousPage = () => {
+    if (currentPage > 0) {
+      loadPosts(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
 
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [hasMore, loading, loadingMore, selectedCategory, isVisible]);
-
-  const loadMorePosts = async () => {
-    if (loadingMore || !hasMore) return;
-    
-    setLoadingMore(true);
-    const nextPage = currentPage + 1;
-    
-    try {
-      const newPosts = await fetchPosts({ skip: nextPage * PAGE_SIZE, limit: PAGE_SIZE });
-      if (newPosts.length === 0) {
-        setHasMore(false);
-      } else {
-        setPosts(prev => [...prev, ...newPosts]);
-        setCurrentPage(nextPage);
-        setHasMore(newPosts.length === PAGE_SIZE);
-      }
-    } catch (err) {
-      console.error('Failed to load more blogs', err);
-    } finally {
-      setLoadingMore(false);
+  const handleNextPage = () => {
+    if (hasMore) {
+      loadPosts(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -413,7 +355,7 @@ export const BlogView: React.FC = () => {
 
   // 优化的标题提取 - 监听渲染完成标志
   useEffect(() => {
-    if (!selectedPost || !isVisible) {
+    if (!selectedPost) {
       setHeadings([]);
       setShouldExtractHeadings(false);
       return;
@@ -485,11 +427,11 @@ export const BlogView: React.FC = () => {
       if (timeoutId) clearTimeout(timeoutId);
       if (observer) observer.disconnect();
     };
-  }, [selectedPost, isVisible, shouldExtractHeadings]);
+  }, [selectedPost, shouldExtractHeadings]);
 
   // 优化的滚动监听 - 使用节流，减少更新频率以降低功耗
   useEffect(() => {
-    if (headings.length === 0 || !isVisible) {
+    if (headings.length === 0) {
       setActiveHeading('');
       return;
     }
@@ -530,12 +472,12 @@ export const BlogView: React.FC = () => {
     handleScroll(); // 初始检查
 
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [headings, isVisible]);
+  }, [headings]);
 
   // 目录自动滚动到当前激活的标题 - 使用节流减少滚动频率
   const lastScrollTimeRef = useRef<number>(0);
   useEffect(() => {
-    if (!activeHeading || !tocNavRef.current || !isVisible) return;
+    if (!activeHeading || !tocNavRef.current) return;
 
     // 限制滚动频率 - 至少间隔 500ms 才滚动一次
     const now = Date.now();
@@ -566,11 +508,11 @@ export const BlogView: React.FC = () => {
         });
       }
     }
-  }, [activeHeading, isVisible]);
+  }, [activeHeading]);
 
   // 优化的目录位置检测 - 顶部栏现在是固定的，所以目录位置也是固定的
   useEffect(() => {
-    if (!selectedPost || !isVisible) return;
+    if (!selectedPost) return;
 
     const handleScroll = throttle(() => {
       // 固定顶部栏高度约 80px，目录从 100px 开始
@@ -606,7 +548,7 @@ export const BlogView: React.FC = () => {
     handleScroll();
 
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [selectedPost, isVisible]);
+  }, [selectedPost]);
 
   if (loading) {
     return <Loader />;
@@ -889,18 +831,40 @@ export const BlogView: React.FC = () => {
         })}
       </div>
 
-      {/* 无限滚动触发器 */}
-      {hasMore && (
-        <div ref={loadMoreRef} className="flex justify-center py-8">
-          {loadingMore && (
-            <div className="animate-spin h-8 w-8 border-4 border-primary-500 rounded-full border-t-transparent" />
-          )}
+      {/* 分页控件 */}
+      {filteredPosts.length > 0 && (
+        <div className="flex items-center justify-center gap-4 py-8">
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 0 || loading}
+            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+              currentPage === 0 || loading
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+            }`}
+          >
+            上一页
+          </button>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            第 {currentPage + 1} 页
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={!hasMore || loading}
+            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+              !hasMore || loading
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+            }`}
+          >
+            下一页
+          </button>
         </div>
       )}
 
-      {!hasMore && filteredPosts.length > 0 && (
-        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
-          已加载全部内容
+      {filteredPosts.length === 0 && !loading && (
+        <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
+          暂无内容
         </div>
       )}
     </div>

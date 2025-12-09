@@ -10,10 +10,10 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 初始化主题：优先读取本地存储，如果没有则默认使用深色模式
+  // 初始化主题：优先读取本地存储，如果没有则默认使用浅色模式
   const getInitialTheme = (): Theme => {
     const storedTheme = localStorage.getItem('theme') as Theme | null;
-    return storedTheme || 'dark';
+    return storedTheme || 'light';
   };
 
   const [theme, setTheme] = useState<Theme>(() => {

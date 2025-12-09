@@ -101,9 +101,40 @@
   }
 
   /* 默认 body / 根容器的背景用统一深色 */
-  .dark body,
-  .dark .app-background {
+  html.dark body,
+  html.dark .app-background {
     background-color: var(--color-cyber-dark);
+  }
+
+  /* 确保所有元素在深色模式下都能正确应用样式 */
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* 移动端深色模式优化 - 确保根元素和主要容器正确应用深色 */
+  @media (max-width: 768px) {
+    html.dark {
+      background-color: var(--color-cyber-dark);
+    }
+    
+    html.dark body {
+      background-color: var(--color-cyber-dark);
+      color: #e5e7eb;
+    }
+    
+    /* 确保主要容器在移动端也能正确应用深色 */
+    html.dark .app-background {
+      background-color: var(--color-cyber-dark);
+    }
+    
+    /* 修复移动端可能出现的白色背景元素 */
+    html.dark .bg-white,
+    html.dark .bg-slate-50,
+    html.dark .bg-slate-100,
+    html.dark .bg-gray-50,
+    html.dark .bg-gray-100 {
+      background-color: color-mix(in srgb, var(--color-cyber-panel) 88%, black 12%);
+    }
   }
 
   /* 博客卡片在深色下的统一样式 */
