@@ -10,14 +10,18 @@
   <style>
     :root {
       /* 浅色模式背景色 - 柔和的暖灰色调，避免纯白 */
-      --bg-primary: #f5f7fa; /* 柔和的灰蓝色，比纯白更舒适 */
-      --bg-secondary: #eef2f6; /* 稍深的灰蓝色 */
-      
+      --bg-primary: #f5f7fa;
+      /* 柔和的灰蓝色，比纯白更舒适 */
+      --bg-secondary: #eef2f6;
+      /* 稍深的灰蓝色 */
+
       /* 深色模式背景色 - 柔和的深灰色调，避免纯黑 */
-      --bg-dark-primary: #0f1729; /* 柔和的深蓝灰色，不是纯黑 */
-      --bg-dark-secondary: #1a1f2e; /* 稍浅的深灰色 */
+      --bg-dark-primary: #0f1729;
+      /* 柔和的深蓝灰色，不是纯黑 */
+      --bg-dark-secondary: #1a1f2e;
+      /* 稍浅的深灰色 */
     }
-    
+
     html {
       /* 始终预留滚动条空间，避免不同页面内容高度不同时触发布局抖动 */
       overflow-y: scroll;
@@ -30,24 +34,24 @@
       background-color: #f5f7fa;
       transition: background-color 0.3s ease, color 0.3s ease;
     }
-    
+
     /* 深色模式下的 body 样式 */
     html.dark body {
       background-color: var(--bg-dark-primary);
       color: #e5e7eb;
     }
-    
+
     /* 统一的背景色设计 - 使用纯色保证性能，避免渐变带来的性能开销 */
     .app-background {
       background-color: var(--bg-primary);
       color: #0f172a;
     }
-    
+
     html.dark .app-background {
       background-color: var(--bg-dark-primary);
       color: #e5e7eb;
     }
-    
+
     /* 确保背景色过渡平滑 */
     .app-background {
       transition: background-color 0.3s ease;
@@ -55,6 +59,7 @@
 
     /* 性能优化：页面不可见时暂停所有动画 */
     @media (prefers-reduced-motion: reduce) {
+
       *,
       *::before,
       *::after {
@@ -70,7 +75,8 @@
     .animate-scan,
     .animate-pulse-slow {
       will-change: transform;
-      transform: translateZ(0); /* 触发 GPU 加速 */
+      transform: translateZ(0);
+      /* 触发 GPU 加速 */
     }
 
     /* Custom scrollbar for better aesthetics */
@@ -217,6 +223,7 @@
 
     .markdown-content code {
       background-color: #f3f4f6;
+      color: #1f2937;
       padding: 0.2em 0.4em;
       border-radius: 0.25em;
       font-size: 0.9em;
@@ -229,7 +236,8 @@
     }
 
     .markdown-content pre {
-      background-color: #1f2937;
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
       padding: 1em;
       border-radius: 0.5em;
       overflow-x: auto;
@@ -237,12 +245,17 @@
     }
 
     .dark .markdown-content pre {
-      background-color: #111827;
+      background-color: #1f2937;
+      border-color: #374151;
     }
 
     .markdown-content pre code {
       background-color: transparent;
+      color: #1f2937;
       padding: 0;
+    }
+
+    .dark .markdown-content pre code {
       color: #e5e7eb;
     }
 
@@ -356,11 +369,104 @@
       /* 默认（小屏幕）：px-4 = 1rem，与导航栏完全对齐 */
       left: max(1rem, calc((100vw - 1280px) / 2 + 1rem));
     }
+
     @media (min-width: 768px) {
       .toc-fixed {
         /* md 及以上：px-6 = 1.5rem，与导航栏完全对齐 */
         left: max(1.5rem, calc((100vw - 1280px) / 2 + 1.5rem));
       }
+    }
+
+    /* Mermaid 图表样式 */
+    .mermaid-container {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: transparent;
+      border-radius: 0.5rem;
+      /* Ensure horizontal scroll if too wide */
+      overflow-x: auto;
+      /* Center content */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mermaid-container svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* 深色模式下的 Mermaid 图表样式 */
+    .dark .mermaid-container {
+      background: transparent;
+    }
+
+    /* 深色模式下确保所有文本元素可见 - 使用更亮的颜色 */
+    .dark .mermaid-container svg text,
+    .dark .mermaid-container svg tspan,
+    .dark .mermaid-container svg .label text,
+    .dark .mermaid-container svg .nodeLabel,
+    .dark .mermaid-container svg .edgeLabel,
+    .dark .mermaid-container svg .cluster-label text,
+    .dark .mermaid-container svg .note text,
+    .dark .mermaid-container svg .noteLabel,
+    .dark .mermaid-container svg [class*="label"] text,
+    .dark .mermaid-container svg [class*="Label"] text,
+    .dark .mermaid-container svg g text,
+    .dark .mermaid-container svg g tspan,
+    .dark .mermaid-container svg g g text,
+    .dark .mermaid-container svg g g tspan {
+      fill: #f1f5f9 !important;
+      color: #f1f5f9 !important;
+    }
+
+    /* 深色模式下确保所有线条和路径可见 */
+    .dark .mermaid-container svg path,
+    .dark .mermaid-container svg .edgePath path,
+    .dark .mermaid-container svg .flowchart-link,
+    .dark .mermaid-container svg line,
+    .dark .mermaid-container svg polyline {
+      stroke: #cbd5e1 !important;
+    }
+
+    /* 深色模式下确保节点边框可见 */
+    .dark .mermaid-container svg rect,
+    .dark .mermaid-container svg circle,
+    .dark .mermaid-container svg ellipse,
+    .dark .mermaid-container svg polygon,
+    .dark .mermaid-container svg .node rect,
+    .dark .mermaid-container svg .node circle,
+    .dark .mermaid-container svg .node ellipse,
+    .dark .mermaid-container svg .node polygon {
+      stroke: #94a3b8 !important;
+    }
+
+    /* 深色模式下箭头和标记 */
+    .dark .mermaid-container svg marker path,
+    .dark .mermaid-container svg .arrowheadPath,
+    .dark .mermaid-container svg marker>path {
+      fill: #cbd5e1 !important;
+      stroke: #cbd5e1 !important;
+    }
+
+    /* 深色模式下确保节点背景有对比度 */
+    .dark .mermaid-container svg .node rect,
+    .dark .mermaid-container svg .node circle,
+    .dark .mermaid-container svg .node ellipse,
+    .dark .mermaid-container svg .node polygon {
+      fill-opacity: 1 !important;
+    }
+
+    /* 深色模式下子图/集群边框 */
+    .dark .mermaid-container svg .cluster rect,
+    .dark .mermaid-container svg .cluster polygon {
+      stroke: #64748b !important;
+      stroke-width: 2px !important;
+    }
+
+    /* 深色模式下确保所有填充颜色有足够的对比度 */
+    .dark .mermaid-container svg [fill]:not([fill="none"]):not([fill="transparent"]) {
+      fill-opacity: 0.9 !important;
     }
 
     /* 目录滚动条样式 */
@@ -407,6 +513,7 @@
 
     /* 摄影作品卡片动画优化 */
     @supports (display: grid) {
+
       .columns-1,
       .columns-2,
       .columns-3,
@@ -427,11 +534,15 @@
 
     /* 隐藏滚动条但保持滚动功能 */
     .scrollbar-hide {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;
+      /* IE and Edge */
+      scrollbar-width: none;
+      /* Firefox */
     }
+
     .scrollbar-hide::-webkit-scrollbar {
-      display: none;  /* Chrome, Safari and Opera */
+      display: none;
+      /* Chrome, Safari and Opera */
     }
   </style>
   <script type="importmap">

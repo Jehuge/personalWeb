@@ -8,6 +8,7 @@ import { BlogPost } from '../types';
 import { fetchPosts, fetchBlog } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 import Loader from './Loader';
+import { MermaidDiagram } from './MermaidDiagram';
 
 interface Heading {
   id: string;
@@ -105,107 +106,82 @@ const rafThrottle = <T extends (...args: any[]) => any>(
   };
 };
 
-// 优化的 Markdown 内容组件 - 分块渲染
+// 简单的哈希函数用于生成稳定的 key
+const simpleHash = (str: string): string => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
+};
+
+// 优化的 Markdown 内容组件 - 一次性渲染，避免重复和跳动
 const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () => void }>(({ content, onRenderComplete }) => {
-  const [renderedChunks, setRenderedChunks] = useState<string[]>([]);
-  const [isRendering, setIsRendering] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const renderTaskRef = useRef<number | null>(null);
+  const hasNotifiedRef = useRef(false);
   
-  // 将内容按段落分割成块 - 增加块大小以减少渲染频率
-  const chunks = useMemo(() => {
-    if (!content) return [];
-    // 按双换行符分割（段落）
-    const paragraphs = content.split(/\n\n+/);
-    const result: string[] = [];
-    let currentChunk = '';
-    
-    // 每 5 个段落组成一个块，减少渲染频率（从 3 增加到 5）
-    // 对于短文章，直接一次性渲染
-    if (paragraphs.length <= 5) {
-      return [content];
-    }
-    
-    for (let i = 0; i < paragraphs.length; i++) {
-      currentChunk += paragraphs[i] + '\n\n';
-      if ((i + 1) % 5 === 0 || i === paragraphs.length - 1) {
-        result.push(currentChunk.trim());
-        currentChunk = '';
+  // 渲染完成后通知父组件（只通知一次）
+  useEffect(() => {
+    if (!hasNotifiedRef.current && onRenderComplete) {
+      // 延迟一点确保 DOM 已更新，特别是 Mermaid 图表
+      const hasMermaid = content.includes('```mermaid');
+      const timer = setTimeout(() => {
+        if (!hasNotifiedRef.current) {
+          hasNotifiedRef.current = true;
+            onRenderComplete();
+        }
+      }, hasMermaid ? 800 : 200);
+      return () => clearTimeout(timer);
       }
-    }
-    
-    return result.length > 0 ? result : [content];
+  }, [content, onRenderComplete]);
+  
+  // 重置通知状态当内容改变时
+  useEffect(() => {
+    hasNotifiedRef.current = false;
   }, [content]);
   
-  // 分块渲染逻辑
-  useEffect(() => {
-    setIsRendering(true);
-    setRenderedChunks([]);
-    
-    let currentIndex = 0;
-    const totalChunks = chunks.length;
-    
-    const renderNextChunk = () => {
-      if (currentIndex >= totalChunks) {
-        setIsRendering(false);
-        // 所有块渲染完成后，通知父组件
-        if (onRenderComplete) {
-          // 延迟一点确保 DOM 已更新
-          setTimeout(() => {
-            onRenderComplete();
-          }, 100);
-        }
-        return;
-      }
-      
-      setRenderedChunks(prev => [...prev, chunks[currentIndex]]);
-      currentIndex++;
-      
-      // 使用 requestIdleCallback 在浏览器空闲时渲染下一块
-      // 增加延迟时间以减少渲染频率，降低功耗
-      if ('requestIdleCallback' in window) {
-        renderTaskRef.current = (window as any).requestIdleCallback(renderNextChunk, { timeout: 200 });
-      } else {
-        // 降级方案：增加延迟到 50ms，减少渲染频率
-        renderTaskRef.current = setTimeout(renderNextChunk, 50) as unknown as number;
-      }
-    };
-    
-    // 立即渲染第一块
-    if (totalChunks > 0) {
-      renderNextChunk();
-    } else {
-      setIsRendering(false);
-    }
-    
-    return () => {
-      if (renderTaskRef.current !== null) {
-        if ('requestIdleCallback' in window) {
-          (window as any).cancelIdleCallback(renderTaskRef.current);
-        } else {
-          clearTimeout(renderTaskRef.current);
-        }
-      }
-    };
-  }, [chunks, onRenderComplete]);
+  // 使用内容哈希作为整体 key，确保内容变化时正确重新渲染
+  const contentKey = useMemo(() => simpleHash(content), [content]);
   
   return (
     <div ref={containerRef} className="markdown-content max-w-none leading-relaxed text-gray-700 dark:text-gray-200">
-      {renderedChunks.map((chunk, index) => (
         <ReactMarkdown
-          key={index}
+        key={contentKey}
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, rehypeSlug]}
-        >
-          {chunk}
+        components={{
+          code(props: any) {
+            const { className, children } = props;
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match && match[1] ? match[1] : '';
+            const codeString = String(children).replace(/\n$/, '');
+
+            // 如果是 mermaid 代码块，使用 MermaidDiagram 组件渲染
+            if (language === 'mermaid' && className) {
+              // 使用内容哈希作为 key，确保唯一性和稳定性
+              const chartKey = simpleHash(codeString);
+              return (
+                <MermaidDiagram 
+                  key={`mermaid-${chartKey}`} 
+                  id={chartKey}
+                  chart={codeString}
+                />
+              );
+            }
+
+            // 默认代码块渲染
+            return (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            );
+          },
+        }}
+      >
+        {content}
         </ReactMarkdown>
-      ))}
-      {isRendering && (
-        <div className="flex items-center justify-center py-4 text-sm text-gray-400">
-          <div className="animate-spin h-4 w-4 border-2 border-primary-500 rounded-full border-t-transparent mr-2" />
-          加载中...
-        </div>
-      )}
     </div>
   );
 });
