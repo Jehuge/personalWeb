@@ -308,6 +308,32 @@ export const GalleryView: React.FC = () => {
     }
   };
 
+  // 3D 玻璃卡片悬停效果（摄影列表）- 仅桌面，使用 rAF 降低卡顿
+  const tiltRafRef = useRef<number | null>(null);
+  const handlePhotoCardMove = (event: React.MouseEvent<HTMLElement>) => {
+    if (window.innerWidth < 900) return; // 移动端不做倾斜
+    const card = event.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const rotateY = ((x / rect.width) - 0.5) * 18;  // 更明显左右倾斜
+    const rotateX = -((y / rect.height) - 0.5) * 12; // 更明显上下倾斜
+    if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
+    tiltRafRef.current = requestAnimationFrame(() => {
+      card.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+      card.style.transition = 'transform 180ms ease-out, box-shadow 220ms ease';
+      card.style.boxShadow = '0 16px 32px rgba(0,0,0,0.32), 0 0 18px rgba(255,255,255,0.18)';
+    });
+  };
+
+  const handlePhotoCardLeave = (event: React.MouseEvent<HTMLElement>) => {
+    const card = event.currentTarget;
+    if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
+    card.style.transform = 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+    card.style.transition = 'transform 220ms ease-out, box-shadow 260ms ease';
+    card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.24), 0 0 14px rgba(255,255,255,0.12)';
+  };
+
   const handleDoubleClick = () => {
     setZoom(prev => {
       const next = prev >= 3 ? 1 : prev + 1;
@@ -348,16 +374,29 @@ export const GalleryView: React.FC = () => {
         <div className="max-w-7xl mx-auto bg-slate-50 dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden p-6 lg:p-10">
           <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
             {/* 图片区域 - 左侧（保持在左） */}
-            <div className="lg:flex-1 space-y-6 lg:sticky lg:top-24 w-full">
+            <div className="lg:flex-1 space-y-6 lg:sticky lg:top-24 w-full max-w-full">
               <div
-                className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl"
-                style={{ aspectRatio: detailAspectRatio }}
+                className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl flex items-center justify-center"
+                style={{ 
+                  minHeight: '300px',
+                  maxHeight: 'calc(100vh - 200px)',
+                  maxWidth: '100%',
+                  padding: '1rem'
+                }}
               >
                 <LazyImage
                   src={detailImageSrc}
                   alt={selectedPhoto.title}
-                  className="absolute inset-0"
-                  imageClassName="w-full h-full object-contain"
+                  className=""
+                  imageClassName="object-contain"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: 'calc(100vh - 250px)',
+                    width: 'auto',
+                    height: 'auto',
+                    display: 'block',
+                    objectFit: 'contain'
+                  }}
                 />
               </div>
               <button
@@ -553,59 +592,65 @@ export const GalleryView: React.FC = () => {
           return (
             <article 
               key={photo.id} 
-              className="photo-card group relative break-inside-avoid mb-4 md:mb-6 rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-cyber-accent/20 animate-fade-in will-change-transform"
-              style={{ animationDelay }}
+              className="photo-card group relative break-inside-avoid mb-4 md:mb-6 rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 animate-fade-in"
+              style={{ 
+                animationDelay,
+                transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+                boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
+                background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+                border: '1px solid rgba(255,255,255,0.35)',
+                willChange: 'transform',
+              }}
+              onMouseMove={handlePhotoCardMove}
+              onMouseLeave={handlePhotoCardLeave}
               onClick={() => navigate(`/gallery/${photo.id}`)}
             >
               {/* 图片容器 - 无固定高度，使用自然比例 */}
-              <div className="relative w-full overflow-hidden bg-gray-900 rounded-xl md:rounded-2xl">
+              <div className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-xl md:rounded-2xl">
                 <LazyImage
                   src={thumbSrc}
                   alt={photo.title}
-                  className="absolute inset-0"
-                  imageClassName="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-auto"
+                  imageClassName="w-full h-auto object-cover"
                 />
                 
-                {/* 动态渐变遮罩 - 移动端始终显示，桌面端悬停显示 */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-all duration-500" />
-                
-                {/* 扫描线效果 */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-scan" />
-                </div>
-                
-                {/* 顶部标签 - 移动端始终显示，桌面端悬停显示 */}
-                <div className="absolute top-2 md:top-4 left-2 md:left-4 right-2 md:right-4 flex items-start justify-between gap-2 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:transform md:translate-y-2 md:group-hover:translate-y-0">
-                  <div className="flex flex-wrap gap-1.5 md:gap-2">
-                    <span className="px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] md:text-xs font-semibold border border-white/10">
-                      {categoryLabel}
-                    </span>
-                    <span className="px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-cyber-accent/80 backdrop-blur-md text-white text-[10px] md:text-xs font-semibold">
-                      {shootDate}
-                    </span>
+                {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
+                <div className="absolute inset-0 pointer-events-none flex">
+                  <div
+                    className="relative flex flex-col justify-between w-full h-full px-3 py-3 md:px-4 md:py-4 opacity-0 group-hover:opacity-100"
+                    style={{ transition: 'opacity 260ms ease-out' }}
+                  >
+                    {/* 顶部一行：标题 + 时间 */}
+                    <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                      {[photo.title, shootDate].map((text, idx) => (
+                        <span
+                          key={`top-${idx}`}
+                          className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
+                          style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                        >
+                          {text}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* 底部一行：标签 + CTA */}
+                    <div className="flex items-center gap-2.5 md:gap-3 flex-wrap">
+                      <span
+                        className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 text-white border border-white/45 text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
+                        style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                      >
+                        {categoryLabel}
+                      </span>
+                      <span
+                        className="px-4.5 md:px-5 py-1.5 md:py-2 rounded-full bg-black/82 text-white text-xs md:text-sm font-semibold tracking-wide inline-flex items-center gap-2 border border-white/45 shadow-[0_8px_20px_rgba(0,0,0,0.32)]"
+                        style={{ boxShadow: '0 10px 20px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                      >
+                        前往 →
+                      </span>
+                    </div>
                   </div>
-                </div>
-                
-                {/* 底部信息 - 移动端始终显示，桌面端悬停显示 */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-6 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:transform md:translate-y-4 md:group-hover:translate-y-0">
-                  <h3 className="text-base md:text-xl font-bold text-white mb-1 md:mb-2 drop-shadow-lg line-clamp-2">
-                    {photo.title}
-                  </h3>
-                  <div className="mt-2 md:mt-3 flex items-center gap-2 text-white/80 text-[10px] md:text-xs">
-                    <span className="px-2 py-0.5 md:py-1 rounded bg-white/10 backdrop-blur-sm">
-                      查看详情 →
-                    </span>
-                  </div>
-                </div>
-                
-                {/* 光晕效果 */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyber-accent/20 rounded-full blur-3xl animate-pulse-slow" />
                 </div>
               </div>
-              
-              {/* 悬停时的边框光效 */}
-              <div className="absolute inset-0 rounded-2xl border-2 border-cyber-accent/0 group-hover:border-cyber-accent/50 transition-all duration-500 pointer-events-none" />
             </article>
           );
         })}

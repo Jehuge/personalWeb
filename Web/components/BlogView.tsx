@@ -599,8 +599,18 @@ export const BlogView: React.FC = () => {
             <div className="lg:hidden fixed bottom-36 right-8 z-40">
               <button
                 onClick={() => setTocExpanded(!tocExpanded)}
-                className="p-3 glass-card rounded-full shadow-lg hover:shadow-xl transition-all"
+                className="p-3 glass-card rounded-full shadow-lg hover:shadow-xl"
                 aria-label="目录"
+                style={{
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  willChange: 'transform, box-shadow'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
               >
                 <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -618,6 +628,10 @@ export const BlogView: React.FC = () => {
                     <button
                       onClick={() => setTocExpanded(false)}
                       className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                      style={{
+                        transition: 'background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        willChange: 'background-color'
+                      }}
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -634,12 +648,24 @@ export const BlogView: React.FC = () => {
                             scrollToHeading(heading.id);
                             setTocExpanded(false);
                           }}
-                          className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                          className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
                             activeHeading === heading.id
                               ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
                               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
                           }`}
-                          style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem` }}
+                          style={{ 
+                            paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem`,
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            willChange: 'background-color, transform'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (activeHeading !== heading.id) {
+                              e.currentTarget.style.transform = 'translateX(4px)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateX(0)';
+                          }}
                         >
                           <span className="truncate block">{heading.text}</span>
                         </button>
@@ -683,12 +709,24 @@ export const BlogView: React.FC = () => {
                         key={heading.id}
                         data-heading-id={heading.id}
                         onClick={() => scrollToHeading(heading.id)}
-                        className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                        className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
                           activeHeading === heading.id
                             ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
                         }`}
-                        style={{ paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem` }}
+                        style={{ 
+                          paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem`,
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          willChange: 'background-color, transform'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (activeHeading !== heading.id) {
+                            e.currentTarget.style.transform = 'translateX(4px)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateX(0)';
+                        }}
                       >
                         <span className="truncate block">{heading.text}</span>
                       </button>
@@ -725,10 +763,22 @@ export const BlogView: React.FC = () => {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat
+              className={`px-5 py-2 rounded-full text-sm font-medium ${selectedCategory === cat
                   ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30'
                   : 'bg-slate-50/90 dark:bg-slate-800/60 text-gray-600 dark:text-gray-300 border border-gray-200/70 dark:border-slate-700 hover:border-primary-300'
                 }`}
+            style={{
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              willChange: 'background-color, border-color, transform'
+            }}
+            onMouseEnter={(e) => {
+              if (selectedCategory !== cat) {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
             >
               {cat}
             </button>
@@ -747,20 +797,34 @@ export const BlogView: React.FC = () => {
           return (
             <article
               key={post.id}
-              className="blog-card group flex flex-col bg-slate-50/90 dark:bg-slate-900/80 rounded-3xl border border-gray-200/70 dark:border-slate-700/80 overflow-hidden shadow-md hover:shadow-2xl hover:shadow-cyber-accent/20 transition-shadow duration-300 backdrop-blur w-full max-w-[420px] justify-self-center"
+              className="blog-card group flex flex-col bg-slate-50/90 dark:bg-slate-900/80 rounded-3xl border border-gray-200/70 dark:border-slate-700/80 overflow-hidden shadow-md hover:shadow-2xl hover:shadow-cyber-accent/20 backdrop-blur w-full max-w-[420px] justify-self-center"
+              style={{
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: 'translateY(0)',
+                willChange: 'transform, box-shadow'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
               <button
                 type="button"
                 onClick={() => navigate(`/blog/${post.id}`)}
                 className="text-left flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
               >
-                <div className="relative h-56 bg-gradient-to-br from-primary-500/20 to-cyan-500/30">
+                <div className="relative h-56 bg-gradient-to-br from-primary-500/20 to-cyan-500/30 overflow-hidden">
                   {coverImage ? (
-                    <LazyImage
-                      src={coverImage}
-                      alt={post.title}
-                      className="h-56 w-full"
-                    />
+                    <div className="group-hover:scale-105 transition-transform duration-500 ease-out"
+                         style={{ willChange: 'transform' }}>
+                      <LazyImage
+                        src={coverImage}
+                        alt={post.title}
+                        className="h-56 w-full"
+                      />
+                    </div>
                   ) : (
                     <div className="h-56 w-full flex items-center justify-center text-primary-500 font-semibold text-lg">
                       {categoryLabel}
@@ -777,7 +841,12 @@ export const BlogView: React.FC = () => {
                 </div>
 
                 <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-primary-500 transition-colors">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-primary-500"
+                      style={{
+                        transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        willChange: 'color'
+                      }}
+                  >
                     {post.title}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed line-clamp-3 flex-1">
@@ -788,7 +857,14 @@ export const BlogView: React.FC = () => {
                       <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       {readTime} min read
                     </span>
-                    <span className="text-primary-600 dark:text-primary-400 font-semibold">阅读全文 →</span>
+                    <span className="text-primary-600 dark:text-primary-400 font-semibold group-hover:translate-x-1 inline-block"
+                          style={{
+                            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            willChange: 'transform'
+                          }}
+                    >
+                      阅读全文 →
+                    </span>
                   </div>
                 </div>
               </button>
@@ -813,11 +889,23 @@ export const BlogView: React.FC = () => {
           <button
             onClick={handlePreviousPage}
             disabled={currentPage === 0 || loading}
-            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`px-6 py-2 rounded-full text-sm font-medium ${
               currentPage === 0 || loading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
             }`}
+            style={{
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              willChange: currentPage === 0 || loading ? 'auto' : 'background-color, transform'
+            }}
+            onMouseEnter={(e) => {
+              if (currentPage !== 0 && !loading) {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
           >
             上一页
           </button>
@@ -827,11 +915,23 @@ export const BlogView: React.FC = () => {
           <button
             onClick={handleNextPage}
             disabled={!hasMore || loading}
-            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`px-6 py-2 rounded-full text-sm font-medium ${
               !hasMore || loading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
             }`}
+            style={{
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              willChange: !hasMore || loading ? 'auto' : 'background-color, transform'
+            }}
+            onMouseEnter={(e) => {
+              if (hasMore && !loading) {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
           >
             下一页
           </button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AIDemo, AIImage, AIProject } from '../types';
 import { fetchAIDemos, fetchAIImages, fetchAIProjects } from '../services/dataService';
 import PlayButton from './PlayButton';
@@ -62,6 +62,7 @@ export const AIProjectView: React.FC = () => {
   const [imagesHasMore, setImagesHasMore] = useState(false);
   const [imagesPage, setImagesPage] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
+  const tiltRafRef = useRef<number | null>(null);
 
   const PAGE_SIZE = 12;
 
@@ -198,6 +199,31 @@ export const AIProjectView: React.FC = () => {
       loadImages(imagesPage + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  // 3D 玻璃卡片悬停效果 - 桌面端
+  const handleCardMove = (event: React.MouseEvent<HTMLElement>) => {
+    if (window.innerWidth < 900) return;
+    const card = event.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const rotateY = ((x / rect.width) - 0.5) * 26;
+    const rotateX = -((y / rect.height) - 0.5) * 18;
+    if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
+    tiltRafRef.current = requestAnimationFrame(() => {
+      card.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.08, 1.08, 1.08)`;
+      card.style.transition = 'transform 160ms ease-out, box-shadow 200ms ease';
+      card.style.boxShadow = '0 18px 38px rgba(0,0,0,0.34), 0 0 22px rgba(255,255,255,0.2)';
+    });
+  };
+
+  const handleCardLeave = (event: React.MouseEvent<HTMLElement>) => {
+    const card = event.currentTarget;
+    if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
+    card.style.transform = 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+    card.style.transition = 'transform 220ms ease-out, box-shadow 260ms ease';
+    card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.24), 0 0 14px rgba(255,255,255,0.12)';
   };
 
   const featuredProject = useMemo(() => {
@@ -453,25 +479,30 @@ export const AIProjectView: React.FC = () => {
             {images.map((image) => {
               const tags = image.tags ? image.tags.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
               return (
-                <div
+                <article
                   key={image.id}
-                  className="break-inside-avoid group bg-white dark:bg-gray-800 rounded-3xl p-3 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer mb-6"
+                  className="break-inside-avoid group relative rounded-2xl md:rounded-3xl overflow-hidden cursor-pointer mb-6 transition-all duration-300"
+                  style={{
+                    transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+                    boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
+                    background:
+                      'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    willChange: 'transform',
+                  }}
+                  onMouseMove={handleCardMove}
+                  onMouseLeave={handleCardLeave}
                   onClick={() => setSelectedImage(image)}
                 >
-                  <div className="relative overflow-hidden rounded-2xl mb-4 bg-gray-100 dark:bg-gray-700">
+                  <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-700">
                     <img
                       src={image.thumbnail_url || image.image_url}
                       alt={image.title || 'AI Generated Image'}
-                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="w-full h-auto object-cover"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
-                      <span className="bg-white/90 text-gray-900 px-4 py-2 rounded-full text-sm font-medium shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                        View Details
-                      </span>
-                    </div>
                   </div>
-                  <div className="px-1">
+                  <div className="px-3 pb-4 pt-3 md:px-4 md:pb-5 md:pt-4">
                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2 truncate">
                       {image.title || '无标题'}
                     </h4>
@@ -480,7 +511,7 @@ export const AIProjectView: React.FC = () => {
                         tags.slice(0, 3).map((tag, index) => (
                           <span
                             key={index}
-                            className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-1 rounded text-xs"
+                            className="bg-white/70 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-full text-xs border border-white/50 dark:border-gray-700/60 backdrop-blur-sm"
                           >
                             {tag}
                           </span>
@@ -490,7 +521,7 @@ export const AIProjectView: React.FC = () => {
                       )}
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
