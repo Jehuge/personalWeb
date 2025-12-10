@@ -202,6 +202,12 @@ export const AIProjectView: React.FC = () => {
   };
 
   // 3D 玻璃卡片悬停效果 - 桌面端
+  const handleCardEnter = (event: React.MouseEvent<HTMLElement>) => {
+    const card = event.currentTarget;
+    card.style.transition = 'transform 160ms ease-out, box-shadow 200ms ease';
+    card.style.boxShadow = '0 16px 32px rgba(0,0,0,0.28), 0 0 18px rgba(255,255,255,0.16)';
+  };
+
   const handleCardMove = (event: React.MouseEvent<HTMLElement>) => {
     if (window.innerWidth < 900) return;
     const card = event.currentTarget;
@@ -213,8 +219,6 @@ export const AIProjectView: React.FC = () => {
     if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
     tiltRafRef.current = requestAnimationFrame(() => {
       card.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.08, 1.08, 1.08)`;
-      card.style.transition = 'transform 160ms ease-out, box-shadow 200ms ease';
-      card.style.boxShadow = '0 18px 38px rgba(0,0,0,0.34), 0 0 22px rgba(255,255,255,0.2)';
     });
   };
 
@@ -223,7 +227,7 @@ export const AIProjectView: React.FC = () => {
     if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
     card.style.transform = 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
     card.style.transition = 'transform 220ms ease-out, box-shadow 260ms ease';
-    card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.24), 0 0 14px rgba(255,255,255,0.12)';
+    card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2), 0 0 12px rgba(255,255,255,0.1)';
   };
 
   const featuredProject = useMemo(() => {
@@ -490,6 +494,7 @@ export const AIProjectView: React.FC = () => {
                     border: '1px solid rgba(255,255,255,0.35)',
                     willChange: 'transform',
                   }}
+                  onMouseEnter={handleCardEnter}
                   onMouseMove={handleCardMove}
                   onMouseLeave={handleCardLeave}
                   onClick={() => setSelectedImage(image)}
