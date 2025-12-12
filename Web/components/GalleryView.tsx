@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
 import { fetchPhotos, fetchPhoto } from '../services/dataService';
-import { LazyImage } from './LazyImage';
 import Loader from './Loader';
 
 type ParsedExifData = {
@@ -95,6 +94,8 @@ export const GalleryView: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const PAGE_SIZE = 15;
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
+  // 使用 useRef 防止组件意外重新挂载导致的重复请求
+  const hasLoadedRef = useRef(false);
 
   // 根据路由参数加载照片详情
   useEffect(() => {
@@ -207,6 +208,10 @@ export const GalleryView: React.FC = () => {
       setPhotos([]);
       setHasMore(false);
       setTotalCount(0);
+      // 如果是初始加载失败，重置标志允许重试
+      if (page === 0) {
+        hasLoadedRef.current = false;
+      }
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
@@ -220,6 +225,11 @@ export const GalleryView: React.FC = () => {
 
   // 初始加载
   useEffect(() => {
+    // 如果已经加载过，直接返回（防止 StrictMode 或组件重新挂载导致的重复请求）
+    if (hasLoadedRef.current) {
+      return;
+    }
+    hasLoadedRef.current = true;
     loadPhotos(0);
   }, []);
 
@@ -319,11 +329,11 @@ export const GalleryView: React.FC = () => {
     const rect = card.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    const rotateY = ((x / rect.width) - 0.5) * 18;  // 更明显左右倾斜
-    const rotateX = -((y / rect.height) - 0.5) * 12; // 更明显上下倾斜
+    const rotateY = ((x / rect.width) - 0.5) * 28;  // 增大左右倾斜幅度
+    const rotateX = -((y / rect.height) - 0.5) * 20; // 增大上下倾斜幅度
     if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
     tiltRafRef.current = requestAnimationFrame(() => {
-      card.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+      card.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.08, 1.08, 1.08)`;
       card.style.transition = 'transform 180ms ease-out, box-shadow 220ms ease';
       card.style.boxShadow = '0 16px 32px rgba(0,0,0,0.32), 0 0 18px rgba(255,255,255,0.18)';
     });
@@ -387,19 +397,20 @@ export const GalleryView: React.FC = () => {
                   padding: '1rem'
                 }}
               >
-                <LazyImage
+                <img
                   src={detailImageSrc}
                   alt={selectedPhoto.title}
-                  className=""
-                  imageClassName="object-contain"
+                  className="object-contain"
                   style={{
                     maxWidth: '100%',
                     maxHeight: 'calc(100vh - 250px)',
                     width: 'auto',
                     height: 'auto',
                     display: 'block',
-                    objectFit: 'contain'
+                    objectFit: 'contain',
+                    opacity: 1
                   }}
+                  decoding="async"
                 />
               </div>
               <button
@@ -582,22 +593,18 @@ export const GalleryView: React.FC = () => {
       </div>
 
       {/* 炫酷瀑布流布局 */}
-      <div className="columns-1 md:columns-2 lg:columns-2 xl:columns-3 gap-4 md:gap-6">
+      <div className="columns-1 md:columns-2 lg:columns-2 xl:columns-3 gap-6 md:gap-8">
         {displayPhotos.map((photo, index) => {
           const thumbSrc = photo.thumbnail_url || photo.image_url;
           const categoryLabel = photo.category?.name || '未分类';
           const aspectRatio = photo.width && photo.height ? photo.width / photo.height : 4 / 3;
           const shootDate = formatPhotoShootDate(photo);
           
-          // 为不同索引的图片设置不同的延迟，创造错落有致的动画效果
-          const animationDelay = `${(index % 8) * 0.1}s`;
-
           return (
             <article 
               key={photo.id} 
-              className="photo-card group relative break-inside-avoid mb-4 md:mb-6 rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 animate-fade-in"
+              className="photo-card group relative break-inside-avoid mb-6 md:mb-8 rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
               style={{ 
-                animationDelay,
                 transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
                 boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
                 background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
@@ -610,11 +617,13 @@ export const GalleryView: React.FC = () => {
             >
               {/* 图片容器 - 无固定高度，使用自然比例 */}
               <div className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-xl md:rounded-2xl">
-                <LazyImage
+                <img
                   src={thumbSrc}
                   alt={photo.title}
-                  className="w-full h-auto"
-                  imageClassName="w-full h-auto object-cover"
+                  className="w-full h-auto object-cover"
+                  loading="lazy"
+                  style={{ display: 'block', opacity: 1 }}
+                  decoding="async"
                 />
                 
                 {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
@@ -634,6 +643,13 @@ export const GalleryView: React.FC = () => {
                           {text}
                         </span>
                       ))}
+                      <span
+                        className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)] flex items-center gap-1"
+                        style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        {photo.view_count || 0}
+                      </span>
                     </div>
 
                     {/* 底部一行：标签 + CTA */}

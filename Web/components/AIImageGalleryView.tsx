@@ -147,6 +147,12 @@ export const AIImageGalleryView: React.FC = () => {
                   <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2 truncate">
                     {image.title || '无标题'}
                   </h4>
+                  <div className="flex items-center gap-2 mb-2 text-xs text-gray-400 dark:text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      {image.view_count || 0} 次浏览
+                    </span>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {tags.length > 0 ? (
                       tags.slice(0, 3).map((tag, index) => (
@@ -223,6 +229,10 @@ export const AIImageGalleryView: React.FC = () => {
                 <h3 className="text-xl font-bold text-white mb-4">{selectedImage.title || '无标题'}</h3>
 
                 <div className="space-y-6">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">浏览次数</label>
+                    <p className="text-sm text-white mt-1">{selectedImage.view_count || 0} 次</p>
+                  </div>
                   {selectedImage.prompt && (
                     <div>
                       <label className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">提示词 (Prompt)</label>
