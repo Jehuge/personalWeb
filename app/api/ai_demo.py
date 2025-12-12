@@ -4,8 +4,8 @@ AI Demo API 路由
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_active_user
@@ -29,24 +29,41 @@ async def list_ai_demos(
     category: Optional[str] = None,
     published_only: bool = Query(False, description="只返回已发布的 Demo"),
     db: AsyncSession = Depends(get_db),
+    response: Response = None,
 ):
     """获取 AI Demo 列表"""
-    query = select(AIDemo)
+    base_query = select(AIDemo)
 
     if published_only:
-        query = query.where(AIDemo.is_published == True)  # noqa: E712
+        base_query = base_query.where(AIDemo.is_published == True)  # noqa: E712
 
     if is_featured is not None:
-        query = query.where(AIDemo.is_featured == is_featured)
+        base_query = base_query.where(AIDemo.is_featured == is_featured)
 
     if category:
-        query = query.where(AIDemo.category == category)
+        base_query = base_query.where(AIDemo.category == category)
 
-    query = query.order_by(AIDemo.sort_order.asc(), AIDemo.created_at.desc())
+    # 计算总数
+    count_query = select(func.count(AIDemo.id))
+    if published_only:
+        count_query = count_query.where(AIDemo.is_published == True)  # noqa: E712
+    if is_featured is not None:
+        count_query = count_query.where(AIDemo.is_featured == is_featured)
+    if category:
+        count_query = count_query.where(AIDemo.category == category)
+    total_result = await db.execute(count_query)
+    total_count = total_result.scalar() or 0
+
+    query = base_query.order_by(AIDemo.sort_order.asc(), AIDemo.created_at.desc())
     query = query.offset(skip).limit(limit)
 
     result = await db.execute(query)
-    return result.scalars().all()
+    demos = result.scalars().all()
+
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+
+    return demos
 
 
 @router.get("/{demo_id}", response_model=AIDemoSchema)

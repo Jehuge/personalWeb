@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -218,6 +218,7 @@ OptimizedMarkdownContent.displayName = 'OptimizedMarkdownContent';
 export const BlogView: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -226,6 +227,7 @@ export const BlogView: React.FC = () => {
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const blogsLoadedRef = useRef(false);
   
   // 目录相关的 hooks
   const [headings, setHeadings] = useState<Heading[]>([]);
@@ -311,24 +313,24 @@ export const BlogView: React.FC = () => {
     }
   };
 
-  // 初始加载
+  // 监听 URL page 参数
   useEffect(() => {
-    loadPosts(0);
-  }, []);
+    if (id) return; // 详情页不处理分页
+    const pageParam = parseInt(searchParams.get('page') || '1', 10);
+    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    if (blogsLoadedRef.current && currentPage === nextPage - 1) return;
+    blogsLoadedRef.current = true;
+    loadPosts(nextPage - 1);
+  }, [searchParams, id]);
 
   // 处理分页
-  const handlePreviousPage = () => {
-    if (currentPage > 0) {
-      loadPosts(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (hasMore) {
-      loadPosts(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handleGoPage = (pageNumber: number) => {
+    const targetPage = typeof pageNumber === 'number' ? pageNumber : pageNumber - 1;
+    if (targetPage < 0 || targetPage === currentPage) return;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+    if (targetPage >= totalPages) return;
+    setSearchParams({ page: String(targetPage + 1) });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const categories = useMemo(() => {
@@ -921,54 +923,42 @@ export const BlogView: React.FC = () => {
       </div>
 
       {/* 分页控件 */}
-      {filteredPosts.length > 0 && (
-        <div className="flex items-center justify-center gap-4 py-8">
+      {filteredPosts.length > 0 && !id && (
+        <div className="flex flex-wrap items-center justify-center gap-2 py-8">
           <button
-            onClick={handlePreviousPage}
+            onClick={() => handleGoPage(currentPage)}
             disabled={currentPage === 0 || loading}
-            className={`px-6 py-2 rounded-full text-sm font-medium ${
-              currentPage === 0 || loading
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-            }`}
-            style={{
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              willChange: currentPage === 0 || loading ? 'auto' : 'background-color, transform'
-            }}
-            onMouseEnter={(e) => {
-              if (currentPage !== 0 && !loading) {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currentPage === 0 || loading
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+              }`}
           >
             上一页
           </button>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            第 {currentPage + 1} 页 / 共 {Math.ceil(totalCount / PAGE_SIZE)} 页
-          </span>
+          {Array.from({ length: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
+            const isActive = pageNum === currentPage + 1;
+            return (
+              <button
+                key={pageNum}
+                onClick={() => handleGoPage(pageNum)}
+                className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+                disabled={loading}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
           <button
-            onClick={handleNextPage}
+            onClick={() => handleGoPage(currentPage + 2)}
             disabled={!hasMore || loading}
-            className={`px-6 py-2 rounded-full text-sm font-medium ${
-              !hasMore || loading
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-            }`}
-            style={{
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              willChange: !hasMore || loading ? 'auto' : 'background-color, transform'
-            }}
-            onMouseEnter={(e) => {
-              if (hasMore && !loading) {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!hasMore || loading
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+              }`}
           >
             下一页
           </button>

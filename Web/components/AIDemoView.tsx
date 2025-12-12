@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AIDemo } from '../types';
 import { fetchAIDemos } from '../services/dataService';
 import PlayButton from './PlayButton';
@@ -27,11 +28,13 @@ const resolveDemoUrl = (demo: AIDemo) => {
 };
 
 export const AIDemoView: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [demos, setDemos] = useState<AIDemo[]>([]);
   const [demosLoading, setDemosLoading] = useState(true);
   const [demosError, setDemosError] = useState<string | null>(null);
   const [demosHasMore, setDemosHasMore] = useState(false);
   const [demosPage, setDemosPage] = useState(0);
+  const [demosTotalCount, setDemosTotalCount] = useState(0);
   
   // 使用 useRef 防止组件意外重新挂载导致的重复请求
   const hasLoadedRef = useRef(false);
@@ -45,15 +48,17 @@ export const AIDemoView: React.FC = () => {
     setDemosLoading(true);
     setDemosError(null);
     try {
-      const data = await fetchAIDemos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
-      setDemos(data);
-      setDemosHasMore(data.length === PAGE_SIZE);
+      const response = await fetchAIDemos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setDemos(response.data);
+      setDemosTotalCount(response.total);
+      setDemosHasMore((page + 1) * PAGE_SIZE < response.total);
       setDemosPage(page);
     } catch (err: any) {
       console.error('Failed to load AI demos', err);
       setDemosError('AI Demo 列表暂时不可用。');
       setDemos([]);
       setDemosHasMore(false);
+      setDemosTotalCount(0);
       // 如果是初始加载失败，重置标志允许重试
       if (page === 0) {
         hasLoadedRef.current = false;
@@ -69,28 +74,20 @@ export const AIDemoView: React.FC = () => {
     }
   };
 
-  // 初始加载
+  // 根据 URL page 参数加载
   useEffect(() => {
-    // 如果已经加载过，直接返回（防止 StrictMode 或组件重新挂载导致的重复请求）
-    if (hasLoadedRef.current) {
-      return;
-    }
+    const pageParam = parseInt(searchParams.get('page') || '1', 10);
+    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    if (hasLoadedRef.current && demosPage === nextPage - 1) return;
     hasLoadedRef.current = true;
-    loadDemos(0);
-  }, []);
+    loadDemos(nextPage - 1);
+  }, [searchParams]);
 
-  const handleDemosPreviousPage = () => {
-    if (demosPage > 0) {
-      loadDemos(demosPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleDemosNextPage = () => {
-    if (demosHasMore) {
-      loadDemos(demosPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handleDemosGoPage = (pageNumber: number) => {
+    const totalPages = Math.max(1, Math.ceil(demosTotalCount / PAGE_SIZE));
+    const safePage = Math.min(Math.max(1, pageNumber), totalPages);
+    setSearchParams({ page: String(safePage) });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (demosLoading) {
@@ -173,24 +170,38 @@ export const AIDemoView: React.FC = () => {
 
         {/* 分页控件 */}
         {demos.length > 0 && (
-          <div className="flex items-center justify-center gap-4 py-8">
+          <div className="flex flex-wrap items-center justify-center gap-2 py-8">
             <button
-              onClick={handleDemosPreviousPage}
+              onClick={() => handleDemosGoPage(demosPage)}
               disabled={demosPage === 0 || demosLoading}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${demosPage === 0 || demosLoading
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${demosPage === 0 || demosLoading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                 }`}
             >
               上一页
             </button>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              第 {demosPage + 1} 页
-            </span>
+            {Array.from({ length: Math.max(1, Math.ceil(demosTotalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
+              const isActive = pageNum === demosPage + 1;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handleDemosGoPage(pageNum)}
+                  className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }`}
+                  disabled={demosLoading}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
             <button
-              onClick={handleDemosNextPage}
+              onClick={() => handleDemosGoPage(demosPage + 2)}
               disabled={!demosHasMore || demosLoading}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!demosHasMore || demosLoading
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!demosHasMore || demosLoading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                 }`}

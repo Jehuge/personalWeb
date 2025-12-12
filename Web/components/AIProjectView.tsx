@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AIDemo, AIImage, AIProject } from '../types';
 import { fetchAIDemos, fetchAIImages, fetchAIProjects } from '../services/dataService';
 import PlayButton from './PlayButton';
@@ -43,6 +44,7 @@ const resolveDemoUrl = (demo: AIDemo) => {
 };
 
 export const AIProjectView: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'projects' | 'demos' | 'gallery'>('gallery');
 
   // Projects State
@@ -61,10 +63,13 @@ export const AIProjectView: React.FC = () => {
   const [imagesLoading, setImagesLoading] = useState(true);
   const [imagesHasMore, setImagesHasMore] = useState(false);
   const [imagesPage, setImagesPage] = useState(0);
+  const [imagesTotalCount, setImagesTotalCount] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
   const [nsfwAccessCode, setNsfwAccessCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
   const tiltRafRef = useRef<number | null>(null);
+  const imagesLoadedRef = useRef(false);
+  const demosLoadedRef = useRef(false);
 
   const PAGE_SIZE = 12;
 
@@ -108,15 +113,17 @@ export const AIProjectView: React.FC = () => {
     setDemosLoading(true);
     setDemosError(null);
     try {
-      const data = await fetchAIDemos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
-      setDemos(data);
-      setDemosHasMore(data.length === PAGE_SIZE);
+      const response = await fetchAIDemos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setDemos(response.data);
+      setDemosTotalCount(response.total);
+      setDemosHasMore((page + 1) * PAGE_SIZE < response.total);
       setDemosPage(page);
     } catch (err: any) {
       console.error('Failed to load AI demos', err);
       setDemosError('AI Demo 列表暂时不可用。');
       setDemos([]);
       setDemosHasMore(false);
+      setDemosTotalCount(0);
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
@@ -127,6 +134,8 @@ export const AIProjectView: React.FC = () => {
       }
     }
   };
+
+  const [demosTotalCount, setDemosTotalCount] = useState(0);
 
   // 加载 Images 数据
   const loadImages = async (page: number, accessCode?: string) => {
@@ -140,12 +149,14 @@ export const AIProjectView: React.FC = () => {
         nsfw_access_code: accessCode || nsfwAccessCode || undefined
       });
       setImages(response.data);
+      setImagesTotalCount(response.total);
       setImagesHasMore((page + 1) * PAGE_SIZE < response.total);
       setImagesPage(page);
     } catch (err) {
       console.error('Failed to load AI images', err);
       setImages([]);
       setImagesHasMore(false);
+      setImagesTotalCount(0);
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
@@ -157,54 +168,49 @@ export const AIProjectView: React.FC = () => {
     }
   };
 
-  // 初始加载 Demos
+  // 监听 URL page 参数，demos tab 时加载对应页
   useEffect(() => {
-    if (activeTab === 'demos' && demos.length === 0 && !demosLoading) {
-      loadDemos(0);
-    }
-  }, [activeTab]);
+    if (activeTab !== 'demos') return;
+    const pageParam = parseInt(searchParams.get('demosPage') || '1', 10);
+    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    if (demosLoadedRef.current && demosPage === nextPage - 1) return;
+    demosLoadedRef.current = true;
+    loadDemos(nextPage - 1);
+  }, [searchParams, activeTab]);
 
-  // 初始加载 Images - 组件挂载时立即加载默认标签页
+  // 监听 URL page 参数，gallery tab 时加载对应页
   useEffect(() => {
-    if (activeTab === 'gallery' && images.length === 0 && !imagesLoading) {
-      loadImages(0);
-    }
-  }, [activeTab]);
-
-  // 组件首次挂载时立即加载默认标签页（gallery）的数据
-  useEffect(() => {
-    if (images.length === 0) {
-      loadImages(0);
-    }
-  }, []);
+    if (activeTab !== 'gallery') return;
+    const pageParam = parseInt(searchParams.get('page') || '1', 10);
+    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    if (imagesLoadedRef.current && imagesPage === nextPage - 1) return;
+    imagesLoadedRef.current = true;
+    loadImages(nextPage - 1);
+  }, [searchParams, activeTab]);
 
   // 处理分页
-  const handleDemosPreviousPage = () => {
-    if (demosPage > 0) {
-      loadDemos(demosPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handleDemosGoPage = (pageNumber: number) => {
+    const totalPages = Math.max(1, Math.ceil(demosTotalCount / PAGE_SIZE));
+    const safePage = Math.min(Math.max(1, pageNumber), totalPages);
+    const params = new URLSearchParams(searchParams);
+    params.set('demosPage', String(safePage));
+    // 保留 gallery 页参数
+    const galleryPage = params.get('page') || '1';
+    params.set('page', galleryPage);
+    setSearchParams(params);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDemosNextPage = () => {
-    if (demosHasMore) {
-      loadDemos(demosPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleImagesPreviousPage = () => {
-    if (imagesPage > 0) {
-      loadImages(imagesPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleImagesNextPage = () => {
-    if (imagesHasMore) {
-      loadImages(imagesPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handleGalleryGoPage = (pageNumber: number) => {
+    const totalPages = Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE));
+    const safePage = Math.min(Math.max(1, pageNumber), totalPages);
+    const params = new URLSearchParams(searchParams);
+    params.set('page', String(safePage));
+    // 保留 demos 页参数
+    const demosPageParam = params.get('demosPage') || '1';
+    params.set('demosPage', demosPageParam);
+    setSearchParams(params);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
@@ -463,22 +469,36 @@ export const AIProjectView: React.FC = () => {
           {demos.length > 0 && (
             <div className="flex items-center justify-center gap-4 py-8">
               <button
-                onClick={handleDemosPreviousPage}
+                onClick={() => handleDemosGoPage(demosPage)}
                 disabled={demosPage === 0 || demosLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${demosPage === 0 || demosLoading
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${demosPage === 0 || demosLoading
                   ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                   }`}
               >
                 上一页
               </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                第 {demosPage + 1} 页
-              </span>
+              {Array.from({ length: Math.max(1, Math.ceil(demosTotalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
+                const isActive = pageNum === demosPage + 1;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handleDemosGoPage(pageNum)}
+                    className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                      isActive
+                        ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                    }`}
+                    disabled={demosLoading}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
               <button
-                onClick={handleDemosNextPage}
+                onClick={() => handleDemosGoPage(demosPage + 2)}
                 disabled={!demosHasMore || demosLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!demosHasMore || demosLoading
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!demosHasMore || demosLoading
                   ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                   }`}
@@ -582,24 +602,38 @@ export const AIProjectView: React.FC = () => {
 
           {/* 分页控件 */}
           {images.length > 0 && (
-            <div className="flex items-center justify-center gap-4 py-8">
+            <div className="flex flex-wrap items-center justify-center gap-2 py-8">
               <button
-                onClick={handleImagesPreviousPage}
+                onClick={() => handleGalleryGoPage(imagesPage)}
                 disabled={imagesPage === 0 || imagesLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
                   ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                   }`}
               >
                 上一页
               </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                第 {imagesPage + 1} 页
-              </span>
+              {Array.from({ length: Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
+                const isActive = pageNum === imagesPage + 1;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handleGalleryGoPage(pageNum)}
+                    className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                      isActive
+                        ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                    }`}
+                    disabled={imagesLoading}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
               <button
-                onClick={handleImagesNextPage}
+                onClick={() => handleGalleryGoPage(imagesPage + 2)}
                 disabled={!imagesHasMore || imagesLoading}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
                   ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                   }`}

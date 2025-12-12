@@ -124,9 +124,9 @@ export const fetchAIProjects = async (params: PaginationParams = {}): Promise<AI
   return request<AIProject[]>(`/ai-projects?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
-export const fetchAIDemos = async (params: PaginationParams = {}): Promise<AIDemo[]> => {
+export const fetchAIDemos = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIDemo[]>> => {
   const { skip = 0, limit = 12 } = params;
-  return request<AIDemo[]>(`/ai-demos?published_only=true&skip=${skip}&limit=${limit}`);
+  return requestWithTotal<AIDemo[]>(`/ai-demos?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
 export const fetchAIImages = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIImage[]>> => {

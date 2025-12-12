@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AIImage } from '../types';
 import { fetchAIImages } from '../services/dataService';
 import Loader from './Loader';
 
 export const AIImageGalleryView: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [images, setImages] = useState<AIImage[]>([]);
   const [imagesLoading, setImagesLoading] = useState(true);
   const [imagesHasMore, setImagesHasMore] = useState(false);
@@ -12,6 +14,8 @@ export const AIImageGalleryView: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
   const [nsfwAccessCode, setNsfwAccessCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
+  const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
+  const [imageAspectMap, setImageAspectMap] = useState<Record<number, number>>({});
   const tiltRafRef = useRef<number | null>(null);
   const handleCardEnter = (event: React.MouseEvent<HTMLElement>) => {
     const card = event.currentTarget;
@@ -81,28 +85,20 @@ export const AIImageGalleryView: React.FC = () => {
     }
   };
 
-  // 初始加载
+  // 根据 URL page 参数加载
   useEffect(() => {
-    // 如果已经加载过，直接返回（防止 StrictMode 或组件重新挂载导致的重复请求）
-    if (hasLoadedRef.current) {
-      return;
-    }
+    const pageParam = parseInt(searchParams.get('page') || '1', 10);
+    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    if (hasLoadedRef.current && imagesPage === nextPage - 1) return;
     hasLoadedRef.current = true;
-    loadImages(0);
-  }, []);
+    loadImages(nextPage - 1);
+  }, [searchParams]);
 
-  const handleImagesPreviousPage = () => {
-    if (imagesPage > 0) {
-      loadImages(imagesPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleImagesNextPage = () => {
-    if (imagesHasMore) {
-      loadImages(imagesPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handleGoPage = (pageNumber: number) => {
+    const totalPages = Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE));
+    const safePage = Math.min(Math.max(1, pageNumber), totalPages);
+    setSearchParams({ page: String(safePage) });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
@@ -161,28 +157,47 @@ export const AIImageGalleryView: React.FC = () => {
                 onMouseLeave={handleCardLeave}
                 onClick={() => setSelectedImage(image)}
               >
-                <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-700">
-                  <img
-                    src={image.thumbnail_url || image.image_url}
-                    alt={image.title || 'AI Generated Image'}
-                  className="w-full h-auto object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="px-3 pb-2 pt-2 md:px-4 md:pb-3 md:pt-3">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h4 className="text-lg font-bold text-gray-900 dark:text-white truncate flex-1">
+                {(() => {
+                  const ratio = imageAspectMap[image.id];
+                  return (
+                    <div
+                      className="relative overflow-hidden bg-gray-100 dark:bg-gray-700"
+                      style={ratio ? { aspectRatio: ratio } : { aspectRatio: '16 / 9' }}
+                    >
+                      {!imageLoadedMap[image.id] && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
+                      )}
+                      <img
+                        src={image.thumbnail_url || image.image_url}
+                        alt={image.title || 'AI Generated Image'}
+                        className="absolute inset-0 w-full h-full object-contain block"
+                        loading="lazy"
+                        onLoad={(e) => {
+                          const { naturalWidth, naturalHeight } = e.currentTarget;
+                          if (naturalWidth && naturalHeight) {
+                            const nextRatio = Number((naturalWidth / naturalHeight).toFixed(4));
+                            setImageAspectMap((prev) => ({ ...prev, [image.id]: nextRatio }));
+                          }
+                          setImageLoadedMap((prev) => ({ ...prev, [image.id]: true }));
+                        }}
+                      />
+                    </div>
+                  );
+                })()}
+                <div className="px-3 pt-0.5 pb-0.5 md:px-4 md:pt-1 md:pb-1 min-h-[46px] flex flex-col justify-between gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-normal text-gray-900 dark:text-white truncate flex-1 leading-tight">
                       {image.title || '无标题'}
                     </h4>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex-shrink-0">
-                      点击查看 Prompt
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                      {image.view_count || 0} 次浏览
-                    </span>
+                    <div className="flex flex-col items-end gap-1 min-w-[120px]">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                        点击查看 Prompt
+                      </span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        {image.view_count || 0} 次浏览
+                      </span>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -192,24 +207,38 @@ export const AIImageGalleryView: React.FC = () => {
 
         {/* 分页控件 */}
         {images.length > 0 && (
-          <div className="flex items-center justify-center gap-4 py-8">
+          <div className="flex flex-wrap items-center justify-center gap-2 py-8">
             <button
-              onClick={handleImagesPreviousPage}
+              onClick={() => handleGoPage(imagesPage)}
               disabled={imagesPage === 0 || imagesLoading}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                 }`}
             >
               上一页
             </button>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              第 {imagesPage + 1} 页 / 共 {Math.ceil(imagesTotalCount / PAGE_SIZE)} 页
-            </span>
+            {Array.from({ length: Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
+              const isActive = pageNum === imagesPage + 1;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handleGoPage(pageNum)}
+                  className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }`}
+                  disabled={imagesLoading}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
             <button
-              onClick={handleImagesNextPage}
+              onClick={() => handleGoPage(imagesPage + 2)}
               disabled={!imagesHasMore || imagesLoading}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                 }`}

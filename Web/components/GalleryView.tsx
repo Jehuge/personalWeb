@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
 import { fetchPhotos, fetchPhoto } from '../services/dataService';
 import Loader from './Loader';
@@ -79,6 +79,7 @@ const formatPhotoShootDate = (photo: PhotoWork) => {
 export const GalleryView: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,8 +96,9 @@ export const GalleryView: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const PAGE_SIZE = 15;
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
-  // 使用 useRef 防止组件意外重新挂载导致的重复请求
-  const hasLoadedRef = useRef(false);
+  const photosLoadedRef = useRef(false);
+  const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<number, number>>({});
 
   // 根据路由参数加载照片详情
   useEffect(() => {
@@ -211,7 +213,7 @@ export const GalleryView: React.FC = () => {
       setTotalCount(0);
       // 如果是初始加载失败，重置标志允许重试
       if (page === 0) {
-        hasLoadedRef.current = false;
+        photosLoadedRef.current = false;
       }
     } finally {
       const elapsed = performance.now() - start;
@@ -224,29 +226,23 @@ export const GalleryView: React.FC = () => {
     }
   };
 
-  // 初始加载
+  // 监听 URL page 参数
   useEffect(() => {
-    // 如果已经加载过，直接返回（防止 StrictMode 或组件重新挂载导致的重复请求）
-    if (hasLoadedRef.current) {
-      return;
-    }
-    hasLoadedRef.current = true;
-    loadPhotos(0);
-  }, []);
+    if (id) return; // 详情页不处理分页
+    const pageParam = parseInt(searchParams.get('page') || '1', 10);
+    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    if (photosLoadedRef.current && currentPage === nextPage - 1) return;
+    photosLoadedRef.current = true;
+    loadPhotos(nextPage - 1);
+  }, [searchParams, id]);
 
   // 处理分页
-  const handlePreviousPage = () => {
-    if (currentPage > 0) {
-      loadPhotos(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (hasMore) {
-      loadPhotos(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handleGoPage = (pageNumber: number) => {
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    const safePage = Math.min(Math.max(1, pageNumber), totalPages);
+    if (safePage - 1 === currentPage) return;
+    setSearchParams({ page: String(safePage) });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const categories = useMemo(() => {
@@ -611,16 +607,40 @@ export const GalleryView: React.FC = () => {
               onMouseLeave={handlePhotoCardLeave}
               onClick={() => navigate(`/gallery/${photo.id}`)}
             >
-              {/* 图片容器 - 无固定高度，使用自然比例 */}
-              <div className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-xl md:rounded-2xl">
-                <img
-                  src={thumbSrc}
-                  alt={photo.title}
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                  style={{ display: 'block', opacity: 1 }}
-                  decoding="async"
-                />
+              {/* 图片容器 - 保持原始比例 */}
+              <div 
+                className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-xl md:rounded-2xl"
+                style={{
+                  aspectRatio: imageAspectRatios[photo.id] || aspectRatio || 4 / 3
+                }}
+              >
+                {(() => {
+                  const isLoaded = imageLoadedMap[photo.id];
+                  return (
+                    <>
+                      {!isLoaded && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
+                      )}
+                      <img
+                        src={thumbSrc}
+                        alt={photo.title}
+                        className={`w-full h-full object-contain transition-opacity duration-300 ${
+                          isLoaded ? 'opacity-100' : 'opacity-0'
+                        }`}
+                        loading="lazy"
+                        decoding="async"
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          if (img.naturalWidth && img.naturalHeight) {
+                            const ratio = img.naturalWidth / img.naturalHeight;
+                            setImageAspectRatios((prev) => ({ ...prev, [photo.id]: ratio }));
+                          }
+                          setImageLoadedMap((prev) => ({ ...prev, [photo.id]: true }));
+                        }}
+                      />
+                    </>
+                  );
+                })()}
                 
                 {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
                 <div className="absolute inset-0 pointer-events-none flex">
@@ -673,11 +693,11 @@ export const GalleryView: React.FC = () => {
 
       {/* 分页控件 */}
       {displayPhotos.length > 0 && (
-        <div className="flex items-center justify-center gap-4 py-8">
+        <div className="flex flex-wrap items-center justify-center gap-2 py-8">
           <button
-            onClick={handlePreviousPage}
+            onClick={() => handleGoPage(currentPage)}
             disabled={currentPage === 0 || loading}
-            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               currentPage === 0 || loading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
@@ -685,13 +705,27 @@ export const GalleryView: React.FC = () => {
           >
             上一页
           </button>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            第 {currentPage + 1} 页 / 共 {Math.ceil(totalCount / PAGE_SIZE)} 页
-          </span>
+          {Array.from({ length: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
+            const isActive = pageNum === currentPage + 1;
+            return (
+              <button
+                key={pageNum}
+                onClick={() => handleGoPage(pageNum)}
+                className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+                disabled={loading}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
           <button
-            onClick={handleNextPage}
+            onClick={() => handleGoPage(currentPage + 2)}
             disabled={!hasMore || loading}
-            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               !hasMore || loading
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
