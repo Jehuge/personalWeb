@@ -98,6 +98,7 @@ export const getCachedData = <T,>(key: string, fetcher: () => Promise<T>): Promi
 export interface PaginationParams {
   skip?: number;
   limit?: number;
+  nsfw_access_code?: string;
 }
 
 export const fetchPosts = async (params: PaginationParams = {}): Promise<PaginatedResponse<BlogPost[]>> => {
@@ -129,8 +130,12 @@ export const fetchAIDemos = async (params: PaginationParams = {}): Promise<AIDem
 };
 
 export const fetchAIImages = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIImage[]>> => {
-  const { skip = 0, limit = 15 } = params;
-  return requestWithTotal<AIImage[]>(`/ai-images?published_only=true&skip=${skip}&limit=${limit}`);
+  const { skip = 0, limit = 15, nsfw_access_code } = params;
+  let url = `/ai-images?published_only=true&skip=${skip}&limit=${limit}`;
+  if (nsfw_access_code) {
+    url += `&nsfw_access_code=${encodeURIComponent(nsfw_access_code)}`;
+  }
+  return requestWithTotal<AIImage[]>(url);
 };
 
 export interface HomeOverview {

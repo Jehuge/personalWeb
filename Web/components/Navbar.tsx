@@ -50,8 +50,14 @@ export const Navbar: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 w-full">
       <div className="w-full">
-        {/* 顶部栏：使用明显的浅色 / 深色纯色背景，确保一眼能看出变化 */}
-        <div className="site-navbar rounded-b-2xl px-4 sm:px-6 md:px-8 transition-colors duration-300">
+        {/* 顶部栏：浅色模式降低透明度，深色保持纯色 */}
+        <div
+          className={`site-navbar rounded-b-2xl px-4 sm:px-6 md:px-8 transition-colors duration-300 backdrop-blur-xl ${
+            theme === 'dark'
+              ? 'bg-slate-900/92 border border-white/5 shadow-lg shadow-black/25'
+              : 'bg-white/82 border border-white/70 shadow-[0_10px_30px_rgba(0,0,0,0.08)]'
+          }`}
+        >
         <div className="flex items-center h-16">
           {/* Left side: Back button or Logo */}
           <div className="flex items-center gap-3">

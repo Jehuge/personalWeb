@@ -10,6 +10,8 @@ export const AIImageGalleryView: React.FC = () => {
   const [imagesPage, setImagesPage] = useState(0);
   const [imagesTotalCount, setImagesTotalCount] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
+  const [nsfwAccessCode, setNsfwAccessCode] = useState<string>('');
+  const [inputCode, setInputCode] = useState<string>('');
   const tiltRafRef = useRef<number | null>(null);
   const handleCardEnter = (event: React.MouseEvent<HTMLElement>) => {
     const card = event.currentTarget;
@@ -45,12 +47,16 @@ export const AIImageGalleryView: React.FC = () => {
   const PAGE_SIZE = 15;
 
   // 加载 Images 数据
-  const loadImages = async (page: number) => {
+  const loadImages = async (page: number, accessCode?: string) => {
     const MIN_LOADING_MS = 900;
     const start = performance.now();
     setImagesLoading(true);
     try {
-      const response = await fetchAIImages({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      const response = await fetchAIImages({ 
+        skip: page * PAGE_SIZE, 
+        limit: PAGE_SIZE,
+        nsfw_access_code: accessCode || nsfwAccessCode || undefined
+      });
       setImages(response.data);
       setImagesTotalCount(response.total);
       setImagesHasMore((page + 1) * PAGE_SIZE < response.total);
@@ -99,6 +105,12 @@ export const AIImageGalleryView: React.FC = () => {
     }
   };
 
+  const handleAccessCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setNsfwAccessCode(inputCode);
+    loadImages(0, inputCode);
+  };
+
   if (imagesLoading) {
     return <Loader fullscreen />;
   }
@@ -109,15 +121,29 @@ export const AIImageGalleryView: React.FC = () => {
         <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-accent-500 to-primary-300 mb-4">
           AI 艺术图库
         </h2>
-        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-6">
           由 Stable Diffusion / Midjourney 等模型生成的艺术作品。
         </p>
+        <form onSubmit={handleAccessCodeSubmit} className="flex items-center justify-center gap-2 max-w-md mx-auto">
+          <input
+            type="password"
+            value={inputCode}
+            onChange={(e) => setInputCode(e.target.value)}
+            placeholder="输入"
+            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-medium transition-colors text-sm"
+          >
+            确认
+          </button>
+        </form>
       </div>
 
       <section className="mb-16 animate-fade-in">
         <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
           {images.map((image) => {
-            const tags = image.tags ? image.tags.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
             return (
               <article
                 key={image.id}
@@ -143,29 +169,20 @@ export const AIImageGalleryView: React.FC = () => {
                     loading="lazy"
                   />
                 </div>
-                <div className="px-3 pb-4 pt-3 md:px-4 md:pb-5 md:pt-4">
-                  <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2 truncate">
-                    {image.title || '无标题'}
-                  </h4>
-                  <div className="flex items-center gap-2 mb-2 text-xs text-gray-400 dark:text-gray-500">
+                <div className="px-3 pb-2 pt-2 md:px-4 md:pb-3 md:pt-3">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white truncate flex-1">
+                      {image.title || '无标题'}
+                    </h4>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex-shrink-0">
+                      点击查看 Prompt
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                     <span className="flex items-center gap-1">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                       {image.view_count || 0} 次浏览
                     </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {tags.length > 0 ? (
-                      tags.slice(0, 3).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="bg-white/70 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 px-2.5 py-1 rounded-full text-xs border border-white/50 dark:border-gray-700/60 backdrop-blur-sm"
-                        >
-                          {tag}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-gray-400">#AIArt</span>
-                    )}
                   </div>
                 </div>
               </article>

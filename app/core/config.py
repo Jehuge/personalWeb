@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # CORS配置
     CORS_ORIGINS: Union[str, List[str]] = ["http://localhost:3000", "http://localhost:5173"]
     
+    # 图片访问特殊码
+    NSFW_ACCESS_CODE: str = ""
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # 处理CORS_ORIGINS，支持JSON字符串或列表

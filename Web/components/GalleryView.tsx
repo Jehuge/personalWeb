@@ -432,13 +432,13 @@ export const GalleryView: React.FC = () => {
             </div>
 
             {/* 信息区域 - 右侧 */}
-            <div className="lg:w-96 xl:w-[28rem] space-y-6 lg:space-y-8 w-full">
+            <div className="lg:w-96 xl:w-[28rem] space-y-6 lg:space-y-8 w-full text-base md:text-lg leading-relaxed">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold tracking-wide text-gray-600 dark:text-gray-300">
+                  <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-base md:text-lg font-semibold tracking-wide text-gray-600 dark:text-gray-300">
                     {selectedPhoto.category?.name || '未分类'}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-base md:text-lg text-gray-500 dark:text-gray-400">
                     {new Date(selectedPhoto.created_at).toLocaleDateString('zh-CN', {
                       year: 'numeric',
                       month: 'long',
@@ -446,14 +446,14 @@ export const GalleryView: React.FC = () => {
                     })}
                   </span>
                 </div>
-                <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white break-words leading-tight">
+                <h2 className="text-3xl lg:text-4xl font-display font-bold text-gray-900 dark:text-white break-words leading-tight tracking-tight">
                   {selectedPhoto.title}
                 </h2>
               </div>
               
               {selectedPhoto.description && (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <p className="text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line">
+                <div className="prose dark:prose-invert md:prose-lg max-w-none">
+                  <p className="text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line text-base md:text-lg">
                     {selectedPhoto.description}
                   </p>
                 </div>
@@ -461,41 +461,41 @@ export const GalleryView: React.FC = () => {
 
               <div className="bg-gray-50 dark:bg-gray-800/70 rounded-2xl p-6 space-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-1">
+                  <p className="text-base md:text-lg font-semibold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400 mb-1">
                     拍摄参数
                   </p>
                   {exifData ? (
-                    <div className="grid grid-cols-2 gap-4 text-sm font-mono text-gray-700 dark:text-gray-200">
+                    <div className="grid grid-cols-2 gap-4 text-base md:text-lg font-mono text-gray-700 dark:text-gray-200">
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-1">相机</p>
+                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">相机</p>
                         <p>{[exifData.make, exifData.model].filter(Boolean).join(' ') || '——'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-1">焦距</p>
+                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">焦距</p>
                         <p>{exifData.focalLength || '——'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-1">光圈</p>
+                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">光圈</p>
                         <p>{exifData.aperture || '——'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-1">快门</p>
+                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">快门</p>
                         <p>{exifData.shutterSpeed || '——'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-1">ISO</p>
+                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">ISO</p>
                         <p>{exifData.iso || '——'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-1">时间</p>
+                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">时间</p>
                         <p>{exifData.shootTime || '——'}</p>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-base text-gray-700 dark:text-gray-200 font-mono">{selectedMeta.exif}</p>
+                    <p className="text-base md:text-lg text-gray-700 dark:text-gray-200 font-mono">{selectedMeta.exif}</p>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-base md:text-lg text-gray-500 dark:text-gray-400">
                   <p>作品编号：#{selectedPhoto.id}</p>
                   <p className="mt-1">浏览次数：{selectedPhoto.view_count}</p>
                 </div>
@@ -509,7 +509,7 @@ export const GalleryView: React.FC = () => {
             onClick={closePreview}
           >
             <div
-              className="relative max-w-5xl w-full max-h-[90vh] bg-gray-950/80 rounded-3xl border border-white/10 overflow-hidden shadow-2xl select-none"
+              className="relative max-w-6xl w-full max-h-[92vh] bg-gray-950/80 rounded-3xl border border-white/10 overflow-hidden shadow-2xl select-none"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -521,7 +521,7 @@ export const GalleryView: React.FC = () => {
                 ✕
               </button>
               <div
-                className={`h-[70vh] bg-black overflow-hidden ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
+                className={`h-[78vh] bg-black overflow-hidden ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
                 onWheel={handleWheelZoom}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
@@ -542,12 +542,12 @@ export const GalleryView: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="p-4 text-sm text-white/80 flex items-center justify-between flex-wrap gap-2">
+              <div className="p-5 text-base text-white/85 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-4 flex-wrap">
-                  <span>{selectedPhoto.title}</span>
-                  <span className="text-white/60">{selectedPhoto.category?.name || '未分类'}</span>
+                  <span className="font-semibold">{selectedPhoto.title}</span>
+                  <span className="text-white/70">{selectedPhoto.category?.name || '未分类'}</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-white/60">
+                <div className="flex items-center gap-3 text-sm md:text-base text-white/70">
                   <span>滚轮缩放 / 双击切换</span>
                   <span>拖拽移动</span>
                   {zoom > 1 && (

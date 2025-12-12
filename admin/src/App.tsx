@@ -17,6 +17,7 @@ import AIDemoList from './pages/ai/AIDemoList'
 import AIDemoEdit from './pages/ai/AIDemoEdit'
 import AIImageList from './pages/ai/AIImageList'
 import AIImageEdit from './pages/ai/AIImageEdit'
+import AIImageBulkUpload from './pages/ai/AIImageBulkUpload'
 import UserList from './pages/user/UserList'
 import MediaList from './pages/media/MediaList'
 
@@ -57,6 +58,7 @@ function App() {
           <Route path="ai-demos/:id" element={<AIDemoEdit />} />
           <Route path="ai-images" element={<AIImageList />} />
           <Route path="ai-images/new" element={<AIImageEdit />} />
+          <Route path="ai-images/bulk-upload" element={<AIImageBulkUpload />} />
           <Route path="ai-images/:id" element={<AIImageEdit />} />
           <Route path="users" element={<UserList />} />
           <Route path="media" element={<MediaList />} />

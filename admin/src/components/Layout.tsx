@@ -92,6 +92,7 @@ const routeTitles: Record<string, string> = {
   '/ai-demos/new': '新建AI Demo',
   '/ai-images': 'AI 图片管理',
   '/ai-images/new': '新建 AI 图片',
+  '/ai-images/bulk-upload': '批量上传 AI 图片',
   '/users': '用户管理',
   '/media': '媒体资源',
 }

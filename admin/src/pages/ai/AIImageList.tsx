@@ -196,6 +196,9 @@ export default function AIImageList() {
             <Button icon={<ReloadOutlined />} onClick={fetchImages}>
               刷新
             </Button>
+            <Button onClick={() => navigate('/ai-images/bulk-upload')}>
+              批量上传
+            </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/ai-images/new')}>
               新建图片
             </Button>

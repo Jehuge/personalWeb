@@ -62,6 +62,8 @@ export const AIProjectView: React.FC = () => {
   const [imagesHasMore, setImagesHasMore] = useState(false);
   const [imagesPage, setImagesPage] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
+  const [nsfwAccessCode, setNsfwAccessCode] = useState<string>('');
+  const [inputCode, setInputCode] = useState<string>('');
   const tiltRafRef = useRef<number | null>(null);
 
   const PAGE_SIZE = 12;
@@ -127,14 +129,18 @@ export const AIProjectView: React.FC = () => {
   };
 
   // 加载 Images 数据
-  const loadImages = async (page: number) => {
+  const loadImages = async (page: number, accessCode?: string) => {
     const MIN_LOADING_MS = 900;
     const start = performance.now();
     setImagesLoading(true);
     try {
-      const data = await fetchAIImages({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
-      setImages(data);
-      setImagesHasMore(data.length === PAGE_SIZE);
+      const response = await fetchAIImages({ 
+        skip: page * PAGE_SIZE, 
+        limit: PAGE_SIZE,
+        nsfw_access_code: accessCode || nsfwAccessCode || undefined
+      });
+      setImages(response.data);
+      setImagesHasMore((page + 1) * PAGE_SIZE < response.total);
       setImagesPage(page);
     } catch (err) {
       console.error('Failed to load AI images', err);
@@ -199,6 +205,12 @@ export const AIProjectView: React.FC = () => {
       loadImages(imagesPage + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleAccessCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setNsfwAccessCode(inputCode);
+    loadImages(0, inputCode);
   };
 
   // 3D 玻璃卡片悬停效果 - 桌面端
@@ -494,6 +506,21 @@ export const AIProjectView: React.FC = () => {
               </p>
             </div>
           </div>
+          <form onSubmit={handleAccessCodeSubmit} className="flex items-center justify-center gap-2 mb-6 max-w-md mx-auto">
+            <input
+              type="password"
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value)}
+                placeholder="输入"
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm flex-1"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-medium transition-colors text-sm"
+            >
+              确认
+            </button>
+          </form>
 
           <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
             {images.map((image) => {
