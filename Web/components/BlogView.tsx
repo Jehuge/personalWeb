@@ -33,6 +33,32 @@ const formatDate = (dateString?: string | null) => {
   }
 };
 
+const categoryPalette = [
+  'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-200',
+  'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200',
+  'bg-orange-50 dark:bg-orange-950/30 text-orange-800 dark:text-amber-200',
+  'bg-cyan-50 dark:bg-cyan-950/30 text-cyan-800 dark:text-cyan-200',
+  'bg-pink-50 dark:bg-pink-950/30 text-pink-800 dark:text-pink-200',
+  'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200',
+  'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200',
+];
+
+const hashStringToIndex = (str: string, modulo: number) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % modulo;
+};
+
+const getPlaceholderStyle = (categoryName?: string | null) => {
+  const name = (categoryName || '默认').trim();
+  if (!name) return categoryPalette[categoryPalette.length - 1];
+  const idx = hashStringToIndex(name.toLowerCase(), categoryPalette.length);
+  return categoryPalette[idx];
+};
+
 // 从 DOM 中提取标题（在 Markdown 渲染后）
 const extractHeadingsFromDOM = (): Heading[] => {
   const headings: Heading[] = [];
@@ -198,6 +224,7 @@ export const BlogView: React.FC = () => {
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   
   // 目录相关的 hooks
   const [headings, setHeadings] = useState<Heading[]>([]);
@@ -261,15 +288,17 @@ export const BlogView: React.FC = () => {
     const start = performance.now();
 
     try {
-      const data = await fetchPosts({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
-      setPosts(data);
-      setHasMore(data.length === PAGE_SIZE);
+      const response = await fetchPosts({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setPosts(response.data);
+      setTotalCount(response.total);
+      setHasMore((page + 1) * PAGE_SIZE < response.total);
       setCurrentPage(page);
     } catch (err) {
       console.error('Failed to load blogs', err);
       setError('内容加载失败，请稍后重试');
       setPosts([]);
       setHasMore(false);
+      setTotalCount(0);
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
@@ -765,7 +794,7 @@ export const BlogView: React.FC = () => {
               onClick={() => setSelectedCategory(cat)}
               className={`px-5 py-2 rounded-full text-sm font-medium ${selectedCategory === cat
                   ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30'
-                  : 'bg-slate-50/90 dark:bg-slate-800/60 text-gray-600 dark:text-gray-300 border border-gray-200/70 dark:border-slate-700 hover:border-primary-300'
+                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-200 border border-gray-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-500/50'
                 }`}
             style={{
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -786,7 +815,7 @@ export const BlogView: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="space-y-4">
         {filteredPosts.map(post => {
           const categoryLabel = post.category?.name || '未分类';
           const displayDate = formatDate(post.published_at || post.created_at);
@@ -797,14 +826,13 @@ export const BlogView: React.FC = () => {
           return (
             <article
               key={post.id}
-              className="blog-card group flex flex-col bg-slate-50/90 dark:bg-slate-900/80 rounded-3xl border border-gray-200/70 dark:border-slate-700/80 overflow-hidden shadow-md hover:shadow-2xl hover:shadow-cyber-accent/20 backdrop-blur w-full max-w-[420px] justify-self-center"
+              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-cyber-accent/15 transition-all"
               style={{
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: 'translateY(0)',
                 willChange: 'transform, box-shadow'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
@@ -813,71 +841,87 @@ export const BlogView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate(`/blog/${post.id}`)}
-                className="text-left flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                className="w-full text-left flex flex-col md:flex-row gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
               >
-                <div className="relative h-56 bg-gradient-to-br from-primary-500/20 to-cyan-500/30 overflow-hidden">
+                <div className="relative w-full md:w-72 aspect-[16/9] md:aspect-[4/3] bg-gradient-to-br from-primary-500/20 to-cyan-500/30 overflow-hidden flex-shrink-0 rounded-2xl md:rounded-3xl">
                   {coverImage ? (
-                    <div className="group-hover:scale-105 transition-transform duration-500 ease-out"
-                         style={{ willChange: 'transform' }}>
+                    <div
+                      className="absolute inset-0 group-hover:scale-105 transition-transform duration-500 ease-out"
+                      style={{ willChange: 'transform' }}
+                    >
                       <LazyImage
                         src={coverImage}
                         alt={post.title}
-                        className="h-56 w-full"
+                        className="h-full w-full object-cover"
                       />
                     </div>
                   ) : (
-                    <div className="h-56 w-full flex items-center justify-center text-primary-500 font-semibold text-lg">
-                      {categoryLabel}
+                    <div
+                      className={`absolute inset-0 flex flex-col items-start justify-end px-5 pb-4 gap-2 ${getPlaceholderStyle(categoryLabel)} rounded-2xl md:rounded-3xl`}
+                    >
+                      <div className="text-sm font-semibold dark:text-gray-100">
+                        {categoryLabel || '未分类'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-300 bg-white/70 dark:bg-gray-800/60 px-3 py-1 rounded-full inline-flex backdrop-blur-sm">
+                        暂无封面
+                      </div>
                     </div>
                   )}
-                  <div className="absolute top-4 left-4 flex flex-wrap gap-2 text-xs font-semibold">
-                    <span className="px-3 py-1 bg-black/50 text-white rounded-full backdrop-blur">
+                  <div className="absolute top-3 left-3 flex flex-wrap gap-2 text-xs font-semibold">
+                    <span className="px-3 py-1 bg-black/50 dark:bg-white/20 text-white dark:text-gray-100 rounded-full backdrop-blur-sm">
                       {categoryLabel}
                     </span>
-                    <span className="px-3 py-1 bg-white/70 text-gray-800 rounded-full">
+                    <span className="px-3 py-1 bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 rounded-full backdrop-blur-sm">
                       {displayDate}
                     </span>
                   </div>
                 </div>
 
                 <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-primary-500"
-                      style={{
-                        transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        willChange: 'color'
-                      }}
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">
+                    <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 text-gray-700 dark:text-gray-200">
+                      {categoryLabel}
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700">
+                      {displayDate}
+                    </span>
+                    <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {readTime} min read
+                    </span>
+                  </div>
+
+                  <h3
+                    className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-500"
+                    style={{
+                      transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      willChange: 'color'
+                    }}
                   >
                     {post.title}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed line-clamp-3 flex-1">
+                  <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed line-clamp-2 md:line-clamp-3">
                     {snippet}
                   </p>
-                  <div className="flex items-center justify-between text-sm text-gray-400">
-                    <span className="flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      {readTime} min read
-                    </span>
-                    <span className="text-primary-600 dark:text-primary-400 font-semibold group-hover:translate-x-1 inline-block"
-                          style={{
-                            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                            willChange: 'transform'
-                          }}
+
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-auto pt-4 border-t border-gray-100 dark:border-gray-800">
+                    {post.tags.map(tag => (
+                      <span key={tag.id} className="px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800/80">
+                        #{tag.name}
+                      </span>
+                    ))}
+                    <span
+                      className="ml-auto text-primary-600 dark:text-primary-400 font-semibold group-hover:translate-x-1 inline-flex items-center gap-1"
+                      style={{
+                        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        willChange: 'transform'
+                      }}
                     >
                       阅读全文 →
                     </span>
                   </div>
                 </div>
               </button>
-
-              {post.tags.length > 0 && (
-                <div className="px-6 pb-6 flex flex-wrap gap-3 border-t border-gray-100 dark:border-gray-800 pt-4">
-                  {post.tags.map(tag => (
-                    <span key={tag.id} className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80 px-3 py-1 rounded-full">
-                      #{tag.name}
-                    </span>
-                  ))}
-                </div>
-              )}
             </article>
           );
         })}
@@ -910,7 +954,7 @@ export const BlogView: React.FC = () => {
             上一页
           </button>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            第 {currentPage + 1} 页
+            第 {currentPage + 1} 页 / 共 {Math.ceil(totalCount / PAGE_SIZE)} 页
           </span>
           <button
             onClick={handleNextPage}

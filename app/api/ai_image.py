@@ -3,8 +3,8 @@ AI Image API 路由
 """
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_active_user
@@ -29,24 +29,42 @@ async def list_ai_images(
     category: Optional[str] = None,
     published_only: bool = Query(False, description="只返回已发布的图片"),
     db: AsyncSession = Depends(get_db),
+    response: Response = None,
 ):
     """获取 AI 图片列表"""
-    query = select(AIImage)
+    # 构建查询条件（用于总数统计和分页查询）
+    base_query = select(AIImage)
 
     if published_only:
-        query = query.where(AIImage.is_published == True)  # noqa: E712
+        base_query = base_query.where(AIImage.is_published == True)  # noqa: E712
 
     if is_featured is not None:
-        query = query.where(AIImage.is_featured == is_featured)
+        base_query = base_query.where(AIImage.is_featured == is_featured)
 
     if category:
-        query = query.where(AIImage.category == category)
+        base_query = base_query.where(AIImage.category == category)
 
-    query = query.order_by(AIImage.created_at.desc())
-    query = query.offset(skip).limit(limit)
+    # 计算总数
+    count_query = select(func.count(AIImage.id))
+    if published_only:
+        count_query = count_query.where(AIImage.is_published == True)  # noqa: E712
+    if is_featured is not None:
+        count_query = count_query.where(AIImage.is_featured == is_featured)
+    if category:
+        count_query = count_query.where(AIImage.category == category)
+    total_result = await db.execute(count_query)
+    total_count = total_result.scalar() or 0
 
+    # 分页查询
+    query = base_query.order_by(AIImage.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    images = result.scalars().all()
+
+    # 在响应头中添加总数
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+
+    return images
 
 
 @router.get("/{image_id}", response_model=AIImageSchema)

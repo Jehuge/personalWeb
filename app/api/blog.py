@@ -1,7 +1,7 @@
 """
 博客API路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
@@ -204,7 +204,8 @@ async def get_blogs(
     tag_id: Optional[int] = None,
     search: Optional[str] = None,
     published_only: bool = Query(False, description="是否只返回已发布的文章"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    response: Response = None
 ):
     """获取博客列表"""
     query = select(Blog).options(
@@ -231,10 +232,35 @@ async def get_blogs(
             )
         )
     
-    query = query.order_by(Blog.created_at.desc()).offset(skip).limit(limit)
+    # 计算总数
+    count_query = select(func.count(Blog.id))
+    if published_only:
+        count_query = count_query.where(Blog.is_published == True)
+    if category_id:
+        count_query = count_query.where(Blog.category_id == category_id)
+    if tag_id:
+        count_query = count_query.join(Blog.tags).where(Tag.id == tag_id)
+    if search:
+        count_query = count_query.where(
+            or_(
+                Blog.title.contains(search),
+                Blog.content.contains(search),
+                Blog.excerpt.contains(search)
+            )
+        )
+    total_result = await db.execute(count_query)
+    total_count = total_result.scalar() or 0
     
+    # 分页查询
+    query = query.order_by(Blog.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(query)
-    return result.scalars().unique().all()
+    blogs = result.scalars().unique().all()
+    
+    # 在响应头中添加总数
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+    
+    return blogs
 
 
 @router.get("/{blog_id}", response_model=BlogSchema)

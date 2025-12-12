@@ -92,7 +92,8 @@ export const GalleryView: React.FC = () => {
   const dragStartRef = useRef({ x: 0, y: 0 });
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const PAGE_SIZE = 18;
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 15;
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
 
   // 根据路由参数加载照片详情
@@ -195,15 +196,17 @@ export const GalleryView: React.FC = () => {
     const start = performance.now();
 
     try {
-      const data = await fetchPhotos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
-      setPhotos(data);
-      setHasMore(data.length === PAGE_SIZE);
+      const response = await fetchPhotos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setPhotos(response.data);
+      setTotalCount(response.total);
+      setHasMore((page + 1) * PAGE_SIZE < response.total);
       setCurrentPage(page);
     } catch (err) {
       console.error('Failed to load photos', err);
       setError('作品加载失败，请稍后再试');
       setPhotos([]);
       setHasMore(false);
+      setTotalCount(0);
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
@@ -569,7 +572,7 @@ export const GalleryView: React.FC = () => {
               className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                 filter === cat
                   ? 'bg-cyber-accent text-white shadow-lg shadow-cyber-accent/30 transform scale-105'
-                  : 'bg-white/80 dark:bg-gray-800/80 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm'
+                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
               }`}
             >
               {cat}
@@ -671,7 +674,7 @@ export const GalleryView: React.FC = () => {
             上一页
           </button>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            第 {currentPage + 1} 页
+            第 {currentPage + 1} 页 / 共 {Math.ceil(totalCount / PAGE_SIZE)} 页
           </span>
           <button
             onClick={handleNextPage}

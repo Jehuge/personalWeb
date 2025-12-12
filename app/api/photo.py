@@ -1,9 +1,9 @@
 """
 摄影作品API路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime
@@ -126,21 +126,38 @@ async def get_photos(
     limit: int = Query(20, ge=1, le=100),
     category_id: Optional[int] = None,
     is_featured: Optional[bool] = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    response: Response = None
 ):
     """获取摄影作品列表"""
-    query = select(Photo).options(selectinload(Photo.category))
+    # 构建查询条件（用于总数统计和分页查询）
+    base_query = select(Photo).options(selectinload(Photo.category))
     
     if category_id:
-        query = query.where(Photo.category_id == category_id)
+        base_query = base_query.where(Photo.category_id == category_id)
     
     if is_featured is not None:
-        query = query.where(Photo.is_featured == is_featured)
+        base_query = base_query.where(Photo.is_featured == is_featured)
     
-    query = query.order_by(Photo.created_at.desc()).offset(skip).limit(limit)
+    # 计算总数
+    count_query = select(func.count(Photo.id))
+    if category_id:
+        count_query = count_query.where(Photo.category_id == category_id)
+    if is_featured is not None:
+        count_query = count_query.where(Photo.is_featured == is_featured)
+    total_result = await db.execute(count_query)
+    total_count = total_result.scalar() or 0
     
+    # 分页查询
+    query = base_query.order_by(Photo.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    photos = result.scalars().all()
+    
+    # 在响应头中添加总数
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total_count)
+    
+    return photos
 
 
 @router.get("/{photo_id}", response_model=PhotoSchema)

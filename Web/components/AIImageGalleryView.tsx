@@ -8,6 +8,7 @@ export const AIImageGalleryView: React.FC = () => {
   const [imagesLoading, setImagesLoading] = useState(true);
   const [imagesHasMore, setImagesHasMore] = useState(false);
   const [imagesPage, setImagesPage] = useState(0);
+  const [imagesTotalCount, setImagesTotalCount] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
   const tiltRafRef = useRef<number | null>(null);
   const handleCardEnter = (event: React.MouseEvent<HTMLElement>) => {
@@ -41,7 +42,7 @@ export const AIImageGalleryView: React.FC = () => {
   // 使用 useRef 防止组件意外重新挂载导致的重复请求
   const hasLoadedRef = useRef(false);
 
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 15;
 
   // 加载 Images 数据
   const loadImages = async (page: number) => {
@@ -49,14 +50,16 @@ export const AIImageGalleryView: React.FC = () => {
     const start = performance.now();
     setImagesLoading(true);
     try {
-      const data = await fetchAIImages({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
-      setImages(data);
-      setImagesHasMore(data.length === PAGE_SIZE);
+      const response = await fetchAIImages({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      setImages(response.data);
+      setImagesTotalCount(response.total);
+      setImagesHasMore((page + 1) * PAGE_SIZE < response.total);
       setImagesPage(page);
     } catch (err) {
       console.error('Failed to load AI images', err);
       setImages([]);
       setImagesHasMore(false);
+      setImagesTotalCount(0);
       // 如果是初始加载失败，重置标志允许重试
       if (page === 0) {
         hasLoadedRef.current = false;
@@ -178,7 +181,7 @@ export const AIImageGalleryView: React.FC = () => {
               上一页
             </button>
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              第 {imagesPage + 1} 页
+              第 {imagesPage + 1} 页 / 共 {Math.ceil(imagesTotalCount / PAGE_SIZE)} 页
             </span>
             <button
               onClick={handleImagesNextPage}

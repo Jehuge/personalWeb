@@ -35,6 +35,34 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
   return response.json() as Promise<T>;
 };
 
+// 带总数信息的请求（用于分页）
+interface PaginatedResponse<T> {
+  data: T;
+  total: number;
+}
+
+const requestWithTotal = async <T>(path: string, options: RequestInit = {}): Promise<PaginatedResponse<T>> => {
+  const response = await fetch(buildUrl(path), {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new ApiError(detail || `Request failed: ${response.status}`, response.status);
+  }
+
+  const data = await response.json() as T;
+  const totalCount = response.headers.get('X-Total-Count');
+  const total = totalCount ? parseInt(totalCount, 10) : 0;
+
+  return { data, total };
+};
+
 // 简单的缓存机制实现，利用 localStorage 模拟浏览器缓存
 // 在真实场景中，这可以配合 HTTP Cache-Control 使用
 const CACHE_PREFIX = 'mysite_cache_';
@@ -72,18 +100,18 @@ export interface PaginationParams {
   limit?: number;
 }
 
-export const fetchPosts = async (params: PaginationParams = {}): Promise<BlogPost[]> => {
+export const fetchPosts = async (params: PaginationParams = {}): Promise<PaginatedResponse<BlogPost[]>> => {
   const { skip = 0, limit = 12 } = params;
-  return request<BlogPost[]>(`/blogs?published_only=true&skip=${skip}&limit=${limit}`);
+  return requestWithTotal<BlogPost[]>(`/blogs?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
 export const fetchBlog = async (blogId: number): Promise<BlogPost> => {
   return request<BlogPost>(`/blogs/${blogId}`);
 };
 
-export const fetchPhotos = async (params: PaginationParams = {}): Promise<PhotoWork[]> => {
-  const { skip = 0, limit = 18 } = params;
-  return request<PhotoWork[]>(`/photos?skip=${skip}&limit=${limit}`);
+export const fetchPhotos = async (params: PaginationParams = {}): Promise<PaginatedResponse<PhotoWork[]>> => {
+  const { skip = 0, limit = 15 } = params;
+  return requestWithTotal<PhotoWork[]>(`/photos?skip=${skip}&limit=${limit}`);
 };
 
 export const fetchPhoto = async (photoId: number): Promise<PhotoWork> => {
@@ -100,9 +128,9 @@ export const fetchAIDemos = async (params: PaginationParams = {}): Promise<AIDem
   return request<AIDemo[]>(`/ai-demos?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
-export const fetchAIImages = async (params: PaginationParams = {}): Promise<AIImage[]> => {
-  const { skip = 0, limit = 12 } = params;
-  return request<AIImage[]>(`/ai-images?published_only=true&skip=${skip}&limit=${limit}`);
+export const fetchAIImages = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIImage[]>> => {
+  const { skip = 0, limit = 15 } = params;
+  return requestWithTotal<AIImage[]>(`/ai-images?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
 export interface HomeOverview {
