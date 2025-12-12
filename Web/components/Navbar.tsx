@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from './ThemeContext';
 import ThemeSwitch from './ThemeSwitch';
+import CubeLogo from './CubeLogo';
 
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -50,14 +51,14 @@ export const Navbar: React.FC = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 w-full">
       <div className="w-full">
         {/* 顶部栏：使用明显的浅色 / 深色纯色背景，确保一眼能看出变化 */}
-        <div className="site-navbar bg-slate-50 dark:bg-slate-900 backdrop-blur-xl rounded-b-2xl px-4 sm:px-6 md:px-8 shadow-md shadow-primary-500/10 dark:shadow-black/50 border-b border-gray-200/70 dark:border-slate-700/80 transition-colors duration-300">
-        <div className="flex justify-between h-16 items-center">
+        <div className="site-navbar rounded-b-2xl px-4 sm:px-6 md:px-8 transition-colors duration-300">
+        <div className="flex items-center h-16">
           {/* Left side: Back button or Logo */}
           <div className="flex items-center gap-3">
             {showBack ? (
               <button
                 onClick={handleBack}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -66,9 +67,7 @@ export const Navbar: React.FC = () => {
               </button>
             ) : (
               <Link to="/" className="flex-shrink-0 flex items-center cursor-pointer group">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-cyan-600 rounded-lg mr-2 flex items-center justify-center text-white font-bold text-lg group-hover:rotate-12 transition-transform shadow-md shadow-primary-500/40">
-                  T
-                </div>
+                <CubeLogo size={32} className="mr-2" />
                 <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                   TianJQ<span className="text-primary-500">.Space</span>
                 </span>
@@ -77,11 +76,11 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-2 flex-1 justify-center">
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
-                'relative px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
+                'relative px-4 py-2 rounded-2xl text-lg font-semibold transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
               const activeClass =
                 'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/40 ring-1 ring-white/70 dark:bg-[#cfe2ff] dark:text-[#0b1120] dark:shadow-[#a5b4fc]/40 translate-y-0';
               const inactiveClass =
@@ -101,13 +100,13 @@ export const Navbar: React.FC = () => {
                   </span>
                   {/* 柔和的背景光晕 */}
                   <span
-                    className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/40 via-cyan-500/25 to-sky-400/30 blur-xl transition-opacity duration-300 ${
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/45 via-primary-400/25 to-accent-500/30 blur-xl transition-opacity duration-300 ${
                       isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
                     }`}
                   />
                   {/* 底部滑动条指示器 */}
                   <span
-                    className={`pointer-events-none absolute left-4 right-4 -bottom-1 h-[2px] rounded-full bg-gradient-to-r from-primary-500 via-sky-400 to-cyan-500 transform origin-center transition-transform duration-300 ${
+                    className={`pointer-events-none absolute left-4 right-4 -bottom-1 h-[2px] rounded-full bg-gradient-to-r from-primary-500 via-accent-500 to-primary-400 transform origin-center transition-transform duration-300 ${
                       isCurrent ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                     }`}
                   />
@@ -115,31 +114,32 @@ export const Navbar: React.FC = () => {
               );
             })}
 
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2" />
-
-            {/* Theme Toggle - BB8 Switch */}
-            <ThemeSwitch
-              checked={theme === 'dark'}
-              onToggle={toggleTheme}
-              size={6}
-              className="translate-y-[4px]"
-            />
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {isMobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
+          {/* Right side actions */}
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center">
+              <ThemeSwitch
+                checked={theme === 'dark'}
+                onToggle={toggleTheme}
+                size={6}
+                className="translate-y-[2px]"
+              />
+            </div>
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {isMobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -154,7 +154,7 @@ export const Navbar: React.FC = () => {
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
-                'block w-full text-left px-3 py-3 rounded-2xl text-base font-semibold transition-all duration-200 ease-out active:scale-[0.97]';
+                'block w-full text-left px-3 py-3 rounded-2xl text-lg font-semibold transition-all duration-200 ease-out active:scale-[0.97]';
               const activeClass =
                 'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/30 dark:bg-[#cfe2ff] dark:text-[#0b1120]';
               const inactiveClass =

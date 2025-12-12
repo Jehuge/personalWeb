@@ -55,7 +55,7 @@ export const BackgroundFX = React.memo(() => {
         style={{ willChange: 'transform', ...animationStyle }}
       />
       <div 
-        className="absolute top-1/2 -right-32 h-[60vh] w-[60vh] rounded-full bg-cyan-500/20 blur-[90px] dark:blur-[110px] opacity-70 animate-blob delay-700 dark:bg-cyan-600/20 will-change-transform"
+        className="absolute top-1/2 -right-32 h-[60vh] w-[60vh] rounded-full bg-accent-500/20 blur-[90px] dark:blur-[110px] opacity-70 animate-blob delay-700 dark:bg-primary-500/15 will-change-transform"
         style={{ willChange: 'transform', ...animationStyle }}
       />
 

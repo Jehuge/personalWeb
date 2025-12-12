@@ -9,6 +9,7 @@ import { fetchPosts, fetchBlog } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 import Loader from './Loader';
 import { MermaidDiagram } from './MermaidDiagram';
+import CategoryButton from './CategoryButton';
 
 interface Heading {
   id: string;
@@ -34,13 +35,13 @@ const formatDate = (dateString?: string | null) => {
 };
 
 const categoryPalette = [
-  'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-200',
-  'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200',
-  'bg-orange-50 dark:bg-orange-950/30 text-orange-800 dark:text-amber-200',
-  'bg-cyan-50 dark:bg-cyan-950/30 text-cyan-800 dark:text-cyan-200',
-  'bg-pink-50 dark:bg-pink-950/30 text-pink-800 dark:text-pink-200',
-  'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200',
+  'bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200',
+  'bg-accent-500/10 dark:bg-accent-500/15 text-primary-700 dark:text-primary-200',
+  'bg-sky-50 dark:bg-sky-900/30 text-sky-800 dark:text-sky-200',
+  'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200',
   'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200',
+  'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',
+  'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
 ];
 
 const hashStringToIndex = (str: string, modulo: number) => {
@@ -791,30 +792,14 @@ export const BlogView: React.FC = () => {
         <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
           聚焦系统设计、AI 工具链与摄影视角下的产品感。分类按钮会即时过滤，不再跳跃布局。
         </p>
-        <div className="flex gap-2 flex-wrap justify-center md:justify-start">
+        <div className="flex gap-3 flex-wrap justify-center md:justify-start">
           {categories.map(cat => (
-            <button
+            <CategoryButton
               key={cat}
+              label={cat}
+              active={selectedCategory === cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-medium ${selectedCategory === cat
-                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30'
-                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-200 border border-gray-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-500/50'
-                }`}
-            style={{
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              willChange: 'background-color, border-color, transform'
-            }}
-            onMouseEnter={(e) => {
-              if (selectedCategory !== cat) {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
-            >
-              {cat}
-            </button>
+            />
           ))}
         </div>
       </div>
@@ -847,7 +832,7 @@ export const BlogView: React.FC = () => {
                 onClick={() => navigate(`/blog/${post.id}`)}
                 className="w-full text-left flex flex-col md:flex-row gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
               >
-                <div className="relative w-full md:w-72 aspect-[16/9] md:aspect-[4/3] bg-gradient-to-br from-primary-500/20 to-cyan-500/30 overflow-hidden flex-shrink-0 rounded-2xl md:rounded-3xl">
+                <div className="relative w-full md:w-72 aspect-[16/9] md:aspect-[4/3] bg-gradient-to-br from-primary-500/20 to-accent-500/25 overflow-hidden flex-shrink-0 rounded-2xl md:rounded-3xl">
                   {coverImage ? (
                     <div
                       className="absolute inset-0 group-hover:scale-105 transition-transform duration-500 ease-out"

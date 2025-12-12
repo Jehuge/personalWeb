@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
 import { fetchPhotos, fetchPhoto } from '../services/dataService';
 import Loader from './Loader';
+import CategoryButton from './CategoryButton';
 
 type ParsedExifData = {
   make: string;
@@ -575,19 +576,14 @@ export const GalleryView: React.FC = () => {
            <p className="text-gray-500 dark:text-gray-400 text-lg">用镜头捕捉世界的切片</p>
         </div>
         
-        <div className="flex gap-2 overflow-x-auto w-full md:w-auto scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {categories.map(cat => (
-            <button
+            <CategoryButton
               key={cat}
+              label={cat}
+              active={filter === cat}
               onClick={() => setFilter(cat)}
-              className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                filter === cat
-                  ? 'bg-cyber-accent text-white shadow-lg shadow-cyber-accent/30 transform scale-105'
-                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
-              }`}
-            >
-              {cat}
-            </button>
+            />
           ))}
         </div>
       </div>

@@ -242,7 +242,7 @@ export const AIProjectView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="text-center mb-16 animate-fade-in">
-        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-cyan-500 to-pink-500 mb-4">
+        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-accent-500 to-primary-300 mb-4">
           AI 实验室
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
@@ -254,7 +254,7 @@ export const AIProjectView: React.FC = () => {
           <button
             onClick={() => setActiveTab('gallery')}
             className={`px-6 py-2 rounded-full transition-all duration-300 ${activeTab === 'gallery'
-              ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
+              ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
           >
@@ -263,7 +263,7 @@ export const AIProjectView: React.FC = () => {
           <button
             onClick={() => setActiveTab('demos')}
             className={`px-6 py-2 rounded-full transition-all duration-300 ${activeTab === 'demos'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+              ? 'bg-primary-500 text-white shadow-lg shadow-primary-400/30'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
           >
@@ -272,7 +272,7 @@ export const AIProjectView: React.FC = () => {
           <button
             onClick={() => setActiveTab('projects')}
             className={`px-6 py-2 rounded-full transition-all duration-300 ${activeTab === 'projects'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+              ? 'bg-primary-700 text-white shadow-lg shadow-primary-600/30'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
           >
@@ -294,10 +294,14 @@ export const AIProjectView: React.FC = () => {
 
           <div className="grid gap-6 md:grid-cols-2">
             {projects.map((project) => (
-              <div key={project.id} className="glass-card p-6 rounded-3xl border border-transparent hover:border-emerald-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10">
+            <div
+              key={project.id}
+              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-cyber-accent/15 transition-all hover:-translate-y-1 flex flex-col"
+            >
+              <div className="p-6 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{project.title}</h3>
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${project.is_published ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-200 text-gray-500'}`}>
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${project.is_published ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-200 text-gray-500'}`}>
                     {project.is_published ? '已发布' : '草稿'}
                   </span>
                 </div>
@@ -323,10 +327,10 @@ export const AIProjectView: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-3">
+                <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed line-clamp-3">
                   {project.description || '暂无简介'}
                 </p>
-                <div className="flex items-center gap-2 mb-4 text-xs text-gray-400 dark:text-gray-500">
+                <div className="flex items-center gap-2 mb-4 text-xs text-gray-500 dark:text-gray-400">
                   <span className="flex items-center gap-1">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     {project.view_count || 0} 次浏览
@@ -334,7 +338,7 @@ export const AIProjectView: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {parseTechStack(project.tech_stack).slice(0, 4).map((stack) => (
-                    <span key={stack} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                    <span key={stack} className="px-3 py-1 text-xs rounded-full bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200">
                       {stack}
                     </span>
                   ))}
@@ -345,13 +349,14 @@ export const AIProjectView: React.FC = () => {
                       href={project.github_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="btn-github w-full justify-center"
                     >
                       GitHub
                     </a>
                   )}
                 </div>
               </div>
+            </div>
             ))}
           </div>
 
@@ -610,14 +615,14 @@ export const AIProjectView: React.FC = () => {
                     </div>
                     {selectedImage.prompt && (
                       <div>
-                        <label className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">提示词 (Prompt)</label>
+                        <label className="text-xs font-semibold text-accent-500 uppercase tracking-wider">提示词 (Prompt)</label>
                         <p className="text-sm text-gray-300 mt-1 leading-relaxed">{selectedImage.prompt}</p>
                       </div>
                     )}
 
                     {selectedImage.negative_prompt && (
                       <div>
-                        <label className="text-xs font-semibold text-red-400 uppercase tracking-wider">反向提示词 (Negative)</label>
+                        <label className="text-xs font-semibold text-primary-200 uppercase tracking-wider">反向提示词 (Negative)</label>
                         <p className="text-sm text-gray-400 mt-1 leading-relaxed">{selectedImage.negative_prompt}</p>
                       </div>
                     )}
@@ -635,7 +640,7 @@ export const AIProjectView: React.FC = () => {
 
                     {selectedImage.parameters && (
                       <div>
-                        <label className="text-xs font-semibold text-blue-400 uppercase tracking-wider">生成参数</label>
+                        <label className="text-xs font-semibold text-accent-500 uppercase tracking-wider">生成参数</label>
                         <pre className="mt-2 p-3 bg-gray-800 rounded-lg text-xs text-gray-300 overflow-x-auto">
                           {typeof selectedImage.parameters === 'string'
                             ? selectedImage.parameters

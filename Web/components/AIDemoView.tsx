@@ -100,7 +100,7 @@ export const AIDemoView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="text-center mb-16 animate-fade-in">
-        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-cyan-500 to-pink-500 mb-4">
+        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-accent-500 to-primary-300 mb-4">
           AI 实验 Demo
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">

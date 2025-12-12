@@ -60,17 +60,6 @@
     50% { opacity: 0.6; }
     100% { transform: translateX(100%); opacity: 0; }
   }
-
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-
-  --animate-shimmer: shimmer 2s ease-in-out infinite;
 }
 
 /* 全局深色模式重新设计：
@@ -78,6 +67,89 @@
    - 提升文字对比度
    - 让没有显式 dark: 类的区域在深色下也更协调 */
 @layer utilities {
+  /* 顶部导航蒙版，避免被其他 bg 类覆盖 */
+  .site-navbar {
+    background: rgba(226, 232, 240, 0.6) !important; /* slate-200/60 */
+    backdrop-filter: blur(20px) saturate(1.5) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+    box-shadow: none;
+    border: none;
+  }
+
+  .dark .site-navbar {
+    background: rgba(3, 7, 18, 0.72) !important; /* slate-950 with transparency */
+    backdrop-filter: blur(20px) saturate(1.5) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+    box-shadow: none;
+    border: none;
+  }
+
+  /* 统一的标签样式，兼顾浅/深色 */
+  .pill-tag {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono, 'SFMono-Regular', ui-monospace, SFMono-Regular, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
+    font-size: 12px;
+    line-height: 1.1;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    color: #075985; /* primary-700 */
+    background: #eff6ff; /* primary-50 */
+    border: 1px solid #dbeafe; /* primary-100 */
+  }
+
+  .dark .pill-tag {
+    color: #e0f2ff; /* primary-100 */
+    background: rgba(14, 165, 233, 0.14); /* primary-500 with transparency */
+    border-color: rgba(14, 165, 233, 0.3);
+  }
+
+  .btn-github {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.825rem;
+    line-height: 1rem;
+    background-color: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    text-decoration: none;
+    justify-content: center;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+
+  .btn-github:hover {
+    color: #fce803;
+    transform: translateY(-0.25rem);
+    background-color: rgba(0, 0, 0, 0.5);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+      inset 0 0 0 1px rgba(252, 232, 3, 0.08);
+  }
+
+  .dark .btn-github {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #0b1120;
+    box-shadow:
+      inset 0 1px 0 0 rgba(0, 0, 0, 0.08),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark .btn-github:hover {
+    color: #111827;
+    background-color: #ffffff;
+    box-shadow:
+      inset 0 1px 0 0 rgba(0, 0, 0, 0.12),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+
   /* 面板 / 卡片背景统一为深色面板，而不是纯白 */
   .dark .bg-white,
   .dark .bg-slate-50,

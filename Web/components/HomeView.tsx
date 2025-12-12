@@ -289,7 +289,7 @@ export const HomeView: React.FC = () => {
               <div className="text-gray-600 dark:text-slate-400 text-sm md:text-base">摄影作品</div>
             </div>
             <div ref={projectCount.ref} className="text-center group">
-              <div className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyber-accent to-emerald-400 dark:to-emerald-400 mb-2">
+              <div className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyber-accent to-primary-600 dark:to-primary-400 mb-2">
                 {projectCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-sm md:text-base">个人项目</div>
@@ -337,7 +337,7 @@ export const HomeView: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                 </svg>
               </div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">AI & Tech Projects</h2>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">AI 与技术项目</h2>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
@@ -423,7 +423,7 @@ export const HomeView: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">Visual Archives</h2>
+                <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">视觉档案</h2>
               </div>
               <p className="text-gray-600 dark:text-slate-400 max-w-md text-right md:text-right text-left">
                 用镜头捕捉的瞬间，记录生活的美好
@@ -434,23 +434,29 @@ export const HomeView: React.FC = () => {
               {featuredPhotos.map((photo) => (
                 <div 
                   key={photo.id} 
-                  className="group relative mb-6 break-inside-avoid rounded-2xl overflow-hidden cursor-pointer block"
+                  className="group relative mb-6 break-inside-avoid rounded-2xl overflow-hidden cursor-pointer block bg-white dark:bg-slate-800/60 border border-gray-200/70 dark:border-slate-700/60 shadow-sm hover:shadow-[0_18px_40px_-24px_rgba(14,165,233,0.45)] dark:hover:shadow-[0_18px_40px_-24px_rgba(56,189,248,0.35)] transition-all duration-300"
                   onClick={() => navigate(`/gallery/${photo.id}`)}
                 >
                   <img 
                     src={photo.thumbnail_url || photo.image_url} 
                     alt={photo.title}
-                    className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                    className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-2">
+                        {photo.title}
+                      </h3>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        {photo.view_count || 0}
+                      </span>
+                    </div>
                     {photo.category && (
-                      <span className="text-cyber-glow text-xs font-mono mb-1">{photo.category.name}</span>
+                      <span className="pill-tag">
+                        {photo.category.name}
+                      </span>
                     )}
-                    <h3 className="text-white font-bold">{photo.title}</h3>
-                    <span className="text-white/70 text-xs mt-1 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                      {photo.view_count || 0} 次浏览
-                    </span>
                   </div>
                 </div>
               ))}
@@ -463,54 +469,60 @@ export const HomeView: React.FC = () => {
       {/* Blog Section */}
       {featuredBlogs.length > 0 && (
         <section id="blog" className="py-24 bg-slate-100 dark:bg-slate-800 relative border-t border-gray-200 dark:border-white/5">
-          <div className="max-w-4xl mx-auto px-4 md:px-6">
-            <div className="flex items-center gap-4 mb-16 justify-center">
-              <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-xl">
-                <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="px-6 sm:px-8">
+              <div className="flex items-center gap-4 mb-16 justify-center">
+                <div className="p-3 bg-primary-500/10 dark:bg-primary-500/10 rounded-xl">
+                  <svg className="w-6 h-6 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">个人项目、博客</h2>
               </div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white">Transmission Logs</h2>
-            </div>
 
-            <div className="space-y-6">
-              {featuredBlogs.map((post) => (
-                <article 
-                  key={post.id} 
-                  className="group relative bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700/50 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 p-8 rounded-3xl transition-all duration-300 cursor-pointer"
-                  onClick={() => navigate(`/blog/${post.id}`)}
-                >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <div className="flex gap-2 flex-wrap">
-                      {post.tags.slice(0, 3).map(tag => (
-                        <span key={tag.id} className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-900">
-                          #{tag.name}
-                        </span>
-                      ))}
-                      {post.category && (
-                        <span className="text-xs font-mono text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-800/50 px-2 py-0.5 rounded-full border border-gray-300 dark:border-slate-700">
-                          {post.category.name}
-                        </span>
-                      )}
+              <div className="space-y-6">
+                {featuredBlogs.map((post) => (
+                  <article 
+                    key={post.id} 
+                    className="group relative w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-cyber-accent/15 transition-all cursor-pointer"
+                    onClick={() => navigate(`/blog/${post.id}`)}
+                  >
+                    <div className="p-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                      <div className="flex gap-2 flex-wrap">
+                        {post.tags.slice(0, 3).map(tag => (
+                          <span
+                            key={tag.id}
+                            className="inline-flex items-center px-3 py-1 text-xs rounded-full bg-gray-50 text-gray-700 border border-gray-200 dark:bg-slate-800/80 dark:text-gray-200 dark:border-slate-700"
+                          >
+                            #{tag.name}
+                          </span>
+                        ))}
+                        {post.category && (
+                          <span className="text-xs font-mono text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-800/50 px-2 py-0.5 rounded-full border border-gray-300 dark:border-slate-700">
+                            {post.category.name}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-slate-500 font-mono">
+                        {formatDate(post.published_at || post.created_at)} • 约 {Math.ceil((post.content?.length || 0) / 500)} 分钟阅读 • {post.view_count || 0} 次浏览
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-500 dark:text-slate-500 font-mono">
-                      {formatDate(post.published_at || post.created_at)} • 约 {Math.ceil((post.content?.length || 0) / 500)} 分钟阅读 • {post.view_count || 0} 次浏览
-                    </span>
-                  </div>
-                  
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    {post.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-slate-400 mb-6 leading-relaxed line-clamp-2">
-                    {post.excerpt || post.content.slice(0, 150) + '...'}
-                  </p>
-                  
-                  <div className="inline-flex items-center text-emerald-600 dark:text-emerald-500 font-medium hover:text-emerald-700 dark:hover:text-emerald-400">
-                    <span>阅读全文</span>
-                    <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-                  </div>
-                </article>
-              ))}
+                    
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-500 dark:group-hover:text-primary-300 transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed line-clamp-2">
+                          {post.excerpt || post.content.slice(0, 150) + '...'}
+                        </p>
+                        
+                        <div className="inline-flex items-center text-primary-600 dark:text-primary-400 font-semibold group-hover:translate-x-1 transition-transform">
+                          <span>阅读全文 →</span>
+                        </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           </div>
         </section>
