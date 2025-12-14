@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
-import { fetchPhotos, fetchPhoto } from '../services/dataService';
+import { fetchPhotos, fetchPhoto, fetchPhotoCategories } from '../services/dataService';
+import { PhotoCategory } from '../types';
 import Loader from './Loader';
 import CategoryButton from './CategoryButton';
 
@@ -83,6 +84,7 @@ export const GalleryView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('全部');
+  const [categories, setCategories] = useState<PhotoCategory[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWork | null>(null);
   const [showOriginalPhoto, setShowOriginalPhoto] = useState(false);
   const [exifData, setExifData] = useState<ParsedExifData | null>(null);
@@ -99,6 +101,7 @@ export const GalleryView: React.FC = () => {
   const photosLoadedRef = useRef(false);
   const hasScrolledToTopRef = useRef(false);
   const isInitialMountRef = useRef(true);
+  const lastLoadParamsRef = useRef<{ page: number; category: string } | null>(null);
   const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<number, number>>({});
 
@@ -238,15 +241,39 @@ export const GalleryView: React.FC = () => {
     });
   }, [selectedPhoto]);
 
+  // 加载分类列表
+  useEffect(() => {
+    fetchPhotoCategories()
+      .then(data => {
+        setCategories(data);
+      })
+      .catch(err => {
+        console.error('Failed to load categories', err);
+      });
+  }, []);
+
   // 加载照片数据
-  const loadPhotos = async (page: number) => {
+  const loadPhotos = async (page: number, categoryFilter?: string) => {
     setLoading(true);
     setError(null);
     const MIN_LOADING_MS = 900;
     const start = performance.now();
 
     try {
-      const response = await fetchPhotos({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      // 根据筛选条件确定 category_id
+      let categoryId: number | undefined;
+      if (categoryFilter && categoryFilter !== '全部') {
+        const category = categories.find(cat => cat.name === categoryFilter);
+        if (category) {
+          categoryId = category.id;
+        }
+      }
+
+      const response = await fetchPhotos({ 
+        skip: page * PAGE_SIZE, 
+        limit: PAGE_SIZE,
+        category_id: categoryId
+      });
       setPhotos(response.data);
       setTotalCount(response.total);
       setHasMore((page + 1) * PAGE_SIZE < response.total);
@@ -272,32 +299,55 @@ export const GalleryView: React.FC = () => {
     }
   };
 
-  // 监听 URL page 参数
+  // 监听 URL page 和 category 参数
   useEffect(() => {
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
-    if (photosLoadedRef.current && currentPage === nextPage - 1) return;
+    const categoryParam = searchParams.get('category') || '全部';
+    
+    // 更新 filter 状态
+    setFilter(categoryParam);
+    
+    // 如果分类列表还没加载完成且需要分类筛选，等待
+    if (categories.length === 0 && categoryParam !== '全部') {
+      return;
+    }
+    
+    // 避免重复加载：只有当页码或分类真正变化时才加载
+    const lastParams = lastLoadParamsRef.current;
+    if (lastParams && 
+        lastParams.page === nextPage - 1 && 
+        lastParams.category === categoryParam) {
+      return;
+    }
+    
     photosLoadedRef.current = true;
-    loadPhotos(nextPage - 1);
-  }, [searchParams]);
+    lastLoadParamsRef.current = { page: nextPage - 1, category: categoryParam };
+    loadPhotos(nextPage - 1, categoryParam);
+  }, [searchParams, categories]);
 
   // 处理分页
   const handleGoPage = (pageNumber: number) => {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     const safePage = Math.min(Math.max(1, pageNumber), totalPages);
     if (safePage - 1 === currentPage) return;
-    setSearchParams({ page: String(safePage) });
+    const params = new URLSearchParams(searchParams);
+    params.set('page', String(safePage));
+    // 保留分类参数
+    if (!params.has('category')) {
+      params.set('category', filter);
+    }
+    setSearchParams(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const categories = useMemo(() => {
-    const names = new Set(photos.map(photo => photo.category?.name?.trim() || '未分类'));
-    return ['全部', ...Array.from(names)];
-  }, [photos]);
+  // 构建分类按钮列表
+  const categoryOptions = useMemo(() => {
+    return ['全部', ...categories.map(cat => cat.name)];
+  }, [categories]);
   
-  const displayPhotos = filter === '全部'
-    ? photos 
-    : photos.filter(p => (p.category?.name?.trim() || '未分类') === filter);
+  // 直接使用加载的照片，因为已经在后端筛选过了
+  const displayPhotos = photos;
 
   const handleZoomChange = (nextZoom: number) => {
     const clamped = Math.max(1, Math.min(4, nextZoom));
@@ -441,12 +491,20 @@ export const GalleryView: React.FC = () => {
         </div>
         
         <div className="flex gap-3 overflow-x-auto w-full md:w-auto scrollbar-hide">
-          {categories.map(cat => (
+          {categoryOptions.map(cat => (
             <CategoryButton
               key={cat}
               label={cat}
               active={filter === cat}
-              onClick={() => setFilter(cat)}
+              onClick={() => {
+                setFilter(cat);
+                // 更新URL参数，重置到第一页
+                const params = new URLSearchParams(searchParams);
+                params.set('category', cat);
+                params.set('page', '1');
+                setSearchParams(params);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           ))}
         </div>

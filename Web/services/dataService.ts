@@ -1,4 +1,4 @@
-import { AIDemo, AIImage, AIProject, BlogPost, PhotoWork } from '../types';
+import { AIDemo, AIImage, AIProject, BlogPost, PhotoWork, PhotoCategory } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/+$/, '');
 
@@ -99,6 +99,7 @@ export interface PaginationParams {
   skip?: number;
   limit?: number;
   fw_access_code?: string;
+  category_id?: number;
 }
 
 export const fetchPosts = async (params: PaginationParams = {}): Promise<PaginatedResponse<BlogPost[]>> => {
@@ -111,8 +112,16 @@ export const fetchBlog = async (blogId: number): Promise<BlogPost> => {
 };
 
 export const fetchPhotos = async (params: PaginationParams = {}): Promise<PaginatedResponse<PhotoWork[]>> => {
-  const { skip = 0, limit = 15 } = params;
-  return requestWithTotal<PhotoWork[]>(`/photos?skip=${skip}&limit=${limit}`);
+  const { skip = 0, limit = 15, category_id } = params;
+  let url = `/photos?skip=${skip}&limit=${limit}`;
+  if (category_id !== undefined) {
+    url += `&category_id=${category_id}`;
+  }
+  return requestWithTotal<PhotoWork[]>(url);
+};
+
+export const fetchPhotoCategories = async (): Promise<PhotoCategory[]> => {
+  return request<PhotoCategory[]>('/photos/categories');
 };
 
 export const fetchPhoto = async (photoId: number): Promise<PhotoWork> => {
