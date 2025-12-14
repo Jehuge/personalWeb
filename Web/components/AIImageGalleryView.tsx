@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AIImage } from '../types';
-import { fetchAIImages } from '../services/dataService';
+import { fetchAIImages, fetchAIImage } from '../services/dataService';
 import Loader from './Loader';
 
 export const AIImageGalleryView: React.FC = () => {
@@ -12,11 +12,14 @@ export const AIImageGalleryView: React.FC = () => {
   const [imagesPage, setImagesPage] = useState(0);
   const [imagesTotalCount, setImagesTotalCount] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
-  const [nsfwAccessCode, setNsfwAccessCode] = useState<string>('');
+  const [showOriginalImage, setShowOriginalImage] = useState(false);
+  const [fwAccessCode, setFwAccessCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
   const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
   const [imageAspectMap, setImageAspectMap] = useState<Record<number, number>>({});
   const tiltRafRef = useRef<number | null>(null);
+  const hasScrolledToTopRef = useRef(false);
+  const isInitialMountRef = useRef(true);
   const handleCardEnter = (event: React.MouseEvent<HTMLElement>) => {
     const card = event.currentTarget;
     card.style.transition = 'transform 160ms ease-out, box-shadow 200ms ease';
@@ -59,7 +62,7 @@ export const AIImageGalleryView: React.FC = () => {
       const response = await fetchAIImages({ 
         skip: page * PAGE_SIZE, 
         limit: PAGE_SIZE,
-        nsfw_access_code: accessCode || nsfwAccessCode || undefined
+        fw_access_code: accessCode || fwAccessCode || undefined
       });
       setImages(response.data);
       setImagesTotalCount(response.total);
@@ -85,6 +88,14 @@ export const AIImageGalleryView: React.FC = () => {
     }
   };
 
+  // 组件挂载时滚动到顶部（只执行一次）
+  useEffect(() => {
+    if (!hasScrolledToTopRef.current) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      hasScrolledToTopRef.current = true;
+    }
+  }, []);
+
   // 根据 URL page 参数加载
   useEffect(() => {
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
@@ -93,6 +104,92 @@ export const AIImageGalleryView: React.FC = () => {
     hasLoadedRef.current = true;
     loadImages(nextPage - 1);
   }, [searchParams]);
+
+  // 检测页面刷新：如果是首次加载且 URL 中有 imageId，清除它（只保留从其他页面导航过来的情况）
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      const imageIdParam = searchParams.get('imageId');
+      
+      if (!imageIdParam) return;
+      
+      // 检测是否是页面刷新
+      // 使用 PerformanceNavigationTiming API 检测导航类型
+      let isPageRefresh = false;
+      try {
+        const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navEntry) {
+          // type 为 'reload' 表示刷新
+          isPageRefresh = navEntry.type === 'reload';
+        }
+      } catch (e) {
+        // API 不可用时，使用 referrer 判断
+        // 如果 referrer 是当前页面（包含 /ai-gallery），可能是刷新
+        // 如果 referrer 是其他页面（如首页），则是导航过来的
+        const referrer = document.referrer;
+        const currentPath = window.location.pathname;
+        // referrer 为空或 referrer 包含当前路径，可能是刷新
+        // referrer 不包含当前路径，说明是从其他页面导航过来的
+        isPageRefresh = !referrer || 
+          (referrer.includes(window.location.origin) && referrer.includes(currentPath));
+      }
+      
+      if (isPageRefresh) {
+        // 页面刷新时清除 imageId 参数
+        const params = new URLSearchParams(searchParams);
+        params.delete('imageId');
+        setSearchParams(params, { replace: true });
+        setSelectedImage(null);
+        return;
+      }
+    }
+  }, []);
+
+  // 根据 URL imageId 参数选择图片（在列表加载完成后处理）
+  useEffect(() => {
+    // 跳过首次加载时的处理（已经在上面的 useEffect 中处理了刷新情况）
+    if (isInitialMountRef.current) return;
+    
+    const imageIdParam = searchParams.get('imageId');
+    if (imageIdParam) {
+      const imageId = parseInt(imageIdParam, 10);
+      if (!isNaN(imageId)) {
+        // 如果图片已经在列表中，直接选择（避免闪烁）
+        const image = images.find(img => img.id === imageId);
+        if (image) {
+          // 只有当当前选中的图片不同时才更新，避免重复设置导致闪烁
+          if (selectedImage?.id !== imageId) {
+            setSelectedImage(image);
+            setShowOriginalImage(false); // 重置为显示缩略图
+          }
+          return;
+        }
+        
+        // 如果列表已加载但图片不在当前页的列表中，获取图片详情
+        // 如果列表还在加载中，等待加载完成
+        if (imagesLoading) return;
+        
+        // 只有当当前选中的图片不同时才获取，避免重复请求
+        if (selectedImage?.id !== imageId) {
+          fetchAIImage(imageId)
+            .then(img => {
+              setSelectedImage(img);
+              setShowOriginalImage(false); // 重置为显示缩略图
+            })
+            .catch(err => {
+              console.error('Failed to fetch image:', err);
+              setSelectedImage(null);
+              setShowOriginalImage(false);
+            });
+        }
+      }
+    } else {
+      // 如果没有 imageId 参数，清除选中的图片
+      if (selectedImage !== null) {
+        setSelectedImage(null);
+      }
+    }
+  }, [searchParams, images, imagesLoading]);
 
   const handleGoPage = (pageNumber: number) => {
     const totalPages = Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE));
@@ -103,8 +200,17 @@ export const AIImageGalleryView: React.FC = () => {
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setNsfwAccessCode(inputCode);
+    setFwAccessCode(inputCode);
     loadImages(0, inputCode);
+  };
+
+  // 关闭模态框并清除 URL 参数
+  const handleCloseModal = () => {
+    setSelectedImage(null);
+    setShowOriginalImage(false);
+    const params = new URLSearchParams(searchParams);
+    params.delete('imageId');
+    setSearchParams(params);
   };
 
   if (imagesLoading) {
@@ -155,7 +261,13 @@ export const AIImageGalleryView: React.FC = () => {
                 onMouseEnter={handleCardEnter}
                 onMouseMove={handleCardMove}
                 onMouseLeave={handleCardLeave}
-                onClick={() => setSelectedImage(image)}
+                onClick={() => {
+                  setSelectedImage(image);
+                  // 更新 URL 参数，保持 URL 和状态同步
+                  const params = new URLSearchParams(searchParams);
+                  params.set('imageId', String(image.id));
+                  setSearchParams(params);
+                }}
               >
                 {(() => {
                   const ratio = imageAspectMap[image.id];
@@ -257,57 +369,81 @@ export const AIImageGalleryView: React.FC = () => {
         {/* Image Modal */}
         {selectedImage && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
-            onClick={() => setSelectedImage(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
+            onClick={handleCloseModal}
           >
             <div
-              className="relative max-w-6xl w-full max-h-[90vh] flex flex-col md:flex-row bg-gray-900 rounded-2xl overflow-hidden shadow-2xl"
+              className="relative max-w-6xl w-full max-h-[90vh] flex flex-col md:flex-row bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-slate-700 animate-fade-in"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
+              {/* 关闭按钮 - 统一放在右上角 */}
+              <button
+                onClick={handleCloseModal}
+                className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-2 rounded-full shadow-lg"
+                aria-label="关闭"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              
+              <div className="flex-1 bg-gray-100 dark:bg-black flex items-center justify-center relative overflow-hidden">
                 <img
-                  src={selectedImage.image_url}
-                  alt={selectedImage.title}
+                  src={showOriginalImage ? selectedImage.image_url : (selectedImage.thumbnail_url || selectedImage.image_url)}
+                  alt={selectedImage.title || 'AI Image'}
                   className="max-w-full max-h-[80vh] md:max-h-full object-contain"
                 />
+                {!showOriginalImage && (
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginalImage(true)}
+                    className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
+                  >
+                    查看原图
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 5h6m0 0v6m0-6L10 14" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19l6 0 0-6" />
+                    </svg>
+                  </button>
+                )}
               </div>
-              <div className="w-full md:w-96 bg-gray-900 p-6 overflow-y-auto border-l border-gray-800">
-                <h3 className="text-xl font-bold text-white mb-4">{selectedImage.title || '无标题'}</h3>
+              <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pr-8">{selectedImage.title || '无标题'}</h3>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">浏览次数</label>
-                    <p className="text-sm text-white mt-1">{selectedImage.view_count || 0} 次</p>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">浏览次数</label>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.view_count || 0} 次</p>
                   </div>
                   {selectedImage.prompt && (
                     <div>
-                      <label className="text-xs font-semibold text-accent-500 uppercase tracking-wider">提示词 (Prompt)</label>
-                      <p className="text-sm text-gray-300 mt-1 leading-relaxed">{selectedImage.prompt}</p>
+                      <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider block mb-1">提示词 (Prompt)</label>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedImage.prompt}</p>
                     </div>
                   )}
 
                   {selectedImage.negative_prompt && (
                     <div>
-                      <label className="text-xs font-semibold text-primary-200 uppercase tracking-wider">反向提示词 (Negative)</label>
-                      <p className="text-sm text-gray-400 mt-1 leading-relaxed">{selectedImage.negative_prompt}</p>
+                      <label className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider block mb-1">反向提示词 (Negative)</label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{selectedImage.negative_prompt}</p>
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">模型</label>
-                      <p className="text-sm text-white mt-1">{selectedImage.model_name || '未知'}</p>
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">模型</label>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.model_name || '未知'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">创建时间</label>
-                      <p className="text-sm text-white mt-1">{new Date(selectedImage.created_at).toLocaleDateString()}</p>
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">创建时间</label>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{new Date(selectedImage.created_at).toLocaleDateString('zh-CN')}</p>
                     </div>
                   </div>
 
                   {selectedImage.parameters && (
                     <div>
-                      <label className="text-xs font-semibold text-blue-400 uppercase tracking-wider">生成参数</label>
-                      <pre className="mt-2 p-3 bg-gray-800 rounded-lg text-xs text-gray-300 overflow-x-auto">
+                      <label className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-1">生成参数</label>
+                      <pre className="mt-2 p-3 bg-gray-50 dark:bg-slate-900 rounded-lg text-xs text-gray-700 dark:text-gray-300 overflow-x-auto border border-gray-200 dark:border-slate-700">
                         {typeof selectedImage.parameters === 'string'
                           ? selectedImage.parameters
                           : JSON.stringify(selectedImage.parameters, null, 2)}
@@ -315,13 +451,6 @@ export const AIImageGalleryView: React.FC = () => {
                     </div>
                   )}
                 </div>
-
-                <button
-                  onClick={() => setSelectedImage(null)}
-                  className="absolute top-4 right-4 md:hidden text-white/50 hover:text-white"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
               </div>
             </div>
           </div>

@@ -38,8 +38,17 @@ export const AIDemoView: React.FC = () => {
   
   // 使用 useRef 防止组件意外重新挂载导致的重复请求
   const hasLoadedRef = useRef(false);
+  const hasScrolledToTopRef = useRef(false);
 
   const PAGE_SIZE = 12;
+
+  // 组件挂载时滚动到顶部（只执行一次）
+  useEffect(() => {
+    if (!hasScrolledToTopRef.current) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      hasScrolledToTopRef.current = true;
+    }
+  }, []);
 
   // 加载 Demos 数据
   const loadDemos = async (page: number) => {

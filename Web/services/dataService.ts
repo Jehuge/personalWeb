@@ -98,7 +98,7 @@ export const getCachedData = <T,>(key: string, fetcher: () => Promise<T>): Promi
 export interface PaginationParams {
   skip?: number;
   limit?: number;
-  nsfw_access_code?: string;
+  fw_access_code?: string;
 }
 
 export const fetchPosts = async (params: PaginationParams = {}): Promise<PaginatedResponse<BlogPost[]>> => {
@@ -130,22 +130,32 @@ export const fetchAIDemos = async (params: PaginationParams = {}): Promise<Pagin
 };
 
 export const fetchAIImages = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIImage[]>> => {
-  const { skip = 0, limit = 15, nsfw_access_code } = params;
-  let url = `/ai-images?published_only=true&skip=${skip}&limit=${limit}`;
-  if (nsfw_access_code) {
-    url += `&nsfw_access_code=${encodeURIComponent(nsfw_access_code)}`;
+  const { skip = 0, limit = 15, fw_access_code } = params;
+  const url = `/ai-images?published_only=true&skip=${skip}&limit=${limit}`;
+  // 将访问码通过 Header 传递，而不是 URL 参数，更安全
+  const headers: Record<string, string> = {};
+  if (fw_access_code) {
+    headers['X-FW-Access-Code'] = fw_access_code;
   }
-  return requestWithTotal<AIImage[]>(url);
+  return requestWithTotal<AIImage[]>(url, { headers });
+};
+
+export const fetchAIImage = async (imageId: number): Promise<AIImage> => {
+  return request<AIImage>(`/ai-images/${imageId}`);
 };
 
 export interface HomeOverview {
   blogs: BlogPost[];
   photos: PhotoWork[];
-  projects: AIDemo[];
+  ai_images: AIImage[];
+  ai_demos: AIDemo[];
+  ai_projects: AIProject[];
   stats: {
     blog_count: number;
     photo_count: number;
-    project_count: number;
+    ai_image_count: number;
+    ai_demo_count: number;
+    ai_project_count: number;
   };
 }
 

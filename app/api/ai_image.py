@@ -4,7 +4,7 @@ AI Image API 路由
 from typing import List, Optional
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status, Response, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Response, UploadFile, File, Form, Request
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,20 +27,23 @@ router = APIRouter(prefix="/ai-images", tags=["AI Image"])
 
 @router.get("", response_model=List[AIImageSchema])
 async def list_ai_images(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=200),
     is_featured: Optional[bool] = None,
     category: Optional[str] = None,
     published_only: bool = Query(False, description="只返回已发布的图片"),
-    nsfw_access_code: Optional[str] = Query(None, description="图片访问特殊码"),
     db: AsyncSession = Depends(get_db),
     response: Response = None,
 ):
     """获取 AI 图片列表"""
+    # 从 Header 中获取访问码，而不是 URL 参数，更安全
+    fw_access_code = request.headers.get("X-FW-Access-Code")
+    
     # 验证特殊码
     show_nsfw = False
-    if nsfw_access_code and settings.NSFW_ACCESS_CODE:
-        if nsfw_access_code == settings.NSFW_ACCESS_CODE:
+    if fw_access_code and settings.FW_ACCESS_CODE:
+        if fw_access_code == settings.FW_ACCESS_CODE:
             show_nsfw = True
     
     # 构建查询条件（用于总数统计和分页查询）

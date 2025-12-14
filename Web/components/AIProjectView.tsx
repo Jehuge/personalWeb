@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AIDemo, AIImage, AIProject } from '../types';
-import { fetchAIDemos, fetchAIImages, fetchAIProjects } from '../services/dataService';
+import { fetchAIDemos, fetchAIImages, fetchAIProjects, fetchAIImage } from '../services/dataService';
 import PlayButton from './PlayButton';
 import Loader from './Loader';
 
@@ -65,7 +65,7 @@ export const AIProjectView: React.FC = () => {
   const [imagesPage, setImagesPage] = useState(0);
   const [imagesTotalCount, setImagesTotalCount] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
-  const [nsfwAccessCode, setNsfwAccessCode] = useState<string>('');
+  const [fwAccessCode, setFwAccessCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
   const tiltRafRef = useRef<number | null>(null);
   const imagesLoadedRef = useRef(false);
@@ -146,8 +146,8 @@ export const AIProjectView: React.FC = () => {
       const response = await fetchAIImages({ 
         skip: page * PAGE_SIZE, 
         limit: PAGE_SIZE,
-        nsfw_access_code: accessCode || nsfwAccessCode || undefined
-      });
+          fw_access_code: accessCode || fwAccessCode || undefined
+      }); 
       setImages(response.data);
       setImagesTotalCount(response.total);
       setImagesHasMore((page + 1) * PAGE_SIZE < response.total);
@@ -215,8 +215,26 @@ export const AIProjectView: React.FC = () => {
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setNsfwAccessCode(inputCode);
+    setFwAccessCode(inputCode);
     loadImages(0, inputCode);
+  };
+
+  // 处理图片点击，获取详情并增加浏览次数
+  const handleImageClick = async (image: AIImage) => {
+    try {
+      // 调用 API 获取单张图片详情（这会增加浏览次数）
+      const updatedImage = await fetchAIImage(image.id);
+      // 更新选中的图片
+      setSelectedImage(updatedImage);
+      // 更新列表中的图片数据，以便显示最新的浏览次数
+      setImages(prevImages => 
+        prevImages.map(img => img.id === image.id ? updatedImage : img)
+      );
+    } catch (error) {
+      console.error('Failed to fetch image details:', error);
+      // 如果获取失败，仍然显示原图片
+      setSelectedImage(image);
+    }
   };
 
   // 3D 玻璃卡片悬停效果 - 桌面端
@@ -560,7 +578,7 @@ export const AIProjectView: React.FC = () => {
                   onMouseEnter={handleCardEnter}
                   onMouseMove={handleCardMove}
                   onMouseLeave={handleCardLeave}
-                  onClick={() => setSelectedImage(image)}
+                  onClick={() => handleImageClick(image)}
                 >
                   <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-700">
                     <img

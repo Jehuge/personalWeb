@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AIProject } from '../types';
 import { fetchAIProjects } from '../services/dataService';
 import Loader from './Loader';
@@ -20,11 +21,63 @@ const parseTechStack = (stack?: string | null) => {
 };
 
 export const AIProjectListView: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<AIProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState<AIProject | null>(null);
   
   // 使用 useRef 防止组件意外重新挂载导致的重复请求
   const hasLoadedRef = useRef(false);
+  const hasScrolledToTopRef = useRef(false);
+  const isInitialMountRef = useRef(true);
+
+  // 组件挂载时滚动到顶部（只执行一次）
+  useEffect(() => {
+    if (!hasScrolledToTopRef.current) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      hasScrolledToTopRef.current = true;
+    }
+  }, []);
+
+  // 检测页面刷新：如果是首次加载且 URL 中有 projectId，清除它（只保留从其他页面导航过来的情况）
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      const projectIdParam = searchParams.get('projectId');
+      
+      if (!projectIdParam) return;
+      
+      // 检测是否是页面刷新
+      // 使用 PerformanceNavigationTiming API 检测导航类型
+      let isPageRefresh = false;
+      try {
+        const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navEntry) {
+          // type 为 'reload' 表示刷新
+          isPageRefresh = navEntry.type === 'reload';
+        }
+      } catch (e) {
+        // API 不可用时，使用 referrer 判断
+        // 如果 referrer 是当前页面（包含 /ai-project），可能是刷新
+        // 如果 referrer 是其他页面（如首页），则是导航过来的
+        const referrer = document.referrer;
+        const currentPath = window.location.pathname;
+        // referrer 为空或 referrer 包含当前路径，可能是刷新
+        // referrer 不包含当前路径，说明是从其他页面导航过来的
+        isPageRefresh = !referrer || 
+          (referrer.includes(window.location.origin) && referrer.includes(currentPath));
+      }
+      
+      if (isPageRefresh) {
+        // 页面刷新时清除 projectId 参数
+        const params = new URLSearchParams(searchParams);
+        params.delete('projectId');
+        setSearchParams(params, { replace: true });
+        setSelectedProject(null);
+        return;
+      }
+    }
+  }, []);
 
   // 初始加载 Projects
   useEffect(() => {
@@ -58,6 +111,41 @@ export const AIProjectListView: React.FC = () => {
     loadProjects();
   }, []);
 
+  // 根据 URL projectId 参数选择项目
+  useEffect(() => {
+    // 跳过首次加载时的处理（已经在上面的 useEffect 中处理了刷新情况）
+    if (isInitialMountRef.current) return;
+    
+    const projectIdParam = searchParams.get('projectId');
+    if (projectIdParam && projects.length > 0) {
+      const projectId = parseInt(projectIdParam, 10);
+      if (!isNaN(projectId)) {
+        const project = projects.find(p => p.id === projectId);
+        if (project) {
+          // 只有当当前选中的项目不同时才更新，避免重复设置导致闪烁
+          if (selectedProject?.id !== projectId) {
+            setSelectedProject(project);
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }
+      }
+    } else {
+      // 如果没有 projectId 参数，清除选中的项目
+      if (selectedProject !== null) {
+        setSelectedProject(null);
+      }
+    }
+  }, [searchParams, projects]);
+
+  // 关闭模态框并清除 URL 参数
+  const handleCloseModal = () => {
+    setSelectedProject(null);
+    const params = new URLSearchParams(searchParams);
+    params.delete('projectId');
+    setSearchParams(params);
+  };
+
   if (projectsLoading) {
     return <Loader fullscreen />;
   }
@@ -78,7 +166,14 @@ export const AIProjectListView: React.FC = () => {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-cyber-accent/15 transition-all hover:-translate-y-1 flex flex-col"
+              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-cyber-accent/15 transition-all hover:-translate-y-1 flex flex-col cursor-pointer"
+              onClick={() => {
+                setSelectedProject(project);
+                // 更新 URL 参数，保持 URL 和状态同步
+                const params = new URLSearchParams(searchParams);
+                params.set('projectId', String(project.id));
+                setSearchParams(params);
+              }}
             >
               <div className="p-6 flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
@@ -148,6 +243,87 @@ export const AIProjectListView: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* 项目详情模态框 */}
+      {selectedProject && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={handleCloseModal}
+        >
+          <div 
+            className="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedProject.title}</h2>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {selectedProject.cover_image && (
+                <div className="mb-4 rounded-xl overflow-hidden">
+                  <img src={selectedProject.cover_image} alt={selectedProject.title} className="w-full h-auto" />
+                </div>
+              )}
+
+              {selectedProject.description && (
+                <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                  {selectedProject.description}
+                </p>
+              )}
+
+              {selectedProject.content && (
+                <div className="mb-4 prose dark:prose-invert max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: selectedProject.content }} />
+                </div>
+              )}
+
+              {parseTechStack(selectedProject.tech_stack).length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">技术栈</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {parseTechStack(selectedProject.tech_stack).map((stack) => (
+                      <span key={stack} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                        {stack}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {selectedProject.view_count || 0} 次浏览
+                </span>
+              </div>
+
+              <div className="flex gap-3">
+                {selectedProject.github_url && (
+                  <a
+                    href={selectedProject.github_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"
+                  >
+                    GitHub
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

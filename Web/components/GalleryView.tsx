@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
 import { fetchPhotos, fetchPhoto } from '../services/dataService';
 import Loader from './Loader';
@@ -77,7 +77,6 @@ const formatPhotoShootDate = (photo: PhotoWork) => {
 };
 
 export const GalleryView: React.FC = () => {
-  const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
@@ -85,6 +84,7 @@ export const GalleryView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('全部');
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWork | null>(null);
+  const [showOriginalPhoto, setShowOriginalPhoto] = useState(false);
   const [exifData, setExifData] = useState<ParsedExifData | null>(null);
   const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -97,51 +97,97 @@ export const GalleryView: React.FC = () => {
   const PAGE_SIZE = 15;
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
   const photosLoadedRef = useRef(false);
+  const hasScrolledToTopRef = useRef(false);
+  const isInitialMountRef = useRef(true);
   const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<number, number>>({});
 
-  // 根据路由参数加载照片详情
+  // 组件挂载时滚动到顶部（只执行一次）
   useEffect(() => {
-    if (id) {
-      const photoId = parseInt(id, 10);
+    if (!hasScrolledToTopRef.current) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      hasScrolledToTopRef.current = true;
+    }
+  }, []);
+
+  // 检测页面刷新：如果是首次加载且 URL 中有 photoId，清除它（只保留从其他页面导航过来的情况）
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      const photoIdParam = searchParams.get('photoId');
+      
+      if (!photoIdParam) return;
+      
+      // 检测是否是页面刷新
+      let isPageRefresh = false;
+      try {
+        const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navEntry) {
+          isPageRefresh = navEntry.type === 'reload';
+        }
+      } catch (e) {
+        const referrer = document.referrer;
+        const currentPath = window.location.pathname;
+        isPageRefresh = !referrer || 
+          (referrer.includes(window.location.origin) && referrer.includes(currentPath));
+      }
+      
+      if (isPageRefresh) {
+        // 页面刷新时清除 photoId 参数
+        const params = new URLSearchParams(searchParams);
+        params.delete('photoId');
+        setSearchParams(params, { replace: true });
+        setSelectedPhoto(null);
+        return;
+      }
+    }
+  }, []);
+
+  // 根据 URL photoId 参数选择照片（在列表加载完成后处理）
+  useEffect(() => {
+    // 跳过首次加载时的处理（已经在上面的 useEffect 中处理了刷新情况）
+    if (isInitialMountRef.current) return;
+    
+    const photoIdParam = searchParams.get('photoId');
+    if (photoIdParam) {
+      const photoId = parseInt(photoIdParam, 10);
       if (!isNaN(photoId)) {
         // 如果照片已经在列表中，直接选择
         const photo = photos.find(p => p.id === photoId);
         if (photo) {
-          setSelectedPhoto(photo);
-        } else {
-          // 如果照片不在当前列表中，通过 API 获取
+          // 只有当当前选中的照片不同时才更新，避免重复设置导致闪烁
+          if (selectedPhoto?.id !== photoId) {
+            setSelectedPhoto(photo);
+            setShowOriginalPhoto(false); // 重置为显示缩略图
+          }
+          return;
+        }
+        
+        // 如果列表已加载但照片不在当前页的列表中，获取照片详情
+        // 如果列表还在加载中，等待加载完成
+        if (loading) return;
+        
+        // 只有当当前选中的照片不同时才获取，避免重复请求
+        if (selectedPhoto?.id !== photoId) {
           fetchPhoto(photoId)
             .then(singlePhoto => {
               setSelectedPhoto(singlePhoto);
-              // 如果照片不在当前列表中，也添加到列表中以便后续使用
-              if (!photos.find(p => p.id === photoId)) {
-                setPhotos(prev => [singlePhoto, ...prev]);
-              }
+              setShowOriginalPhoto(false); // 重置为显示缩略图
             })
             .catch(error => {
               console.error('Failed to fetch photo:', error);
-              setError('照片加载失败，请稍后重试');
+              setSelectedPhoto(null);
+              setShowOriginalPhoto(false);
             });
         }
       }
     } else {
-      setSelectedPhoto(null);
+      // 如果没有 photoId 参数，清除选中的照片
+      if (selectedPhoto !== null) {
+        setSelectedPhoto(null);
+      }
     }
-  }, [id, photos]);
-
-  // 监听来自首页的图片选择事件（用于从首页跳转）
-  useEffect(() => {
-    const handleSelectPhoto = async (event: CustomEvent<{ photoId: number }>) => {
-      const photoId = event.detail.photoId;
-      navigate(`/gallery/${photoId}`);
-    };
-
-    window.addEventListener('gallerySelectPhoto', handleSelectPhoto as EventListener);
-    return () => {
-      window.removeEventListener('gallerySelectPhoto', handleSelectPhoto as EventListener);
-    };
-  }, [navigate]);
+  }, [searchParams, photos, loading]);
 
   useEffect(() => {
     if (!selectedPhoto) {
@@ -228,13 +274,12 @@ export const GalleryView: React.FC = () => {
 
   // 监听 URL page 参数
   useEffect(() => {
-    if (id) return; // 详情页不处理分页
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
     if (photosLoadedRef.current && currentPage === nextPage - 1) return;
     photosLoadedRef.current = true;
     loadPhotos(nextPage - 1);
-  }, [searchParams, id]);
+  }, [searchParams]);
 
   // 处理分页
   const handleGoPage = (pageNumber: number) => {
@@ -361,6 +406,19 @@ export const GalleryView: React.FC = () => {
     setIsDragging(false);
   };
 
+  // 关闭模态框并清除 URL 参数
+  const handleCloseModal = () => {
+    setSelectedPhoto(null);
+    setShowOriginalPhoto(false);
+    setIsFullPreviewOpen(false);
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    setIsDragging(false);
+    const params = new URLSearchParams(searchParams);
+    params.delete('photoId');
+    setSearchParams(params);
+  };
+
   if (loading) {
     return <Loader />;
   }
@@ -373,196 +431,6 @@ export const GalleryView: React.FC = () => {
     );
   }
 
-  if (selectedPhoto) {
-    const detailImageSrc = selectedPhoto.thumbnail_url || selectedPhoto.image_url;
-    const detailAspectRatio = selectedPhoto.width && selectedPhoto.height
-      ? `${selectedPhoto.width} / ${selectedPhoto.height}`
-      : '16 / 9';
-
-    return (
-      <div className="w-full py-12 px-4 md:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto bg-slate-50 dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden p-6 lg:p-10">
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
-            {/* 图片区域 - 左侧（保持在左） */}
-            <div className="lg:flex-1 space-y-6 lg:sticky lg:top-24 w-full max-w-full">
-              <div
-                className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl flex items-center justify-center"
-                style={{ 
-                  minHeight: '300px',
-                  maxHeight: 'calc(100vh - 200px)',
-                  maxWidth: '100%',
-                  padding: '1rem'
-                }}
-              >
-                <img
-                  src={detailImageSrc}
-                  alt={selectedPhoto.title}
-                  className="object-contain"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: 'calc(100vh - 250px)',
-                    width: 'auto',
-                    height: 'auto',
-                    display: 'block',
-                    objectFit: 'contain',
-                    opacity: 1
-                  }}
-                  decoding="async"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFullPreviewOpen(true);
-                  setZoom(1);
-                  setOffset({ x: 0, y: 0 });
-                }}
-                className="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold rounded-full bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:opacity-80 transition-opacity shadow-lg"
-              >
-                查看原图
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 5h6m0 0v6m0-6L10 14" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19l6 0 0-6" />
-                </svg>
-              </button>
-            </div>
-
-            {/* 信息区域 - 右侧 */}
-            <div className="lg:w-96 xl:w-[28rem] space-y-6 lg:space-y-8 w-full text-base md:text-lg leading-relaxed">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-base md:text-lg font-semibold tracking-wide text-gray-600 dark:text-gray-300">
-                    {selectedPhoto.category?.name || '未分类'}
-                  </span>
-                  <span className="text-base md:text-lg text-gray-500 dark:text-gray-400">
-                    {new Date(selectedPhoto.created_at).toLocaleDateString('zh-CN', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
-                <h2 className="text-3xl lg:text-4xl font-display font-bold text-gray-900 dark:text-white break-words leading-tight tracking-tight">
-                  {selectedPhoto.title}
-                </h2>
-              </div>
-              
-              {selectedPhoto.description && (
-                <div className="prose dark:prose-invert md:prose-lg max-w-none">
-                  <p className="text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-line text-base md:text-lg">
-                    {selectedPhoto.description}
-                  </p>
-                </div>
-              )}
-
-              <div className="bg-gray-50 dark:bg-gray-800/70 rounded-2xl p-6 space-y-5">
-                <div>
-                  <p className="text-base md:text-lg font-semibold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400 mb-1">
-                    拍摄参数
-                  </p>
-                  {exifData ? (
-                    <div className="grid grid-cols-2 gap-4 text-base md:text-lg font-mono text-gray-700 dark:text-gray-200">
-                      <div>
-                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">相机</p>
-                        <p>{[exifData.make, exifData.model].filter(Boolean).join(' ') || '——'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">焦距</p>
-                        <p>{exifData.focalLength || '——'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">光圈</p>
-                        <p>{exifData.aperture || '——'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">快门</p>
-                        <p>{exifData.shutterSpeed || '——'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">ISO</p>
-                        <p>{exifData.iso || '——'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs md:text-sm uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500 mb-1 font-semibold">时间</p>
-                        <p>{exifData.shootTime || '——'}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-base md:text-lg text-gray-700 dark:text-gray-200 font-mono">{selectedMeta.exif}</p>
-                  )}
-                </div>
-                <div className="text-base md:text-lg text-gray-500 dark:text-gray-400">
-                  <p>作品编号：#{selectedPhoto.id}</p>
-                  <p className="mt-1">浏览次数：{selectedPhoto.view_count}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        {isFullPreviewOpen && selectedPhoto && (
-          <div
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4"
-            onClick={closePreview}
-          >
-            <div
-              className="relative max-w-6xl w-full max-h-[92vh] bg-gray-950/80 rounded-3xl border border-white/10 overflow-hidden shadow-2xl select-none"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                aria-label="关闭预览"
-                onClick={closePreview}
-                className="absolute right-4 top-4 z-10 rounded-full bg-black/60 text-white hover:bg-black/80 w-10 h-10 flex items-center justify-center"
-              >
-                ✕
-              </button>
-              <div
-                className={`h-[78vh] bg-black overflow-hidden ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
-                onWheel={handleWheelZoom}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={stopDragging}
-                onMouseLeave={stopDragging}
-                onDoubleClick={handleDoubleClick}
-              >
-                <div className="w-full h-full flex items-center justify-center" style={{ touchAction: 'none' }}>
-                  <img
-                    src={selectedPhoto.image_url}
-                    alt={selectedPhoto.title}
-                    draggable={false}
-                    style={{
-                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                      transition: isDragging ? 'none' : 'transform 0.15s ease-out',
-                    }}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-              </div>
-              <div className="p-5 text-base text-white/85 flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <span className="font-semibold">{selectedPhoto.title}</span>
-                  <span className="text-white/70">{selectedPhoto.category?.name || '未分类'}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm md:text-base text-white/70">
-                  <span>滚轮缩放 / 双击切换</span>
-                  <span>拖拽移动</span>
-                  {zoom > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleZoomChange(1)}
-                      className="px-3 py-1 rounded-full bg-white/10 text-white hover:bg-white/20"
-                    >
-                      重置
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
@@ -605,7 +473,14 @@ export const GalleryView: React.FC = () => {
               }}
               onMouseMove={handlePhotoCardMove}
               onMouseLeave={handlePhotoCardLeave}
-              onClick={() => navigate(`/gallery/${photo.id}`)}
+              onClick={() => {
+                setSelectedPhoto(photo);
+                setShowOriginalPhoto(false); // 重置为显示缩略图
+                // 更新 URL 参数，保持 URL 和状态同步
+                const params = new URLSearchParams(searchParams);
+                params.set('photoId', String(photo.id));
+                setSearchParams(params);
+              }}
             >
               {/* 图片容器 - 保持原始比例 */}
               <div 
@@ -739,6 +614,197 @@ export const GalleryView: React.FC = () => {
       {displayPhotos.length === 0 && !loading && (
         <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
           暂无作品
+        </div>
+      )}
+
+      {/* 照片详情弹出框 */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
+          onClick={handleCloseModal}
+        >
+          <div
+            className="relative max-w-6xl w-full max-h-[90vh] flex flex-col md:flex-row bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-slate-700 animate-fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* 关闭按钮 - 统一放在右上角 */}
+            <button
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-2 rounded-full shadow-lg"
+              aria-label="关闭"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="flex-1 bg-gray-100 dark:bg-black flex items-center justify-center relative overflow-hidden">
+              <img
+                src={showOriginalPhoto ? selectedPhoto.image_url : (selectedPhoto.thumbnail_url || selectedPhoto.image_url)}
+                alt={selectedPhoto.title}
+                className="max-w-full max-h-[80vh] md:max-h-full object-contain"
+              />
+              {!showOriginalPhoto && (
+                <button
+                  type="button"
+                  onClick={() => setShowOriginalPhoto(true)}
+                  className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
+                >
+                  查看原图
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 5h6m0 0v6m0-6L10 14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19l6 0 0-6" />
+                  </svg>
+                </button>
+              )}
+              {showOriginalPhoto && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFullPreviewOpen(true);
+                    setZoom(1);
+                    setOffset({ x: 0, y: 0 });
+                  }}
+                  className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
+                >
+                  全屏查看
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                    {selectedPhoto.category?.name || '未分类'}
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(selectedPhoto.created_at).toLocaleDateString('zh-CN', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white pr-8">{selectedPhoto.title}</h3>
+                
+                {selectedPhoto.description && (
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                      {selectedPhoto.description.split('|')[0].trim()}
+                    </p>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">
+                      拍摄参数
+                    </label>
+                    {exifData ? (
+                      <div className="grid grid-cols-2 gap-3 text-xs font-mono text-gray-700 dark:text-gray-300">
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">相机</p>
+                          <p>{[exifData.make, exifData.model].filter(Boolean).join(' ') || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">焦距</p>
+                          <p>{exifData.focalLength || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">光圈</p>
+                          <p>{exifData.aperture || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">快门</p>
+                          <p>{exifData.shutterSpeed || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">ISO</p>
+                          <p>{exifData.iso || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">时间</p>
+                          <p>{exifData.shootTime || '——'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-700 dark:text-gray-300 font-mono">{selectedMeta.exif}</p>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-slate-700">
+                    <p>作品编号：#{selectedPhoto.id}</p>
+                    <p className="mt-1">浏览次数：{selectedPhoto.view_count || 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 原图全屏预览 */}
+      {isFullPreviewOpen && selectedPhoto && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center px-4"
+          onClick={closePreview}
+        >
+          <div
+            className="relative max-w-6xl w-full max-h-[92vh] bg-gray-950/80 rounded-3xl border border-white/10 overflow-hidden shadow-2xl select-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="关闭预览"
+              onClick={closePreview}
+              className="absolute right-4 top-4 z-10 rounded-full bg-black/60 text-white hover:bg-black/80 w-10 h-10 flex items-center justify-center"
+            >
+              ✕
+            </button>
+            <div
+              className={`h-[78vh] bg-black overflow-hidden ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
+              onWheel={handleWheelZoom}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={stopDragging}
+              onMouseLeave={stopDragging}
+              onDoubleClick={handleDoubleClick}
+            >
+              <div className="w-full h-full flex items-center justify-center" style={{ touchAction: 'none' }}>
+                <img
+                  src={selectedPhoto.image_url}
+                  alt={selectedPhoto.title}
+                  draggable={false}
+                  style={{
+                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                    transition: isDragging ? 'none' : 'transform 0.15s ease-out',
+                  }}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            </div>
+            <div className="p-5 text-base text-white/85 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="font-semibold">{selectedPhoto.title}</span>
+                <span className="text-white/70">{selectedPhoto.category?.name || '未分类'}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm md:text-base text-white/70">
+                <span>滚轮缩放 / 双击切换</span>
+                <span>拖拽移动</span>
+                {zoom > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleZoomChange(1)}
+                    className="px-3 py-1 rounded-full bg-white/10 text-white hover:bg-white/20"
+                  >
+                    重置
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -228,6 +228,7 @@ export const BlogView: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const blogsLoadedRef = useRef(false);
+  const hasScrolledToTopRef = useRef(false);
   
   // 目录相关的 hooks
   const [headings, setHeadings] = useState<Heading[]>([]);
@@ -243,6 +244,14 @@ export const BlogView: React.FC = () => {
   
   const PAGE_SIZE = 12;
 
+  // 组件挂载时滚动到顶部（只执行一次，且只在列表页时）
+  useEffect(() => {
+    if (!id && !hasScrolledToTopRef.current) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      hasScrolledToTopRef.current = true;
+    }
+  }, [id]);
+
   // 根据路由参数加载博客详情
   useEffect(() => {
     if (id) {
@@ -251,10 +260,16 @@ export const BlogView: React.FC = () => {
         const post = posts.find(p => p.id === blogId);
         if (post) {
           setSelectedPost(post);
+          setLoading(false); // 如果找到了，确保 loading 状态为 false
         } else {
+          // 如果列表还没加载，先设置 loading 为 true
+          if (posts.length === 0) {
+            setLoading(true);
+          }
           fetchBlog(blogId)
             .then(singleBlog => {
               setSelectedPost(singleBlog);
+              setLoading(false);
               if (!posts.find(p => p.id === blogId)) {
                 setPosts(prev => [singleBlog, ...prev]);
               }
@@ -262,6 +277,7 @@ export const BlogView: React.FC = () => {
             .catch(error => {
               console.error('Failed to fetch blog:', error);
               setError('博客加载失败，请稍后重试');
+              setLoading(false);
             });
         }
       }
@@ -315,13 +331,20 @@ export const BlogView: React.FC = () => {
 
   // 监听 URL page 参数
   useEffect(() => {
-    if (id) return; // 详情页不处理分页
+    if (id) {
+      // 详情页不处理分页，但如果列表还没加载且没有选中文章，确保 loading 状态正确
+      if (posts.length === 0 && !selectedPost) {
+        // 等待详情加载完成
+        return;
+      }
+      return;
+    }
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
     if (blogsLoadedRef.current && currentPage === nextPage - 1) return;
     blogsLoadedRef.current = true;
     loadPosts(nextPage - 1);
-  }, [searchParams, id]);
+  }, [searchParams, id, posts.length, selectedPost]);
 
   // 处理分页
   const handleGoPage = (pageNumber: number) => {
