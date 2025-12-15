@@ -7,14 +7,14 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="mt-16 border-t border-primary-200/60 dark:border-primary-700/40 bg-slate-50 dark:bg-slate-900/80 backdrop-blur">
+    <footer className="mt-16 border-t border-gray-300/60 dark:border-gray-700/40 bg-slate-50 dark:bg-slate-900/80 backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-start md:justify-between gap-4 text-sm text-gray-600 dark:text-gray-400">
         <div className="flex flex-col gap-2 text-center md:text-left">
           <a
             href={icp.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
           >
             {icp.label}
           </a>

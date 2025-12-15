@@ -598,7 +598,7 @@ export const GalleryView: React.FC = () => {
                 onClick={() => handleGoPage(pageNum)}
                 className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                    ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                 }`}
                 disabled={loading}
@@ -682,7 +682,7 @@ export const GalleryView: React.FC = () => {
                     const filename = `${selectedPhoto.title || 'photo'}-${selectedPhoto.id}.jpg`;
                     handleDownloadRequest(selectedPhoto.image_url, filename);
                   }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-cyber-accent hover:bg-cyber-accent/90 text-white transition-all shadow-md hover:shadow-lg"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-gray-700 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white transition-all shadow-md hover:shadow-lg"
                 >
                   下载原图
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

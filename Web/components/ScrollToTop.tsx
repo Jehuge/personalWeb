@@ -38,7 +38,7 @@ export const ScrollToTop: React.FC = () => {
       aria-label="回到顶部"
     >
       <svg
-        className="w-5 h-5 text-primary-600 dark:text-primary-400 group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors"
+        className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

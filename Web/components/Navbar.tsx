@@ -75,7 +75,7 @@ export const Navbar: React.FC = () => {
               <Link to="/" className="flex-shrink-0 flex items-center cursor-pointer group">
                 <CubeLogo size={32} className="mr-2" />
                 <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                  TianJQ<span className="text-primary-500">.Space</span>
+                  TianJQ<span className="text-gray-600 dark:text-gray-400">.Space</span>
                 </span>
               </Link>
             )}
@@ -88,9 +88,9 @@ export const Navbar: React.FC = () => {
               const shared =
                 'relative px-4 py-2 rounded-2xl text-lg font-semibold transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
               const activeClass =
-                'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/40 ring-1 ring-white/70 dark:bg-[#cfe2ff] dark:text-[#0b1120] dark:shadow-[#a5b4fc]/40 translate-y-0';
+                'bg-gray-100 text-gray-900 shadow-lg shadow-gray-500/20 ring-1 ring-white/70 dark:bg-gray-800 dark:text-white dark:shadow-gray-600/30 translate-y-0';
               const inactiveClass =
-                'text-gray-700 hover:text-primary-600 hover:bg-primary-50 hover:-translate-y-[1px] hover:shadow-md hover:shadow-primary-500/20 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20 dark:hover:shadow-[0_0_24px_rgba(129,140,248,0.45)]';
+                'text-gray-700 hover:text-gray-900 hover:bg-gray-50 hover:-translate-y-[1px] hover:shadow-md hover:shadow-gray-500/10 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20 dark:hover:shadow-[0_0_24px_rgba(107,114,128,0.3)]';
               return (
                 <Link
                   key={item.id}
@@ -106,13 +106,13 @@ export const Navbar: React.FC = () => {
                   </span>
                   {/* 柔和的背景光晕 */}
                   <span
-                    className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-500/45 via-primary-400/25 to-accent-500/30 blur-xl transition-opacity duration-300 ${
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-r from-gray-500/30 via-gray-400/15 to-gray-600/20 blur-xl transition-opacity duration-300 ${
                       isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
                     }`}
                   />
                   {/* 底部滑动条指示器 */}
                   <span
-                    className={`pointer-events-none absolute left-4 right-4 -bottom-1 h-[2px] rounded-full bg-gradient-to-r from-primary-500 via-accent-500 to-primary-400 transform origin-center transition-transform duration-300 ${
+                    className={`pointer-events-none absolute left-4 right-4 -bottom-1 h-[2px] rounded-full bg-gradient-to-r from-gray-500 via-gray-600 to-gray-500 transform origin-center transition-transform duration-300 ${
                       isCurrent ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
                     }`}
                   />
@@ -155,16 +155,16 @@ export const Navbar: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="fixed top-16 left-0 right-0 z-40 md:hidden mx-0 px-4">
           {/* Mobile dropdown：浅色模式保持柔和渐变，深色模式改为纯深色背景，和顶部栏一致 */}
-          <div className={`backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-primary-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80 transition-transform duration-300 ease-out ${theme === 'dark' ? 'bg-slate-900' : 'bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50'}`}>
+          <div className={`backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-gray-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80 transition-transform duration-300 ease-out ${theme === 'dark' ? 'bg-slate-900' : 'bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
                 'block w-full text-left px-3 py-3 rounded-2xl text-lg font-semibold transition-all duration-200 ease-out active:scale-[0.97]';
               const activeClass =
-                'bg-[#e3f0ff] text-[#1f2937] shadow-lg shadow-primary-500/30 dark:bg-[#cfe2ff] dark:text-[#0b1120]';
+                'bg-gray-100 text-gray-900 shadow-lg shadow-gray-500/20 dark:bg-gray-800 dark:text-white';
               const inactiveClass =
-                'text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20';
+                'text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-white/85 dark:bg-white/10 dark:hover:bg-white/20';
               return (
                 <Link
                   key={item.id}

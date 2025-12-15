@@ -153,7 +153,7 @@ export const AIProjectListView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="text-center mb-16 animate-fade-in">
-        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-accent-500 to-primary-300 mb-4">
+        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 mb-4">
           个人项目
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -166,7 +166,7 @@ export const AIProjectListView: React.FC = () => {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-cyber-accent/15 transition-all hover:-translate-y-1 flex flex-col cursor-pointer"
+              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-gray-500/15 transition-all hover:-translate-y-1 flex flex-col cursor-pointer"
               onClick={() => {
                 setSelectedProject(project);
                 // 更新 URL 参数，保持 URL 和状态同步
@@ -178,7 +178,7 @@ export const AIProjectListView: React.FC = () => {
               <div className="p-6 flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{project.title}</h3>
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${project.is_published ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-200 text-gray-500'}`}>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${project.is_published ? 'bg-gray-500/10 text-gray-700 dark:text-gray-300' : 'bg-gray-200 text-gray-500'}`}>
                   {project.is_published ? '已发布' : '草稿'}
                 </span>
               </div>

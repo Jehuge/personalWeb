@@ -51,11 +51,11 @@ export const BackgroundFX = React.memo(() => {
 
       {/* 优化：减少 blur 半径，使用 will-change 提示浏览器优化 */}
       <div 
-        className="absolute -top-1/3 left-1/2 h-[70vh] w-[70vh] -translate-x-1/2 rounded-full bg-primary-500/20 blur-[80px] dark:blur-[100px] animate-blob dark:bg-primary-500/10 will-change-transform"
+        className="absolute -top-1/3 left-1/2 h-[70vh] w-[70vh] -translate-x-1/2 rounded-full bg-gray-500/20 blur-[80px] dark:blur-[100px] animate-blob dark:bg-gray-600/10 will-change-transform"
         style={{ willChange: 'transform', ...animationStyle }}
       />
       <div 
-        className="absolute top-1/2 -right-32 h-[60vh] w-[60vh] rounded-full bg-accent-500/20 blur-[90px] dark:blur-[110px] opacity-70 animate-blob delay-700 dark:bg-primary-500/15 will-change-transform"
+        className="absolute top-1/2 -right-32 h-[60vh] w-[60vh] rounded-full bg-gray-400/20 blur-[90px] dark:blur-[110px] opacity-70 animate-blob delay-700 dark:bg-gray-600/15 will-change-transform"
         style={{ willChange: 'transform', ...animationStyle }}
       />
 
@@ -74,8 +74,8 @@ export const BackgroundFX = React.memo(() => {
 
       {/* 优化：减少 blur 半径 */}
       <div className="absolute inset-0">
-        <div className="absolute inset-y-0 w-1/2 left-0 bg-gradient-to-r from-primary-500/10 to-transparent blur-[60px] dark:blur-[80px]" />
-        <div className="absolute inset-y-0 w-1/2 right-0 bg-gradient-to-l from-indigo-500/20 to-transparent blur-[75px] dark:blur-[90px]" />
+        <div className="absolute inset-y-0 w-1/2 left-0 bg-gradient-to-r from-gray-500/10 to-transparent blur-[60px] dark:blur-[80px]" />
+        <div className="absolute inset-y-0 w-1/2 right-0 bg-gradient-to-l from-gray-400/20 to-transparent blur-[75px] dark:blur-[90px]" />
       </div>
 
       {/* 优化：只在可见时运行动画 */}

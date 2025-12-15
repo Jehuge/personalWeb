@@ -9,21 +9,21 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          900: '#0b1f3a',
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          500: '#6b7280',
+          600: '#4b5563',
+          900: '#111827',
         },
         accent: {
-          500: '#60a5fa',
-          600: '#2563eb',
+          500: '#374151',
+          600: '#1f2937',
         },
         cyber: {
-          dark: '#0b1120',
-          panel: '#0f172a',
-          accent: '#3b82f6',
-          glow: '#60a5fa',
+          dark: '#0a0a0a',
+          panel: '#1a1a1a',
+          accent: '#4b5563',
+          glow: '#6b7280',
         }
       },
       fontFamily: {

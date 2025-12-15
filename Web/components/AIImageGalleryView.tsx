@@ -266,7 +266,7 @@ export const AIImageGalleryView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="text-center mb-16 animate-fade-in">
-        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-accent-500 to-primary-300 mb-4">
+        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 mb-4">
           AI 艺术图库
         </h2>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-6">
@@ -278,11 +278,11 @@ export const AIImageGalleryView: React.FC = () => {
             value={inputCode}
             onChange={(e) => setInputCode(e.target.value)}
             placeholder="输入"
-            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm"
           />
           <button
             type="submit"
-            className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-medium transition-colors text-sm"
+            className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white font-medium transition-colors text-sm"
           >
             确认
           </button>
@@ -384,7 +384,7 @@ export const AIImageGalleryView: React.FC = () => {
                   onClick={() => handleGoPage(pageNum)}
                   className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                      ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                   }`}
                   disabled={imagesLoading}
@@ -447,7 +447,7 @@ export const AIImageGalleryView: React.FC = () => {
                       const filename = `${selectedImage.title || 'ai-image'}-${selectedImage.id}.jpg`;
                       handleDownloadRequest(selectedImage.image_url, filename);
                     }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-cyber-accent hover:bg-cyber-accent/90 text-white transition-all shadow-md hover:shadow-lg"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-gray-700 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white transition-all shadow-md hover:shadow-lg"
                   >
                     下载原图
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -460,7 +460,7 @@ export const AIImageGalleryView: React.FC = () => {
                   </div>
                   {selectedImage.prompt && (
                     <div>
-                      <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider block mb-1">提示词 (Prompt)</label>
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">提示词 (Prompt)</label>
                       <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedImage.prompt}</p>
                     </div>
                   )}

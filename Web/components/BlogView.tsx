@@ -35,8 +35,8 @@ const formatDate = (dateString?: string | null) => {
 };
 
 const categoryPalette = [
-  'bg-primary-50 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200',
-  'bg-accent-500/10 dark:bg-accent-500/15 text-primary-700 dark:text-primary-200',
+  'bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200',
+  'bg-gray-200/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200',
   'bg-sky-50 dark:bg-sky-900/30 text-sky-800 dark:text-sky-200',
   'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200',
   'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200',
@@ -617,7 +617,7 @@ export const BlogView: React.FC = () => {
 
             <div className="p-10 space-y-6">
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-200 text-xs font-bold">
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-xs font-bold">
                   {selectedPost.category?.name || '未分类'}
                 </span>
                 <span>{displayDate}</span>
@@ -671,7 +671,7 @@ export const BlogView: React.FC = () => {
                   e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
-                <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
@@ -709,7 +709,7 @@ export const BlogView: React.FC = () => {
                           }}
                           className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
                             activeHeading === heading.id
-                              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
+                              ? 'bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold'
                               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
                           }`}
                           style={{ 
@@ -731,7 +731,7 @@ export const BlogView: React.FC = () => {
                       ))
                     ) : (
                       <div className="flex items-center justify-center py-8 text-sm text-gray-400">
-                        <div className="animate-spin h-4 w-4 border-2 border-primary-500 rounded-full border-t-transparent mr-2" />
+                        <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent mr-2" />
                         加载目录中...
                       </div>
                     )}
@@ -770,7 +770,7 @@ export const BlogView: React.FC = () => {
                         onClick={() => scrollToHeading(heading.id)}
                         className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
                           activeHeading === heading.id
-                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold'
+                            ? 'bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
                         }`}
                         style={{ 
@@ -792,7 +792,7 @@ export const BlogView: React.FC = () => {
                     ))
                   ) : (
                     <div className="flex items-center justify-center py-8 text-sm text-gray-400">
-                      <div className="animate-spin h-4 w-4 border-2 border-primary-500 rounded-full border-t-transparent mr-2" />
+                      <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent mr-2" />
                       加载目录中...
                     </div>
                   )}
@@ -808,7 +808,7 @@ export const BlogView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="mb-16 text-center md:text-left space-y-6">
-        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 text-xs font-semibold tracking-[0.3em] uppercase">
+        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-xs font-semibold tracking-[0.3em] uppercase">
           Blog
         </div>
         <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -840,7 +840,7 @@ export const BlogView: React.FC = () => {
           return (
             <article
               key={post.id}
-              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-cyber-accent/15 transition-all"
+              className="group w-full bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md dark:shadow-lg hover:shadow-xl hover:shadow-gray-500/15 transition-all"
               style={{
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 willChange: 'transform, box-shadow'
@@ -855,9 +855,9 @@ export const BlogView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate(`/blog/${post.id}`)}
-                className="w-full text-left flex flex-col md:flex-row gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                className="w-full text-left flex flex-col md:flex-row gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
               >
-                <div className="relative w-full md:w-72 aspect-[16/9] md:aspect-[4/3] bg-gradient-to-br from-primary-500/20 to-accent-500/25 overflow-hidden flex-shrink-0 rounded-2xl md:rounded-3xl">
+                <div className="relative w-full md:w-72 aspect-[16/9] md:aspect-[4/3] bg-gradient-to-br from-gray-400/20 to-gray-500/25 overflow-hidden flex-shrink-0 rounded-2xl md:rounded-3xl">
                   {coverImage ? (
                     <div
                       className="absolute inset-0 group-hover:scale-105 transition-transform duration-500 ease-out"
@@ -910,7 +910,7 @@ export const BlogView: React.FC = () => {
                   </div>
 
                   <h3
-                    className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-500"
+                    className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-gray-700 dark:group-hover:text-gray-300"
                     style={{
                       transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       willChange: 'color'
@@ -929,7 +929,7 @@ export const BlogView: React.FC = () => {
                       </span>
                     ))}
                     <span
-                      className="ml-auto text-primary-600 dark:text-primary-400 font-semibold group-hover:translate-x-1 inline-flex items-center gap-1"
+                      className="ml-auto text-gray-600 dark:text-gray-400 font-semibold group-hover:translate-x-1 inline-flex items-center gap-1"
                       style={{
                         transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         willChange: 'transform'
@@ -966,7 +966,7 @@ export const BlogView: React.FC = () => {
                 onClick={() => handleGoPage(pageNum)}
                 className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                    ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                 }`}
                 disabled={loading}
