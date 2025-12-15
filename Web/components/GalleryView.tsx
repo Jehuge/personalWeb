@@ -439,7 +439,7 @@ export const GalleryView: React.FC = () => {
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
         <div>
-           <h2 className="text-4xl md:text-5xl font-display font-bold text-gray-900 dark:text-white mb-2 tracking-tight">光影瞬间</h2>
+           <h2 className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-500 mb-2 tracking-tight">光影瞬间</h2>
            <p className="text-gray-500 dark:text-gray-400 text-lg">用镜头捕捉世界的切片</p>
         </div>
         

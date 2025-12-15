@@ -808,10 +808,10 @@ export const BlogView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="mb-16 text-center md:text-left space-y-6">
-        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-xs font-semibold tracking-[0.3em] uppercase">
+        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-blue-100/50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-semibold tracking-[0.3em] uppercase">
           Blog
         </div>
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
+        <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400 tracking-tight">
           思维碎片
         </h2>
         <p className="text-gray-600 dark:text-gray-400 max-w-3xl">

@@ -440,31 +440,31 @@ export const HomeView: React.FC = () => {
           {/* 统计数据 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 max-w-6xl mx-auto mb-10">
             <div ref={blogCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-400 mb-2">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 mb-2">
                 {blogCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">博客</div>
             </div>
             <div ref={photoCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-500 to-gray-600 mb-2">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 mb-2">
                 {photoCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">摄影作品</div>
             </div>
             <div ref={aiImageCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-500 mb-2">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 mb-2">
                 {aiImageCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">AI 图库</div>
             </div>
             <div ref={aiDemoCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-500 to-gray-400 mb-2">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500 mb-2">
                 {aiDemoCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">AI Demo</div>
             </div>
             <div ref={aiProjectCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-500 mb-2">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-green-500 mb-2">
                 {aiProjectCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">个人项目</div>
@@ -474,31 +474,31 @@ export const HomeView: React.FC = () => {
           <div className="flex flex-wrap justify-center gap-3 md:gap-4">
             <button
               onClick={() => navigate('/blog')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-500/50 dark:hover:border-gray-400/50 hover:text-gray-900 dark:hover:text-gray-200 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-blue-300 dark:border-blue-500/30 bg-white dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:border-blue-500/50 dark:hover:border-blue-400/50 hover:text-blue-600 dark:hover:text-blue-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
             >
               探索博客
             </button>
             <button
               onClick={() => navigate('/gallery')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-500/50 dark:hover:border-gray-400/50 hover:text-gray-900 dark:hover:text-gray-200 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-teal-300 dark:border-teal-500/30 bg-white dark:bg-white/5 hover:bg-teal-50 dark:hover:bg-teal-500/10 hover:border-teal-500/50 dark:hover:border-teal-400/50 hover:text-teal-600 dark:hover:text-teal-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
             >
               浏览摄影
             </button>
             <button
               onClick={() => navigate('/ai-gallery')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-500/50 dark:hover:border-gray-400/50 hover:text-gray-900 dark:hover:text-gray-200 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-orange-300 dark:border-orange-500/30 bg-white dark:bg-white/5 hover:bg-orange-50 dark:hover:bg-orange-500/10 hover:border-orange-500/50 dark:hover:border-orange-400/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
             >
               AI 图库
             </button>
             <button
               onClick={() => navigate('/ai-demo')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-500/50 dark:hover:border-gray-400/50 hover:text-gray-900 dark:hover:text-gray-200 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-cyan-300 dark:border-cyan-500/30 bg-white dark:bg-white/5 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 hover:border-cyan-500/50 dark:hover:border-cyan-400/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
             >
               AI Demo
             </button>
             <button
               onClick={() => navigate('/ai-project')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-500/50 dark:hover:border-gray-400/50 hover:text-gray-900 dark:hover:text-gray-200 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-emerald-300 dark:border-emerald-500/30 bg-white dark:bg-white/5 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-500/50 dark:hover:border-emerald-400/50 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
             >
               个人项目
             </button>
@@ -521,15 +521,15 @@ export const HomeView: React.FC = () => {
           {featuredBlogs.length > 0 && (
             <div className="mb-12 md:mb-16">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gray-200/50 dark:bg-gray-700/50 rounded-lg">
-                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-2 bg-blue-100/50 dark:bg-blue-500/20 rounded-lg">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 dark:text-white">博客</h2>
                 <button
                   onClick={() => navigate('/blog')}
-                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   查看更多 →
                 </button>
@@ -538,7 +538,7 @@ export const HomeView: React.FC = () => {
                 {featuredBlogs.map((post) => (
                   <article 
                     key={post.id} 
-                    className="group bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden hover:border-gray-500/50 dark:hover:border-gray-400/50 transition-all cursor-pointer"
+                    className="group bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-400/50 transition-all cursor-pointer"
                     onClick={() => navigate(`/blog/${post.id}`)}
                   >
                     <div className="p-5">
@@ -549,12 +549,12 @@ export const HomeView: React.FC = () => {
                           </span>
                         ))}
                         {post.category && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100/50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300">
                             {post.category.name}
                           </span>
                         )}
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors line-clamp-2">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
                         {post.title}
                     </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
@@ -576,8 +576,8 @@ export const HomeView: React.FC = () => {
       {featuredPhotos.length > 0 && (
             <div className="mb-12 md:mb-16">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gray-200/50 dark:bg-gray-700/50 rounded-lg">
-                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-2 bg-teal-100/50 dark:bg-teal-500/20 rounded-lg">
+                  <svg className="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -585,7 +585,7 @@ export const HomeView: React.FC = () => {
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 dark:text-white">摄影作品</h2>
                 <button
                   onClick={() => navigate('/gallery')}
-                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                 >
                   查看更多 →
                 </button>
@@ -594,7 +594,7 @@ export const HomeView: React.FC = () => {
               {featuredPhotos.map((photo) => (
                 <div 
                   key={photo.id} 
-                    className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-gray-500/50 dark:hover:border-gray-400/50 transition-all"
+                    className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-teal-500/50 dark:hover:border-teal-400/50 transition-all"
                     onClick={() => {
                       // 如果照片信息完整，直接显示；否则获取详情
                       if (photo.image_url && photo.title !== undefined) {
@@ -639,15 +639,15 @@ export const HomeView: React.FC = () => {
           {featuredAiImages.length > 0 && (
             <div className="mb-12 md:mb-16">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-purple-500/10 dark:bg-purple-500/10 rounded-lg">
-                  <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-2 bg-orange-100/50 dark:bg-orange-500/20 rounded-lg">
+                  <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 dark:text-white">AI 图库</h2>
                 <button
                   onClick={() => navigate('/ai-gallery')}
-                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-purple-500 transition-colors"
+                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
                 >
                   查看更多 →
                 </button>
@@ -656,7 +656,7 @@ export const HomeView: React.FC = () => {
                 {featuredAiImages.map((image) => (
                   <div 
                     key={image.id} 
-                    className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-all"
+                    className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-orange-500/50 dark:hover:border-orange-400/50 transition-all"
                     onClick={() => {
                       // 如果图片信息完整，直接显示；否则获取详情
                       if (image.image_url && image.title !== undefined) {
@@ -701,15 +701,15 @@ export const HomeView: React.FC = () => {
           {featuredAiDemos.length > 0 && (
             <div className="mb-12 md:mb-16">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-500/10 dark:bg-blue-500/10 rounded-lg">
-                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-2 bg-cyan-100/50 dark:bg-cyan-500/20 rounded-lg">
+                  <svg className="w-5 h-5 text-cyan-600 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                   </svg>
                 </div>
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 dark:text-white">AI Demo</h2>
                 <button
                   onClick={() => navigate('/ai-demo')}
-                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors"
+                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                 >
                   查看更多 →
                 </button>
@@ -720,7 +720,7 @@ export const HomeView: React.FC = () => {
                   return (
                     <div 
                       key={demo.id} 
-                      className="group relative bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all cursor-pointer"
+                      className="group relative bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden hover:border-cyan-500/50 dark:hover:border-cyan-400/50 transition-all cursor-pointer"
                       onClick={() => window.open(demoUrl, '_blank')}
                     >
                       <div className="aspect-video overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-800 dark:to-slate-900">
@@ -742,7 +742,7 @@ export const HomeView: React.FC = () => {
                         </div>
                       </div>
                       <div className="p-4">
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-1">
                           {demo.title}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
@@ -767,15 +767,15 @@ export const HomeView: React.FC = () => {
           {featuredAiProjects.length > 0 && (
             <div className="mb-12 md:mb-16">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gray-200/50 dark:bg-gray-700/50 rounded-lg">
-                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-2 bg-emerald-100/50 dark:bg-emerald-500/20 rounded-lg">
+                  <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                 </div>
                 <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 dark:text-white">个人项目</h2>
                 <button
                   onClick={() => navigate('/ai-project')}
-                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                 >
                   查看更多 →
                 </button>
@@ -784,7 +784,7 @@ export const HomeView: React.FC = () => {
                 {featuredAiProjects.map((project) => (
                   <div 
                     key={project.id} 
-                    className="group relative bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden hover:border-gray-500/50 dark:hover:border-gray-400/50 transition-all cursor-pointer"
+                    className="group relative bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-400/50 transition-all cursor-pointer"
                     onClick={() => navigate(`/ai-project?projectId=${project.id}`)}
                   >
                     <div className="aspect-video overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-800 dark:to-slate-900">
@@ -803,7 +803,7 @@ export const HomeView: React.FC = () => {
                       )}
                     </div>
                     <div className="p-4">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors line-clamp-1">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1">
                         {project.title}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
