@@ -298,8 +298,8 @@ export const HomeView: React.FC = () => {
 
         // 随机挑选首页展示内容：每个板块显示2-3个
         setFeaturedBlogs(pickRandomItems(allBlogs, 2));
-        setFeaturedPhotos(pickRandomItems(allPhotos, 3));
-        setFeaturedAiImages(pickRandomItems(allAiImages, 3));
+        setFeaturedPhotos(pickRandomItems(allPhotos, 6));
+        setFeaturedAiImages(pickRandomItems(allAiImages, 6));
         setFeaturedAiDemos(pickRandomItems(allAiDemos, 2));
         setFeaturedAiProjects(pickRandomItems(allAiProjects, 2));
         setStats(data.stats || { 
