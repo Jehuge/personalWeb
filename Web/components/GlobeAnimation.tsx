@@ -153,7 +153,7 @@ export const GlobeAnimation: React.FC<GlobeAnimationProps> = ({
     const endProgress = startProgress === 0 ? 100 : 0;
     const duration = 2000;
     const startTime = performance.now();
-    const RENDER_THROTTLE_MS = 16; // 约60fps，但可以调整以降低功耗
+    const RENDER_THROTTLE_MS = 12; // 提高帧率响应
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -225,10 +225,10 @@ export const GlobeAnimation: React.FC<GlobeAnimationProps> = ({
   useEffect(() => {
     if (!isRotating || isDragging || isAnimating || progress[0] > 50) return;
 
-    // 降低旋转更新频率，减少功耗
+    // 提高旋转更新频率，提升流畅度
     const interval = setInterval(() => {
       setRotation((prev) => [(prev[0] + 0.5) % 360, prev[1]]);
-    }, 50); // 从30ms增加到50ms，降低更新频率
+    }, 30); // 更接近 ~33fps
 
     return () => clearInterval(interval);
   }, [isRotating, isDragging, isAnimating, progress]);
@@ -238,11 +238,11 @@ export const GlobeAnimation: React.FC<GlobeAnimationProps> = ({
       return;
     }
 
-    // 降低地图平移更新频率
+    // 提高地图平移更新频率，提升流畅度
     const interval = setInterval(() => {
       setMapPanOffset((prev) => (prev + 0.3) % 360);
       setRotation((prev) => [(prev[0] + 0.3) % 360, prev[1]]);
-    }, 50); // 从30ms增加到50ms，降低更新频率
+    }, 30); // 更接近 ~33fps
 
     return () => clearInterval(interval);
   }, [isLooping, progress, isDragging, isAnimating]);

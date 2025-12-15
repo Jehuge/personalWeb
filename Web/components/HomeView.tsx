@@ -415,7 +415,7 @@ export const HomeView: React.FC = () => {
     <div className="min-h-screen font-sans selection:bg-gray-500/30 selection:text-white overflow-x-hidden bg-slate-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100">
       
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 md:pt-28">
         {/* 地球动画背景 - 更大更长，位置偏下 */}
         <div className="absolute inset-0 z-0 opacity-60 dark:opacity-40 flex items-center justify-center">
           <div 
