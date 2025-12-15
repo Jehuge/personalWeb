@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { AIImage } from '../types';
 import { fetchAIImages, fetchAIImage } from '../services/dataService';
 import Loader from './Loader';
+import { ZoomableImage } from './ZoomableImage';
+import PuzzleCaptcha from './PuzzleCaptcha';
 
 export const AIImageGalleryView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,7 +14,34 @@ export const AIImageGalleryView: React.FC = () => {
   const [imagesPage, setImagesPage] = useState(0);
   const [imagesTotalCount, setImagesTotalCount] = useState(0);
   const [selectedImage, setSelectedImage] = useState<AIImage | null>(null);
-  const [showOriginalImage, setShowOriginalImage] = useState(false);
+  const [showDownloadVerification, setShowDownloadVerification] = useState(false);
+  const [pendingDownload, setPendingDownload] = useState<{ url: string; filename: string } | null>(null);
+
+  // 下载图片函数
+  const downloadImage = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 处理下载请求（先显示验证）
+  const handleDownloadRequest = (url: string, filename: string) => {
+    setPendingDownload({ url, filename });
+    setShowDownloadVerification(true);
+  };
+
+  // 验证通过后执行下载
+  const handleDownloadAfterVerify = () => {
+    if (pendingDownload) {
+      downloadImage(pendingDownload.url, pendingDownload.filename);
+      setPendingDownload(null);
+    }
+    setShowDownloadVerification(false);
+  };
   const [fwAccessCode, setFwAccessCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
   const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
@@ -160,7 +189,6 @@ export const AIImageGalleryView: React.FC = () => {
           // 只有当当前选中的图片不同时才更新，避免重复设置导致闪烁
           if (selectedImage?.id !== imageId) {
             setSelectedImage(image);
-            setShowOriginalImage(false); // 重置为显示缩略图
           }
           return;
         }
@@ -174,12 +202,10 @@ export const AIImageGalleryView: React.FC = () => {
           fetchAIImage(imageId)
             .then(img => {
               setSelectedImage(img);
-              setShowOriginalImage(false); // 重置为显示缩略图
             })
             .catch(err => {
               console.error('Failed to fetch image:', err);
               setSelectedImage(null);
-              setShowOriginalImage(false);
             });
         }
       }
@@ -190,6 +216,27 @@ export const AIImageGalleryView: React.FC = () => {
       }
     }
   }, [searchParams, images, imagesLoading]);
+
+  // 当弹出框打开时禁用背景滚动
+  useEffect(() => {
+    if (selectedImage || showDownloadVerification) {
+      // 保存当前滚动位置
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // 恢复滚动
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [selectedImage, showDownloadVerification]);
 
   const handleGoPage = (pageNumber: number) => {
     const totalPages = Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE));
@@ -207,7 +254,6 @@ export const AIImageGalleryView: React.FC = () => {
   // 关闭模态框并清除 URL 参数
   const handleCloseModal = () => {
     setSelectedImage(null);
-    setShowOriginalImage(false);
     const params = new URLSearchParams(searchParams);
     params.delete('imageId');
     setSearchParams(params);
@@ -387,30 +433,27 @@ export const AIImageGalleryView: React.FC = () => {
                 </svg>
               </button>
               
-              <div className="flex-1 bg-gray-100 dark:bg-black flex items-center justify-center relative overflow-hidden">
-                <img
-                  src={showOriginalImage ? selectedImage.image_url : (selectedImage.thumbnail_url || selectedImage.image_url)}
-                  alt={selectedImage.title || 'AI Image'}
-                  className="max-w-full max-h-[80vh] md:max-h-full object-contain"
-                />
-                {!showOriginalImage && (
-                  <button
-                    type="button"
-                    onClick={() => setShowOriginalImage(true)}
-                    className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
-                  >
-                    查看原图
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 5h6m0 0v6m0-6L10 14" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19l6 0 0-6" />
-                    </svg>
-                  </button>
-                )}
-              </div>
+              <ZoomableImage
+                src={selectedImage.thumbnail_url || selectedImage.image_url}
+                alt={selectedImage.title || 'AI Image'}
+              />
               <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pr-8">{selectedImage.title || '无标题'}</h3>
 
                 <div className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const filename = `${selectedImage.title || 'ai-image'}-${selectedImage.id}.jpg`;
+                      handleDownloadRequest(selectedImage.image_url, filename);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-cyber-accent hover:bg-cyber-accent/90 text-white transition-all shadow-md hover:shadow-lg"
+                  >
+                    下载原图
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">浏览次数</label>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.view_count || 0} 次</p>
@@ -454,6 +497,19 @@ export const AIImageGalleryView: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* 下载验证 */}
+        {showDownloadVerification && (
+          <PuzzleCaptcha
+            title="下载验证"
+            description="请拖动滑块完成拼图验证后下载原图"
+            onSuccess={handleDownloadAfterVerify}
+            onClose={() => {
+              setShowDownloadVerification(false);
+              setPendingDownload(null);
+            }}
+          />
         )}
       </section>
     </div>

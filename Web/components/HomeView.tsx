@@ -5,6 +5,8 @@ import { fetchHomeOverview, fetchAIImage, fetchPhoto } from '../services/dataSer
 import { LazyImage } from './LazyImage';
 import { useTheme } from './ThemeContext';
 import Loader from './Loader';
+import { ZoomableImage } from './ZoomableImage';
+import PuzzleCaptcha from './PuzzleCaptcha';
 
 // 摄影图片 EXIF 数据处理辅助函数
 type ParsedExifData = {
@@ -248,10 +250,42 @@ export const HomeView: React.FC = () => {
   const [featuredAiDemos, setFeaturedAiDemos] = useState<AIDemo[]>([]);
   const [featuredAiProjects, setFeaturedAiProjects] = useState<AIProject[]>([]);
   const [selectedAiImage, setSelectedAiImage] = useState<AIImage | null>(null);
-  const [showOriginalAiImage, setShowOriginalAiImage] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWork | null>(null);
-  const [showOriginalPhoto, setShowOriginalPhoto] = useState(false);
   const [photoExifData, setPhotoExifData] = useState<ParsedExifData | null>(null);
+  const [showAiImageDownloadVerification, setShowAiImageDownloadVerification] = useState(false);
+  const [showPhotoDownloadVerification, setShowPhotoDownloadVerification] = useState(false);
+  const [pendingDownload, setPendingDownload] = useState<{ url: string; filename: string } | null>(null);
+
+  // 下载图片函数
+  const downloadImage = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 处理下载请求（先显示验证）
+  const handleDownloadRequest = (url: string, filename: string, type: 'ai' | 'photo') => {
+    setPendingDownload({ url, filename });
+    if (type === 'ai') {
+      setShowAiImageDownloadVerification(true);
+    } else {
+      setShowPhotoDownloadVerification(true);
+    }
+  };
+
+  // 验证通过后执行下载
+  const handleDownloadAfterVerify = () => {
+    if (pendingDownload) {
+      downloadImage(pendingDownload.url, pendingDownload.filename);
+      setPendingDownload(null);
+    }
+    setShowAiImageDownloadVerification(false);
+    setShowPhotoDownloadVerification(false);
+  };
   const [stats, setStats] = useState({ 
     blog_count: 0, 
     photo_count: 0, 
@@ -341,6 +375,27 @@ export const HomeView: React.FC = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 当弹出框打开时禁用背景滚动
+  useEffect(() => {
+    if (selectedAiImage || selectedPhoto || showAiImageDownloadVerification || showPhotoDownloadVerification) {
+      // 保存当前滚动位置
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // 恢复滚动
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [selectedAiImage, selectedPhoto, showAiImageDownloadVerification, showPhotoDownloadVerification]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -544,13 +599,11 @@ export const HomeView: React.FC = () => {
                       // 如果照片信息完整，直接显示；否则获取详情
                       if (photo.image_url && photo.title !== undefined) {
                         setSelectedPhoto(photo);
-                        setShowOriginalPhoto(false); // 重置为显示缩略图
                         setPhotoExifData(parsePhotoExif(photo));
                       } else {
                         fetchPhoto(photo.id)
                           .then(p => {
                             setSelectedPhoto(p);
-                            setShowOriginalPhoto(false); // 重置为显示缩略图
                             setPhotoExifData(parsePhotoExif(p));
                           })
                           .catch(err => console.error('Failed to fetch photo details:', err));
@@ -608,12 +661,10 @@ export const HomeView: React.FC = () => {
                       // 如果图片信息完整，直接显示；否则获取详情
                       if (image.image_url && image.title !== undefined) {
                         setSelectedAiImage(image);
-                        setShowOriginalAiImage(false); // 重置为显示缩略图
                       } else {
                         fetchAIImage(image.id)
                           .then(img => {
                             setSelectedAiImage(img);
-                            setShowOriginalAiImage(false); // 重置为显示缩略图
                           })
                           .catch(err => console.error('Failed to fetch image:', err));
                       }
@@ -781,7 +832,6 @@ export const HomeView: React.FC = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
           onClick={() => {
             setSelectedAiImage(null);
-            setShowOriginalAiImage(false);
           }}
         >
           <div
@@ -792,7 +842,6 @@ export const HomeView: React.FC = () => {
             <button
               onClick={() => {
                 setSelectedAiImage(null);
-                setShowOriginalAiImage(false);
               }}
               className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-2 rounded-full shadow-lg"
               aria-label="关闭"
@@ -802,30 +851,27 @@ export const HomeView: React.FC = () => {
               </svg>
             </button>
             
-            <div className="flex-1 bg-gray-100 dark:bg-black flex items-center justify-center relative overflow-hidden">
-              <img
-                src={showOriginalAiImage ? selectedAiImage.image_url : (selectedAiImage.thumbnail_url || selectedAiImage.image_url)}
-                alt={selectedAiImage.title || 'AI Image'}
-                className="max-w-full max-h-[80vh] md:max-h-full object-contain"
-              />
-              {!showOriginalAiImage && (
-                <button
-                  type="button"
-                  onClick={() => setShowOriginalAiImage(true)}
-                  className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
-                >
-                  查看原图
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 5h6m0 0v6m0-6L10 14" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19l6 0 0-6" />
-                  </svg>
-                </button>
-              )}
-            </div>
+            <ZoomableImage
+              src={selectedAiImage.thumbnail_url || selectedAiImage.image_url}
+              alt={selectedAiImage.title || 'AI Image'}
+            />
             <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pr-8">{selectedAiImage.title || '无标题'}</h3>
 
               <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filename = `${selectedAiImage.title || 'ai-image'}-${selectedAiImage.id}.jpg`;
+                    handleDownloadRequest(selectedAiImage.image_url, filename, 'ai');
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-cyber-accent hover:bg-cyber-accent/90 text-white transition-all shadow-md hover:shadow-lg"
+                >
+                  下载原图
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">浏览次数</label>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{selectedAiImage.view_count || 0} 次</p>
@@ -871,13 +917,13 @@ export const HomeView: React.FC = () => {
         </div>
       )}
 
+
       {/* 摄影图片弹出框 */}
       {selectedPhoto && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
           onClick={() => {
             setSelectedPhoto(null);
-            setShowOriginalPhoto(false);
             setPhotoExifData(null);
           }}
         >
@@ -889,7 +935,6 @@ export const HomeView: React.FC = () => {
             <button
               onClick={() => {
                 setSelectedPhoto(null);
-                setShowOriginalPhoto(false);
                 setPhotoExifData(null);
               }}
               className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-2 rounded-full shadow-lg"
@@ -900,26 +945,10 @@ export const HomeView: React.FC = () => {
               </svg>
             </button>
             
-            <div className="flex-1 bg-gray-100 dark:bg-black flex items-center justify-center relative overflow-hidden">
-              <img
-                src={showOriginalPhoto ? selectedPhoto.image_url : (selectedPhoto.thumbnail_url || selectedPhoto.image_url)}
-                alt={selectedPhoto.title}
-                className="max-w-full max-h-[80vh] md:max-h-full object-contain"
-              />
-              {!showOriginalPhoto && (
-                <button
-                  type="button"
-                  onClick={() => setShowOriginalPhoto(true)}
-                  className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
-                >
-                  查看原图
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 5h6m0 0v6m0-6L10 14" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19l6 0 0-6" />
-                  </svg>
-                </button>
-              )}
-            </div>
+            <ZoomableImage
+              src={selectedPhoto.thumbnail_url || selectedPhoto.image_url}
+              alt={selectedPhoto.title}
+            />
             <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 flex-wrap">
@@ -943,6 +972,20 @@ export const HomeView: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filename = `${selectedPhoto.title || 'photo'}-${selectedPhoto.id}.jpg`;
+                    handleDownloadRequest(selectedPhoto.image_url, filename, 'photo');
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-cyber-accent hover:bg-cyber-accent/90 text-white transition-all shadow-md hover:shadow-lg"
+                >
+                  下载原图
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
 
                 <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
                   <div>
@@ -989,6 +1032,32 @@ export const HomeView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI 图片下载验证 */}
+      {showAiImageDownloadVerification && (
+        <PuzzleCaptcha
+          title="下载验证"
+          description="请拖动滑块完成拼图验证后下载原图"
+          onSuccess={handleDownloadAfterVerify}
+          onClose={() => {
+            setShowAiImageDownloadVerification(false);
+            setPendingDownload(null);
+          }}
+        />
+      )}
+
+      {/* 摄影图片下载验证 */}
+      {showPhotoDownloadVerification && (
+        <PuzzleCaptcha
+          title="下载验证"
+          description="请拖动滑块完成拼图验证后下载原图"
+          onSuccess={handleDownloadAfterVerify}
+          onClose={() => {
+            setShowPhotoDownloadVerification(false);
+            setPendingDownload(null);
+          }}
+        />
       )}
 
     </div>

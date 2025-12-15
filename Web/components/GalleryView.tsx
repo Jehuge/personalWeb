@@ -5,6 +5,8 @@ import { fetchPhotos, fetchPhoto, fetchPhotoCategories } from '../services/dataS
 import { PhotoCategory } from '../types';
 import Loader from './Loader';
 import CategoryButton from './CategoryButton';
+import { ZoomableImage } from './ZoomableImage';
+import PuzzleCaptcha from './PuzzleCaptcha';
 
 type ParsedExifData = {
   make: string;
@@ -86,13 +88,35 @@ export const GalleryView: React.FC = () => {
   const [filter, setFilter] = useState<string>('全部');
   const [categories, setCategories] = useState<PhotoCategory[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWork | null>(null);
-  const [showOriginalPhoto, setShowOriginalPhoto] = useState(false);
   const [exifData, setExifData] = useState<ParsedExifData | null>(null);
-  const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
+  const [showDownloadVerification, setShowDownloadVerification] = useState(false);
+  const [pendingDownload, setPendingDownload] = useState<{ url: string; filename: string } | null>(null);
+
+  // 下载图片函数
+  const downloadImage = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 处理下载请求（先显示验证）
+  const handleDownloadRequest = (url: string, filename: string) => {
+    setPendingDownload({ url, filename });
+    setShowDownloadVerification(true);
+  };
+
+  // 验证通过后执行下载
+  const handleDownloadAfterVerify = () => {
+    if (pendingDownload) {
+      downloadImage(pendingDownload.url, pendingDownload.filename);
+      setPendingDownload(null);
+    }
+    setShowDownloadVerification(false);
+  };
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -161,7 +185,6 @@ export const GalleryView: React.FC = () => {
           // 只有当当前选中的照片不同时才更新，避免重复设置导致闪烁
           if (selectedPhoto?.id !== photoId) {
             setSelectedPhoto(photo);
-            setShowOriginalPhoto(false); // 重置为显示缩略图
           }
           return;
         }
@@ -175,12 +198,10 @@ export const GalleryView: React.FC = () => {
           fetchPhoto(photoId)
             .then(singlePhoto => {
               setSelectedPhoto(singlePhoto);
-              setShowOriginalPhoto(false); // 重置为显示缩略图
             })
             .catch(error => {
               console.error('Failed to fetch photo:', error);
               setSelectedPhoto(null);
-              setShowOriginalPhoto(false);
             });
         }
       }
@@ -192,13 +213,30 @@ export const GalleryView: React.FC = () => {
     }
   }, [searchParams, photos, loading]);
 
+  // 当弹出框打开时禁用背景滚动
+  useEffect(() => {
+    if (selectedPhoto || showDownloadVerification) {
+      // 保存当前滚动位置
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // 恢复滚动
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [selectedPhoto, showDownloadVerification]);
+
   useEffect(() => {
     if (!selectedPhoto) {
-      setIsFullPreviewOpen(false);
       setExifData(null);
-      setZoom(1);
-      setOffset({ x: 0, y: 0 });
-      setIsDragging(false);
       return;
     }
 
@@ -345,73 +383,9 @@ export const GalleryView: React.FC = () => {
   const categoryOptions = useMemo(() => {
     return ['全部', ...categories.map(cat => cat.name)];
   }, [categories]);
-  
+
   // 直接使用加载的照片，因为已经在后端筛选过了
   const displayPhotos = photos;
-
-  const handleZoomChange = (nextZoom: number) => {
-    const clamped = Math.max(1, Math.min(4, nextZoom));
-    setZoom(clamped);
-    if (clamped === 1) {
-      setOffset({ x: 0, y: 0 });
-    }
-  };
-
-  const handleWheelZoom = (event: React.WheelEvent<HTMLDivElement>) => {
-    if (!isFullPreviewOpen) {
-      return;
-    }
-    event.preventDefault();
-    const delta = event.deltaY > 0 ? -0.15 : 0.15;
-    setZoom(prev => {
-      const next = Math.max(1, Math.min(4, prev + delta));
-      if (next === 1) {
-        setOffset({ x: 0, y: 0 });
-      }
-      return next;
-    });
-  };
-
-  const mouseMoveRef = useRef<number | null>(null);
-
-  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (zoom === 1) {
-      return;
-    }
-    setIsDragging(true);
-    dragStartRef.current = {
-      x: event.clientX - offset.x,
-      y: event.clientY - offset.y,
-    };
-  };
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging) {
-      return;
-    }
-    // 使用 requestAnimationFrame 节流，减少状态更新频率
-    if (mouseMoveRef.current === null) {
-      mouseMoveRef.current = requestAnimationFrame(() => {
-        setOffset({
-          x: event.clientX - dragStartRef.current.x,
-          y: event.clientY - dragStartRef.current.y,
-        });
-        mouseMoveRef.current = null;
-      });
-    }
-  };
-
-  const stopDragging = () => {
-    if (!isDragging) {
-      return;
-    }
-    setIsDragging(false);
-    // 清理未完成的动画帧
-    if (mouseMoveRef.current !== null) {
-      cancelAnimationFrame(mouseMoveRef.current);
-      mouseMoveRef.current = null;
-    }
-  };
 
   // 3D 玻璃卡片悬停效果（摄影列表）- 仅桌面，使用 rAF 降低卡顿
   const tiltRafRef = useRef<number | null>(null);
@@ -439,31 +413,10 @@ export const GalleryView: React.FC = () => {
     card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.24), 0 0 14px rgba(255,255,255,0.12)';
   };
 
-  const handleDoubleClick = () => {
-    setZoom(prev => {
-      const next = prev >= 3 ? 1 : prev + 1;
-      if (next === 1) {
-        setOffset({ x: 0, y: 0 });
-      }
-      return next;
-    });
-  };
-
-  const closePreview = () => {
-    setIsFullPreviewOpen(false);
-    setZoom(1);
-    setOffset({ x: 0, y: 0 });
-    setIsDragging(false);
-  };
 
   // 关闭模态框并清除 URL 参数
   const handleCloseModal = () => {
     setSelectedPhoto(null);
-    setShowOriginalPhoto(false);
-    setIsFullPreviewOpen(false);
-    setZoom(1);
-    setOffset({ x: 0, y: 0 });
-    setIsDragging(false);
     const params = new URLSearchParams(searchParams);
     params.delete('photoId');
     setSearchParams(params);
@@ -533,7 +486,6 @@ export const GalleryView: React.FC = () => {
               onMouseLeave={handlePhotoCardLeave}
               onClick={() => {
                 setSelectedPhoto(photo);
-                setShowOriginalPhoto(false); // 重置为显示缩略图
                 // 更新 URL 参数，保持 URL 和状态同步
                 const params = new URLSearchParams(searchParams);
                 params.set('photoId', String(photo.id));
@@ -696,42 +648,10 @@ export const GalleryView: React.FC = () => {
               </svg>
             </button>
             
-            <div className="flex-1 bg-gray-100 dark:bg-black flex items-center justify-center relative overflow-hidden">
-              <img
-                src={showOriginalPhoto ? selectedPhoto.image_url : (selectedPhoto.thumbnail_url || selectedPhoto.image_url)}
-                alt={selectedPhoto.title}
-                className="max-w-full max-h-[80vh] md:max-h-full object-contain"
-              />
-              {!showOriginalPhoto && (
-                <button
-                  type="button"
-                  onClick={() => setShowOriginalPhoto(true)}
-                  className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
-                >
-                  查看原图
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 5h6m0 0v6m0-6L10 14" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19l6 0 0-6" />
-                  </svg>
-                </button>
-              )}
-              {showOriginalPhoto && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsFullPreviewOpen(true);
-                    setZoom(1);
-                    setOffset({ x: 0, y: 0 });
-                  }}
-                  className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm transition-opacity"
-                >
-                  全屏查看
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                  </svg>
-                </button>
-              )}
-            </div>
+            <ZoomableImage
+              src={selectedPhoto.thumbnail_url || selectedPhoto.image_url}
+              alt={selectedPhoto.title}
+            />
             <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 flex-wrap">
@@ -755,6 +675,20 @@ export const GalleryView: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filename = `${selectedPhoto.title || 'photo'}-${selectedPhoto.id}.jpg`;
+                    handleDownloadRequest(selectedPhoto.image_url, filename);
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-cyber-accent hover:bg-cyber-accent/90 text-white transition-all shadow-md hover:shadow-lg"
+                >
+                  下载原图
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
 
                 <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
                   <div>
@@ -803,67 +737,18 @@ export const GalleryView: React.FC = () => {
         </div>
       )}
 
-      {/* 原图全屏预览 */}
-      {isFullPreviewOpen && selectedPhoto && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center px-4"
-          onClick={closePreview}
-        >
-          <div
-            className="relative max-w-6xl w-full max-h-[92vh] bg-gray-950/80 rounded-3xl border border-white/10 overflow-hidden shadow-2xl select-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              aria-label="关闭预览"
-              onClick={closePreview}
-              className="absolute right-4 top-4 z-10 rounded-full bg-black/60 text-white hover:bg-black/80 w-10 h-10 flex items-center justify-center"
-            >
-              ✕
-            </button>
-            <div
-              className={`h-[78vh] bg-black overflow-hidden ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
-              onWheel={handleWheelZoom}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={stopDragging}
-              onMouseLeave={stopDragging}
-              onDoubleClick={handleDoubleClick}
-            >
-              <div className="w-full h-full flex items-center justify-center" style={{ touchAction: 'none' }}>
-                <img
-                  src={selectedPhoto.image_url}
-                  alt={selectedPhoto.title}
-                  draggable={false}
-                  style={{
-                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                    transition: isDragging ? 'none' : 'transform 0.15s ease-out',
-                  }}
-                  className="max-h-full max-w-full object-contain"
-                />
-              </div>
-            </div>
-            <div className="p-5 text-base text-white/85 flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="font-semibold">{selectedPhoto.title}</span>
-                <span className="text-white/70">{selectedPhoto.category?.name || '未分类'}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm md:text-base text-white/70">
-                <span>滚轮缩放 / 双击切换</span>
-                <span>拖拽移动</span>
-                {zoom > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleZoomChange(1)}
-                    className="px-3 py-1 rounded-full bg-white/10 text-white hover:bg-white/20"
-                  >
-                    重置
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+
+      {/* 下载验证 */}
+      {showDownloadVerification && (
+        <PuzzleCaptcha
+          title="下载验证"
+          description="请拖动滑块完成拼图验证后下载原图"
+          onSuccess={handleDownloadAfterVerify}
+          onClose={() => {
+            setShowDownloadVerification(false);
+            setPendingDownload(null);
+          }}
+        />
       )}
     </div>
   );
