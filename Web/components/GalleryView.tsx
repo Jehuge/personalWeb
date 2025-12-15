@@ -119,15 +119,21 @@ export const GalleryView: React.FC = () => {
   };
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const PAGE_SIZE = 15;
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
-  const photosLoadedRef = useRef(false);
   const hasScrolledToTopRef = useRef(false);
   const isInitialMountRef = useRef(true);
-  const lastLoadParamsRef = useRef<{ page: number; category: string } | null>(null);
   const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<number, number>>({});
+  const [columnImages, setColumnImages] = useState<PhotoWork[][]>([]);
+  const [columnCount, setColumnCount] = useState(() => {
+    if (typeof window === 'undefined') return 3;
+    if (window.innerWidth >= 1280) return 3;
+    if (window.innerWidth >= 768) return 2;
+    return 1;
+  });
+  const imageColumnMapRef = useRef<Record<number, number>>({});
 
   // 组件挂载时滚动到顶部（只执行一次）
   useEffect(() => {
@@ -135,6 +141,20 @@ export const GalleryView: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'instant' });
       hasScrolledToTopRef.current = true;
     }
+  }, []);
+
+  // 响应式列数，保持布局稳定
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const next =
+        width >= 1280 ? 3 :
+        width >= 768 ? 2 : 1;
+      setColumnCount((prev) => (prev === next ? prev : next));
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // 检测页面刷新：如果是首次加载且 URL 中有 photoId，清除它（只保留从其他页面导航过来的情况）
@@ -290,12 +310,18 @@ export const GalleryView: React.FC = () => {
       });
   }, []);
 
-  // 加载照片数据
-  const loadPhotos = async (page: number, categoryFilter?: string) => {
-    setLoading(true);
+  // 加载照片数据（支持追加），不分页跳转，类似 AI 图库的加载更多体验
+  const loadPhotos = async (page: number, categoryFilter?: string, append = false) => {
     setError(null);
-    const MIN_LOADING_MS = 900;
+    const MIN_LOADING_MS = 500;
     const start = performance.now();
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setLoading(true);
+      // 重置列映射，确保切换分类时布局从顶部开始
+      imageColumnMapRef.current = {};
+    }
 
     try {
       // 根据筛选条件确定 category_id
@@ -312,72 +338,90 @@ export const GalleryView: React.FC = () => {
         limit: PAGE_SIZE,
         category_id: categoryId
       });
-      setPhotos(response.data);
-      setTotalCount(response.total);
-      setHasMore((page + 1) * PAGE_SIZE < response.total);
+
+      setPhotos((prev) => {
+        if (!append || page === 0) return response.data;
+        const existingIds = new Set(prev.map((p) => p.id));
+        const merged = [...prev, ...response.data.filter((p) => !existingIds.has(p.id))];
+        return merged;
+      });
+      setHasMore((page + 1) * PAGE_SIZE < response.total && response.data.length > 0);
       setCurrentPage(page);
     } catch (err) {
       console.error('Failed to load photos', err);
       setError('作品加载失败，请稍后再试');
-      setPhotos([]);
-      setHasMore(false);
-      setTotalCount(0);
-      // 如果是初始加载失败，重置标志允许重试
-      if (page === 0) {
-        photosLoadedRef.current = false;
+      if (!append) {
+        setPhotos([]);
+        setHasMore(false);
       }
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
-      if (remaining > 0) {
-        setTimeout(() => setLoading(false), remaining);
-      } else {
+      const finish = () => {
         setLoading(false);
+        setIsLoadingMore(false);
+      };
+      if (remaining > 0) {
+        setTimeout(finish, remaining);
+      } else {
+        finish();
       }
     }
   };
 
-  // 监听 URL page 和 category 参数
+  // 同步 URL category 参数到筛选状态
   useEffect(() => {
-    const pageParam = parseInt(searchParams.get('page') || '1', 10);
-    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
     const categoryParam = searchParams.get('category') || '全部';
-    
-    // 更新 filter 状态
-    setFilter(categoryParam);
-    
-    // 如果分类列表还没加载完成且需要分类筛选，等待
-    if (categories.length === 0 && categoryParam !== '全部') {
-      return;
-    }
-    
-    // 避免重复加载：只有当页码或分类真正变化时才加载
-    const lastParams = lastLoadParamsRef.current;
-    if (lastParams && 
-        lastParams.page === nextPage - 1 && 
-        lastParams.category === categoryParam) {
-      return;
-    }
-    
-    photosLoadedRef.current = true;
-    lastLoadParamsRef.current = { page: nextPage - 1, category: categoryParam };
-    loadPhotos(nextPage - 1, categoryParam);
-  }, [searchParams, categories]);
+    setFilter((prev) => (prev === categoryParam ? prev : categoryParam));
+  }, [searchParams]);
 
-  // 处理分页
-  const handleGoPage = (pageNumber: number) => {
-    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-    const safePage = Math.min(Math.max(1, pageNumber), totalPages);
-    if (safePage - 1 === currentPage) return;
-    const params = new URLSearchParams(searchParams);
-    params.set('page', String(safePage));
-    // 保留分类参数
-    if (!params.has('category')) {
-      params.set('category', filter);
+  // 根据筛选加载列表（不分页，使用加载更多）
+  useEffect(() => {
+    if (filter !== '全部' && categories.length === 0) return;
+    loadPhotos(0, filter);
+  }, [filter, categories]);
+
+  // 将照片分配到固定列，加载更多时不重排已加载项目
+  useEffect(() => {
+    if (!photos.length) {
+      setColumnImages(Array.from({ length: columnCount }, () => []));
+      imageColumnMapRef.current = {};
+      return;
     }
-    setSearchParams(params);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+
+    const columns = Array.from({ length: columnCount }, () => [] as PhotoWork[]);
+    const heights = Array(columnCount).fill(0);
+    const estimateHeight = (photo: PhotoWork) => {
+      const ratio =
+        imageAspectRatios[photo.id] ||
+        (photo.width && photo.height ? photo.width / photo.height : undefined);
+      if (ratio && ratio > 0) {
+        return 1 / ratio; // 横图占比矮，竖图高
+      }
+      return 1;
+    };
+
+    for (const photo of photos) {
+      let targetColumn = imageColumnMapRef.current[photo.id];
+      if (targetColumn === undefined || targetColumn >= columnCount) {
+        let minHeight = heights[0];
+        targetColumn = 0;
+        for (let i = 1; i < columnCount; i++) {
+          if (heights[i] < minHeight) {
+            minHeight = heights[i];
+            targetColumn = i;
+          }
+        }
+        imageColumnMapRef.current[photo.id] = targetColumn;
+      }
+
+      const estimatedHeight = estimateHeight(photo);
+      heights[targetColumn] += estimatedHeight;
+      columns[targetColumn].push(photo);
+    }
+
+    setColumnImages(columns);
+  }, [photos, imageAspectRatios, columnCount]);
 
   // 构建分类按钮列表
   const categoryOptions = useMemo(() => {
@@ -422,7 +466,7 @@ export const GalleryView: React.FC = () => {
     setSearchParams(params);
   };
 
-  if (loading) {
+  if (loading && photos.length === 0) {
     return <Loader />;
   }
 
@@ -451,10 +495,9 @@ export const GalleryView: React.FC = () => {
               active={filter === cat}
               onClick={() => {
                 setFilter(cat);
-                // 更新URL参数，重置到第一页
+                // 更新URL参数
                 const params = new URLSearchParams(searchParams);
                 params.set('category', cat);
-                params.set('page', '1');
                 setSearchParams(params);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
@@ -463,161 +506,137 @@ export const GalleryView: React.FC = () => {
         </div>
       </div>
 
-      {/* 炫酷瀑布流布局 */}
-      <div className="columns-1 md:columns-2 lg:columns-2 xl:columns-3 gap-6 md:gap-8">
-        {displayPhotos.map((photo, index) => {
-          const thumbSrc = photo.thumbnail_url || photo.image_url;
-          const categoryLabel = photo.category?.name || '未分类';
-          const aspectRatio = photo.width && photo.height ? photo.width / photo.height : 4 / 3;
-          const shootDate = formatPhotoShootDate(photo);
-          
-          return (
-            <article 
-              key={photo.id} 
-              className="photo-card group relative break-inside-avoid mb-6 md:mb-8 rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
-              style={{ 
-                transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-                boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
-                background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-                border: '1px solid rgba(255,255,255,0.35)',
-                willChange: 'transform',
-              }}
-              onMouseMove={handlePhotoCardMove}
-              onMouseLeave={handlePhotoCardLeave}
-              onClick={() => {
-                setSelectedPhoto(photo);
-                // 更新 URL 参数，保持 URL 和状态同步
-                const params = new URLSearchParams(searchParams);
-                params.set('photoId', String(photo.id));
-                setSearchParams(params);
-              }}
-            >
-              {/* 图片容器 - 保持原始比例 */}
-              <div 
-                className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-xl md:rounded-2xl"
-                style={{
-                  aspectRatio: imageAspectRatios[photo.id] || aspectRatio || 4 / 3
-                }}
-              >
-                {(() => {
-                  const isLoaded = imageLoadedMap[photo.id];
-                  return (
-                    <>
-                      {!isLoaded && (
-                        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
-                      )}
-                      <img
-                        src={thumbSrc}
-                        alt={photo.title}
-                        className={`w-full h-full object-contain transition-opacity duration-300 ${
-                          isLoaded ? 'opacity-100' : 'opacity-0'
-                        }`}
-                        loading="lazy"
-                        decoding="async"
-                        onLoad={(e) => {
-                          const img = e.currentTarget;
-                          if (img.naturalWidth && img.naturalHeight) {
-                            const ratio = img.naturalWidth / img.naturalHeight;
-                            setImageAspectRatios((prev) => ({ ...prev, [photo.id]: ratio }));
-                          }
-                          setImageLoadedMap((prev) => ({ ...prev, [photo.id]: true }));
-                        }}
-                      />
-                    </>
-                  );
-                })()}
-                
-                {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
-                <div className="absolute inset-0 pointer-events-none flex">
-                  <div
-                    className="relative flex flex-col justify-between w-full h-full px-3 py-3 md:px-4 md:py-4 opacity-0 group-hover:opacity-100"
-                    style={{ transition: 'opacity 260ms ease-out' }}
+      {/* 炫酷瀑布流布局（固定列，追加不打乱已加载项） */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+        {columnImages.map((column, columnIndex) => (
+          <div key={columnIndex} className="flex flex-col space-y-8 md:space-y-10">
+            {column.map((photo) => {
+              const thumbSrc = photo.thumbnail_url || photo.image_url;
+              const categoryLabel = photo.category?.name || '未分类';
+              const aspectRatio = photo.width && photo.height ? photo.width / photo.height : 4 / 3;
+              const shootDate = formatPhotoShootDate(photo);
+              
+              return (
+                <article 
+                  key={photo.id} 
+                  className="photo-card group relative break-inside-avoid rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
+                  style={{ 
+                    transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+                    boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
+                    background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    willChange: 'transform',
+                  }}
+                  onMouseMove={handlePhotoCardMove}
+                  onMouseLeave={handlePhotoCardLeave}
+                  onClick={() => {
+                    setSelectedPhoto(photo);
+                    // 更新 URL 参数，保持 URL 和状态同步
+                    const params = new URLSearchParams(searchParams);
+                    params.set('photoId', String(photo.id));
+                    setSearchParams(params);
+                  }}
+                >
+                  {/* 图片容器 - 保持原始比例 */}
+                  <div 
+                    className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-xl md:rounded-2xl"
+                    style={{
+                      aspectRatio: imageAspectRatios[photo.id] || aspectRatio || 4 / 3
+                    }}
                   >
-                    {/* 顶部一行：标题 + 时间 */}
-                    <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                      {[photo.title, shootDate].map((text, idx) => (
-                        <span
-                          key={`top-${idx}`}
-                          className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
-                          style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
-                        >
-                          {text}
-                        </span>
-                      ))}
-                      <span
-                        className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)] flex items-center gap-1"
-                        style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                    {(() => {
+                      const isLoaded = imageLoadedMap[photo.id];
+                      return (
+                        <>
+                          {!isLoaded && (
+                            <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
+                          )}
+                          <img
+                            src={thumbSrc}
+                            alt={photo.title}
+                            className={`w-full h-full object-contain transition-opacity duration-300 ${
+                              isLoaded ? 'opacity-100' : 'opacity-0'
+                            }`}
+                            loading="lazy"
+                            decoding="async"
+                            onLoad={(e) => {
+                              const img = e.currentTarget;
+                              if (img.naturalWidth && img.naturalHeight) {
+                                const ratio = img.naturalWidth / img.naturalHeight;
+                                setImageAspectRatios((prev) => ({ ...prev, [photo.id]: ratio }));
+                              }
+                              setImageLoadedMap((prev) => ({ ...prev, [photo.id]: true }));
+                            }}
+                          />
+                        </>
+                      );
+                    })()}
+                    
+                    {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
+                    <div className="absolute inset-0 pointer-events-none flex">
+                      <div
+                        className="relative flex flex-col justify-between w-full h-full px-3 py-3 md:px-4 md:py-4 opacity-0 group-hover:opacity-100"
+                        style={{ transition: 'opacity 260ms ease-out' }}
                       >
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        {photo.view_count || 0}
-                      </span>
-                    </div>
+                        {/* 顶部一行：标题 + 时间 */}
+                        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                          {[photo.title, shootDate].map((text, idx) => (
+                            <span
+                              key={`top-${idx}`}
+                              className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
+                              style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                            >
+                              {text}
+                            </span>
+                          ))}
+                          <span
+                            className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)] flex items-center gap-1"
+                            style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            {photo.view_count || 0}
+                          </span>
+                        </div>
 
-                    {/* 底部一行：标签 + CTA */}
-                    <div className="flex items-center gap-2.5 md:gap-3 flex-wrap">
-                      <span
-                        className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 text-white border border-white/45 text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
-                        style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
-                      >
-                        {categoryLabel}
-                      </span>
-                      <span
-                        className="px-4.5 md:px-5 py-1.5 md:py-2 rounded-full bg-black/82 text-white text-xs md:text-sm font-semibold tracking-wide inline-flex items-center gap-2 border border-white/45 shadow-[0_8px_20px_rgba(0,0,0,0.32)]"
-                        style={{ boxShadow: '0 10px 20px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
-                      >
-                        前往 →
-                      </span>
+                        {/* 底部一行：标签 + CTA */}
+                        <div className="flex items-center gap-2.5 md:gap-3 flex-wrap">
+                          <span
+                            className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 text-white border border-white/45 text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
+                            style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                          >
+                            {categoryLabel}
+                          </span>
+                          <span
+                            className="px-4.5 md:px-5 py-1.5 md:py-2 rounded-full bg-black/82 text-white text-xs md:text-sm font-semibold tracking-wide inline-flex items-center gap-2 border border-white/45 shadow-[0_8px_20px_rgba(0,0,0,0.32)]"
+                            style={{ boxShadow: '0 10px 20px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                          >
+                            前往 →
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </article>
-          );
-        })}
+                </article>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
-      {/* 分页控件 */}
+      {/* 加载更多 */}
       {displayPhotos.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-2 py-8">
-          <button
-            onClick={() => handleGoPage(currentPage)}
-            disabled={currentPage === 0 || loading}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              currentPage === 0 || loading
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-            }`}
-          >
-            上一页
-          </button>
-          {Array.from({ length: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
-            const isActive = pageNum === currentPage + 1;
-            return (
-              <button
-                key={pageNum}
-                onClick={() => handleGoPage(pageNum)}
-                className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                }`}
-                disabled={loading}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-          <button
-            onClick={() => handleGoPage(currentPage + 2)}
-            disabled={!hasMore || loading}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              !hasMore || loading
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-            }`}
-          >
-            下一页
-          </button>
+        <div className="flex items-center justify-center py-8 text-sm text-gray-500 dark:text-gray-400">
+          {hasMore ? (
+            <button
+              onClick={() => loadPhotos(currentPage + 1, filter, true)}
+              disabled={isLoadingMore || loading}
+              className="px-5 py-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 shadow-sm hover:shadow transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isLoadingMore ? '加载中...' : '加载更多'}
+            </button>
+          ) : (
+            <span>已加载全部</span>
+          )}
         </div>
       )}
 

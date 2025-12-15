@@ -90,14 +90,14 @@ export const GlobeAnimation: React.FC<GlobeAnimationProps> = ({
           }
         } else {
           // 桌面端：作为背景，使用更大的尺寸，可以超出容器
-          // 宽度至少是容器的 1.2 倍，最大 1600
+        // 宽度至少是容器的 1.2 倍，最大 1600
           width = Math.max(containerWidth * 1.2, Math.min(containerWidth * 1.5, 1600));
           height = width / aspectRatio;
-          
-          // 如果高度不够，按高度计算
-          if (height < containerHeight * 1.1) {
-            height = containerHeight * 1.2;
-            width = height * aspectRatio;
+        
+        // 如果高度不够，按高度计算
+        if (height < containerHeight * 1.1) {
+          height = containerHeight * 1.2;
+          width = height * aspectRatio;
           }
         }
         

@@ -102,8 +102,15 @@ export interface PaginationParams {
   category_id?: number;
 }
 
+// 统一限制分页参数，避免客户端传入过大 limit/负 skip
+const clampPagination = (params: PaginationParams, maxLimit: number) => {
+  const safeLimit = Math.max(1, Math.min(params.limit ?? maxLimit, maxLimit));
+  const safeSkip = Math.max(0, params.skip ?? 0);
+  return { ...params, limit: safeLimit, skip: safeSkip };
+};
+
 export const fetchPosts = async (params: PaginationParams = {}): Promise<PaginatedResponse<BlogPost[]>> => {
-  const { skip = 0, limit = 12 } = params;
+  const { skip, limit } = clampPagination(params, 20);
   return requestWithTotal<BlogPost[]>(`/blogs?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
@@ -112,7 +119,7 @@ export const fetchBlog = async (blogId: number): Promise<BlogPost> => {
 };
 
 export const fetchPhotos = async (params: PaginationParams = {}): Promise<PaginatedResponse<PhotoWork[]>> => {
-  const { skip = 0, limit = 15, category_id } = params;
+  const { skip, limit, category_id } = clampPagination(params, 20);
   let url = `/photos?skip=${skip}&limit=${limit}`;
   if (category_id !== undefined) {
     url += `&category_id=${category_id}`;
@@ -129,17 +136,17 @@ export const fetchPhoto = async (photoId: number): Promise<PhotoWork> => {
 };
 
 export const fetchAIProjects = async (params: PaginationParams = {}): Promise<AIProject[]> => {
-  const { skip = 0, limit = 12 } = params;
+  const { skip, limit } = clampPagination(params, 20);
   return request<AIProject[]>(`/ai-projects?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
 export const fetchAIDemos = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIDemo[]>> => {
-  const { skip = 0, limit = 12 } = params;
+  const { skip, limit } = clampPagination(params, 20);
   return requestWithTotal<AIDemo[]>(`/ai-demos?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
 export const fetchAIImages = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIImage[]>> => {
-  const { skip = 0, limit = 15, fw_access_code } = params;
+  const { skip, limit, fw_access_code } = clampPagination(params, 20);
   const url = `/ai-images?published_only=true&skip=${skip}&limit=${limit}`;
   // 将访问码通过 Header 传递，而不是 URL 参数，更安全
   const headers: Record<string, string> = {};

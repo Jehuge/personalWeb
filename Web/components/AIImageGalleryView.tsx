@@ -46,9 +46,18 @@ export const AIImageGalleryView: React.FC = () => {
   const [inputCode, setInputCode] = useState<string>('');
   const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
   const [imageAspectMap, setImageAspectMap] = useState<Record<number, number>>({});
+  const [columnImages, setColumnImages] = useState<AIImage[][]>([]);
+  const [columnCount, setColumnCount] = useState(() => {
+    if (typeof window === 'undefined') return 3;
+    if (window.innerWidth >= 1024) return 3;
+    if (window.innerWidth >= 768) return 2;
+    return 1;
+  });
+  const imageColumnMapRef = useRef<Record<number, number>>({});
   const tiltRafRef = useRef<number | null>(null);
   const hasScrolledToTopRef = useRef(false);
   const isInitialMountRef = useRef(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const handleCardEnter = (event: React.MouseEvent<HTMLElement>) => {
     const card = event.currentTarget;
     card.style.transition = 'transform 160ms ease-out, box-shadow 200ms ease';
@@ -80,28 +89,53 @@ export const AIImageGalleryView: React.FC = () => {
   // 使用 useRef 防止组件意外重新挂载导致的重复请求
   const hasLoadedRef = useRef(false);
 
-  const PAGE_SIZE = 15;
+  const PAGE_SIZE = 10;
+
+  // 响应式列数，保持布局稳定
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const next =
+        width >= 1024 ? 3 :
+        width >= 768 ? 2 : 1;
+      setColumnCount((prev) => (prev === next ? prev : next));
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 加载 Images 数据
-  const loadImages = async (page: number, accessCode?: string) => {
-    const MIN_LOADING_MS = 900;
+  const loadImages = async (page: number, accessCode?: string, append = false) => {
+    const MIN_LOADING_MS = 400;
     const start = performance.now();
-    setImagesLoading(true);
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setImagesLoading(true);
+    }
     try {
       const response = await fetchAIImages({ 
         skip: page * PAGE_SIZE, 
         limit: PAGE_SIZE,
         fw_access_code: accessCode || fwAccessCode || undefined
       });
-      setImages(response.data);
+      setImages((prev) => {
+        if (!append || page === 0) return response.data;
+        const existingIds = new Set(prev.map((img) => img.id));
+        const merged = [...prev, ...response.data.filter((img: AIImage) => !existingIds.has(img.id))];
+        return merged;
+      });
       setImagesTotalCount(response.total);
-      setImagesHasMore((page + 1) * PAGE_SIZE < response.total);
+      setImagesHasMore((page + 1) * PAGE_SIZE < response.total && response.data.length > 0);
       setImagesPage(page);
     } catch (err) {
       console.error('Failed to load AI images', err);
-      setImages([]);
-      setImagesHasMore(false);
-      setImagesTotalCount(0);
+      if (!append) {
+        setImages([]);
+        setImagesHasMore(false);
+        setImagesTotalCount(0);
+      }
       // 如果是初始加载失败，重置标志允许重试
       if (page === 0) {
         hasLoadedRef.current = false;
@@ -109,10 +143,14 @@ export const AIImageGalleryView: React.FC = () => {
     } finally {
       const elapsed = performance.now() - start;
       const remaining = MIN_LOADING_MS - elapsed;
-      if (remaining > 0) {
-        setTimeout(() => setImagesLoading(false), remaining);
-      } else {
+      const finish = () => {
         setImagesLoading(false);
+        setIsLoadingMore(false);
+      };
+      if (remaining > 0) {
+        setTimeout(finish, remaining);
+      } else {
+        finish();
       }
     }
   };
@@ -125,14 +163,54 @@ export const AIImageGalleryView: React.FC = () => {
     }
   }, []);
 
-  // 根据 URL page 参数加载
+
+  // 初始加载
   useEffect(() => {
-    const pageParam = parseInt(searchParams.get('page') || '1', 10);
-    const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
-    if (hasLoadedRef.current && imagesPage === nextPage - 1) return;
+    if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
-    loadImages(nextPage - 1);
-  }, [searchParams]);
+    loadImages(0);
+  }, []);
+
+  // 将图片分配到固定列，避免“加载更多”时已加载图片跳动
+  useEffect(() => {
+    if (!images.length) {
+      setColumnImages(Array.from({ length: columnCount }, () => []));
+      imageColumnMapRef.current = {};
+      return;
+    }
+
+    const columns = Array.from({ length: columnCount }, () => [] as AIImage[]);
+    const heights = Array(columnCount).fill(0);
+    const estimateHeight = (img: AIImage) => {
+      const ratio = imageAspectMap[img.id];
+      if (ratio && ratio > 0) {
+        return 1 / ratio; // 横图更矮，竖图更高
+      }
+      return 1; // 未知比例时给一个稳定占位
+    };
+
+    for (const img of images) {
+      let targetColumn = imageColumnMapRef.current[img.id];
+      if (targetColumn === undefined || targetColumn >= columnCount) {
+        // 新图片或列数变化时，放入当前最矮的列
+        let minHeight = heights[0];
+        targetColumn = 0;
+        for (let i = 1; i < columnCount; i++) {
+          if (heights[i] < minHeight) {
+            minHeight = heights[i];
+            targetColumn = i;
+          }
+        }
+        imageColumnMapRef.current[img.id] = targetColumn;
+      }
+
+      const estimatedHeight = estimateHeight(img);
+      heights[targetColumn] += estimatedHeight;
+      columns[targetColumn].push(img);
+    }
+
+    setColumnImages(columns);
+  }, [images, imageAspectMap, columnCount]);
 
   // 检测页面刷新：如果是首次加载且 URL 中有 imageId，清除它（只保留从其他页面导航过来的情况）
   useEffect(() => {
@@ -238,13 +316,6 @@ export const AIImageGalleryView: React.FC = () => {
     }
   }, [selectedImage, showDownloadVerification]);
 
-  const handleGoPage = (pageNumber: number) => {
-    const totalPages = Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE));
-    const safePage = Math.min(Math.max(1, pageNumber), totalPages);
-    setSearchParams({ page: String(safePage) });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFwAccessCode(inputCode);
@@ -290,121 +361,97 @@ export const AIImageGalleryView: React.FC = () => {
       </div>
 
       <section className="mb-16 animate-fade-in">
-        <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-          {images.map((image) => {
-            return (
-              <article
-                key={image.id}
-                className="break-inside-avoid group relative rounded-2xl md:rounded-3xl overflow-hidden cursor-pointer mb-6 transition-all duration-300"
-                style={{
-                  transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-                  boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
-                  background:
-                    'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                  willChange: 'transform',
-                }}
-                onMouseEnter={handleCardEnter}
-                onMouseMove={handleCardMove}
-                onMouseLeave={handleCardLeave}
-                onClick={() => {
-                  setSelectedImage(image);
-                  // 更新 URL 参数，保持 URL 和状态同步
-                  const params = new URLSearchParams(searchParams);
-                  params.set('imageId', String(image.id));
-                  setSearchParams(params);
-                }}
-              >
-                {(() => {
-                  const ratio = imageAspectMap[image.id];
-                  return (
-                    <div
-                      className="relative overflow-hidden bg-gray-100 dark:bg-gray-700"
-                      style={ratio ? { aspectRatio: ratio } : { aspectRatio: '16 / 9' }}
-                    >
-                      {!imageLoadedMap[image.id] && (
-                        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
-                      )}
-                      <img
-                        src={image.thumbnail_url || image.image_url}
-                        alt={image.title || 'AI Generated Image'}
-                        className="absolute inset-0 w-full h-full object-contain block"
-                        loading="lazy"
-                        onLoad={(e) => {
-                          const { naturalWidth, naturalHeight } = e.currentTarget;
-                          if (naturalWidth && naturalHeight) {
-                            const nextRatio = Number((naturalWidth / naturalHeight).toFixed(4));
-                            setImageAspectMap((prev) => ({ ...prev, [image.id]: nextRatio }));
-                          }
-                          setImageLoadedMap((prev) => ({ ...prev, [image.id]: true }));
-                        }}
-                      />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          {columnImages.map((column, columnIndex) => (
+            <div key={columnIndex} className="flex flex-col space-y-8 md:space-y-10">
+              {column.map((image) => {
+                return (
+                  <article
+                    key={image.id}
+                    className="break-inside-avoid group relative rounded-2xl md:rounded-3xl overflow-hidden cursor-pointer transition-all duration-300"
+                    style={{
+                      transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+                      boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
+                      background:
+                        'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+                      border: '1px solid rgba(255,255,255,0.35)',
+                      willChange: 'transform',
+                    }}
+                    onMouseEnter={handleCardEnter}
+                    onMouseMove={handleCardMove}
+                    onMouseLeave={handleCardLeave}
+                    onClick={() => {
+                      setSelectedImage(image);
+                      // 更新 URL 参数，保持 URL 和状态同步
+                      const params = new URLSearchParams(searchParams);
+                      params.set('imageId', String(image.id));
+                      setSearchParams(params);
+                    }}
+                  >
+                    {(() => {
+                      const ratio = imageAspectMap[image.id];
+                      return (
+                        <div
+                          className="relative overflow-hidden bg-gray-100 dark:bg-gray-700"
+                          style={ratio ? { aspectRatio: ratio } : { aspectRatio: '16 / 9' }}
+                        >
+                          {!imageLoadedMap[image.id] && (
+                            <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
+                          )}
+                          <img
+                            src={image.thumbnail_url || image.image_url}
+                            alt={image.title || 'AI Generated Image'}
+                            className="absolute inset-0 w-full h-full object-contain block"
+                            loading="lazy"
+                            onLoad={(e) => {
+                              const { naturalWidth, naturalHeight } = e.currentTarget;
+                              if (naturalWidth && naturalHeight) {
+                                const nextRatio = Number((naturalWidth / naturalHeight).toFixed(4));
+                                setImageAspectMap((prev) => ({ ...prev, [image.id]: nextRatio }));
+                              }
+                              setImageLoadedMap((prev) => ({ ...prev, [image.id]: true }));
+                            }}
+                          />
+                        </div>
+                      );
+                    })()}
+                    <div className="px-3 pt-0.5 pb-0.5 md:px-4 md:pt-1 md:pb-1 min-h-[46px] flex flex-col justify-between gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-sm font-normal text-gray-900 dark:text-white truncate flex-1 leading-tight">
+                          {image.title || '无标题'}
+                        </h4>
+                        <div className="flex flex-col items-end gap-1 min-w-[120px]">
+                          <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                            点击查看 Prompt
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            {image.view_count || 0} 次浏览
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  );
-                })()}
-                <div className="px-3 pt-0.5 pb-0.5 md:px-4 md:pt-1 md:pb-1 min-h-[46px] flex flex-col justify-between gap-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h4 className="text-sm font-normal text-gray-900 dark:text-white truncate flex-1 leading-tight">
-                      {image.title || '无标题'}
-                    </h4>
-                    <div className="flex flex-col items-end gap-1 min-w-[120px]">
-                      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                        点击查看 Prompt
-                      </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        {image.view_count || 0} 次浏览
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+                  </article>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
-        {/* 分页控件 */}
-        {images.length > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-2 py-8">
+        {/* 加载更多按钮 */}
+        <div className="flex items-center justify-center py-8 text-sm text-gray-500 dark:text-gray-400">
+          {imagesHasMore ? (
             <button
-              onClick={() => handleGoPage(imagesPage)}
-              disabled={imagesPage === 0 || imagesLoading}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                }`}
+              onClick={() => loadImages(imagesPage + 1, undefined, true)}
+              disabled={isLoadingMore || imagesLoading}
+              className="px-5 py-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 shadow-sm hover:shadow transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              上一页
+              {isLoadingMore ? '加载中...' : '加载更多'}
             </button>
-            {Array.from({ length: Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
-              const isActive = pageNum === imagesPage + 1;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => handleGoPage(pageNum)}
-                  className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                  }`}
-                  disabled={imagesLoading}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => handleGoPage(imagesPage + 2)}
-              disabled={!imagesHasMore || imagesLoading}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                }`}
-            >
-              下一页
-            </button>
-          </div>
-        )}
+          ) : (
+            <span>已加载全部</span>
+          )}
+        </div>
 
         {images.length === 0 && !imagesLoading && (
           <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
