@@ -423,9 +423,6 @@ export const HomeView: React.FC = () => {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 text-center">
           <div className="px-6 sm:px-8">
-          <div className="inline-block px-4 py-1.5 mb-6 rounded-full border border-gray-400/30 dark:border-gray-500/30 bg-gray-100/50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-xs font-semibold tracking-widest uppercase">
-            System Online
-          </div>
           <h1 className="text-5xl md:text-8xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-slate-200 dark:to-slate-500 mb-8">
             探索数字前沿
             <br />

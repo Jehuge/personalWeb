@@ -54,8 +54,8 @@ export const Navbar: React.FC = () => {
         <div
           className={`site-navbar rounded-b-2xl px-4 sm:px-6 md:px-8 transition-colors duration-300 backdrop-blur-xl ${
             theme === 'dark'
-              ? 'bg-slate-900/92 border border-white/5 shadow-lg shadow-black/25'
-              : 'bg-white/82 border border-white/70 shadow-[0_10px_30px_rgba(0,0,0,0.08)]'
+              ? 'bg-slate-900/92 shadow-lg shadow-black/25'
+              : 'bg-white/82 shadow-[0_10px_30px_rgba(0,0,0,0.08)]'
           }`}
         >
         <div className="flex items-center h-16">

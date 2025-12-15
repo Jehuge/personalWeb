@@ -19,7 +19,7 @@ function AppContent() {
     <div className="app-background relative min-h-screen text-gray-900 dark:text-gray-100 transition-colors duration-500 font-sans selection:bg-primary-500 selection:text-white overflow-hidden">
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar />
-        <main className="flex-1 pt-20">
+        <main className="flex-1">
           <Routes>
             <Route path="/" element={<HomeView />} />
             <Route path="/blog" element={<BlogView />} />
