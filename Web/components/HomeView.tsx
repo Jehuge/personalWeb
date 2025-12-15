@@ -7,6 +7,7 @@ import { useTheme } from './ThemeContext';
 import Loader from './Loader';
 import { ZoomableImage } from './ZoomableImage';
 import PuzzleCaptcha from './PuzzleCaptcha';
+import { GlobeAnimation } from './GlobeAnimation';
 
 // 摄影图片 EXIF 数据处理辅助函数
 type ParsedExifData = {
@@ -415,6 +416,24 @@ export const HomeView: React.FC = () => {
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* 地球动画背景 - 更大更长，位置偏下 */}
+        <div className="absolute inset-0 z-0 opacity-60 dark:opacity-40 flex items-center justify-center">
+          <div 
+            className="w-[140%] h-[140%] min-w-[1600px] min-h-[1000px] translate-y-[3%]"
+            style={{
+              willChange: 'transform',
+              transform: 'translateZ(0)', // 启用硬件加速
+              backfaceVisibility: 'hidden', // 优化渲染性能
+            }}
+          >
+            <GlobeAnimation 
+              autoPlay={true} 
+              showControls={false}
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+
         {/* Abstract Background Elements - 优化：减少 blur 半径 */}
         <div className="absolute inset-0 z-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gray-400/10 dark:bg-gray-600/20 rounded-full blur-[64px] dark:blur-[80px] animate-pulse-slow will-change-transform"></div>
@@ -423,79 +442,86 @@ export const HomeView: React.FC = () => {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 text-center">
           <div className="px-6 sm:px-8">
-          <h1 className="text-5xl md:text-8xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-slate-200 dark:to-slate-500 mb-8">
-            探索数字前沿
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-400">DIGITAL FRONTIER</span>
-          </h1>
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 dark:text-slate-400 mb-10 leading-relaxed">
-            这里记录着我的技术思考、摄影作品和 AI 实验
-            <br />
-            用代码和镜头探索无限可能
-          </p>
+          {/* 标题背景 */}
+          <div className="px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/3 dark:bg-slate-900/3 backdrop-blur-[1px] mb-8 inline-block">
+            <h1 className="text-5xl md:text-8xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 via-orange-500 via-cyan-500 via-emerald-500 to-blue-600 drop-shadow-2xl">
+              探索数字前沿
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 via-orange-500 via-cyan-500 via-emerald-500 to-blue-600">DIGITAL FRONTIER</span>
+            </h1>
+          </div>
+          
+          {/* 描述文字背景 */}
+          <div className="px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-white/2 dark:bg-slate-900/2 backdrop-blur-[1px] mb-10 inline-block">
+            <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-700 dark:text-slate-300 leading-relaxed font-medium drop-shadow-xl">
+              这里记录着我的技术思考、摄影作品和 AI 实验
+              <br />
+              用代码和镜头探索无限可能
+            </p>
+          </div>
           
           {/* 统计数据 */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 max-w-6xl mx-auto mb-10">
-            <div ref={blogCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 mb-2">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 max-w-6xl mx-auto mb-10">
+            <div ref={blogCount.ref} className="text-center group py-2 md:py-3 rounded-xl bg-white/4 dark:bg-slate-900/4 backdrop-blur-[2px] w-full max-w-[150px] md:max-w-[180px] mx-auto">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 mb-2 tracking-tighter leading-none inline-block">
                 {blogCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">博客</div>
             </div>
-            <div ref={photoCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 mb-2">
+            <div ref={photoCount.ref} className="text-center group py-2 md:py-3 rounded-xl bg-white/4 dark:bg-slate-900/4 backdrop-blur-[2px] w-full max-w-[150px] md:max-w-[180px] mx-auto">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 mb-2 tracking-tighter leading-none inline-block">
                 {photoCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">摄影作品</div>
             </div>
-            <div ref={aiImageCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 mb-2">
+            <div ref={aiImageCount.ref} className="text-center group py-2 md:py-3 rounded-xl bg-white/4 dark:bg-slate-900/4 backdrop-blur-[2px] w-full max-w-[150px] md:max-w-[180px] mx-auto">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500 mb-2 tracking-tighter leading-none inline-block">
                 {aiImageCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">AI 图库</div>
             </div>
-            <div ref={aiDemoCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500 mb-2">
+            <div ref={aiDemoCount.ref} className="text-center group py-2 md:py-3 rounded-xl bg-white/4 dark:bg-slate-900/4 backdrop-blur-[2px] w-full max-w-[150px] md:max-w-[180px] mx-auto">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-green-500 mb-2 tracking-tighter leading-none inline-block">
                 {aiDemoCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">AI Demo</div>
             </div>
-            <div ref={aiProjectCount.ref} className="text-center group">
-              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-green-500 mb-2">
+            <div ref={aiProjectCount.ref} className="text-center group py-2 md:py-3 rounded-xl bg-white/4 dark:bg-slate-900/4 backdrop-blur-[2px] w-full max-w-[150px] md:max-w-[180px] mx-auto">
+              <div className="text-3xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 mb-2 tracking-tighter leading-none inline-block">
                 {aiProjectCount.count}+
               </div>
               <div className="text-gray-600 dark:text-slate-400 text-xs md:text-sm">个人项目</div>
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3 md:gap-4">
+          <div className="flex flex-wrap justify-center gap-2.5 md:gap-3">
             <button
               onClick={() => navigate('/blog')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-blue-300 dark:border-blue-500/30 bg-white dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:border-blue-500/50 dark:hover:border-blue-400/50 hover:text-blue-600 dark:hover:text-blue-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/25 dark:border-white/15 bg-white/8 dark:bg-white/5 backdrop-blur-[2px] text-xs md:text-sm font-medium text-gray-700 dark:text-white hover:border-blue-400/60 hover:bg-blue-50/70 dark:hover:bg-blue-400/10 hover:text-blue-600 dark:hover:text-blue-300 transition-all"
             >
               探索博客
             </button>
             <button
               onClick={() => navigate('/gallery')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-teal-300 dark:border-teal-500/30 bg-white dark:bg-white/5 hover:bg-teal-50 dark:hover:bg-teal-500/10 hover:border-teal-500/50 dark:hover:border-teal-400/50 hover:text-teal-600 dark:hover:text-teal-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/25 dark:border-white/15 bg-white/8 dark:bg-white/5 backdrop-blur-[2px] text-xs md:text-sm font-medium text-gray-700 dark:text-white hover:border-teal-400/60 hover:bg-teal-50/70 dark:hover:bg-teal-400/10 hover:text-teal-600 dark:hover:text-teal-300 transition-all"
             >
               浏览摄影
             </button>
             <button
               onClick={() => navigate('/ai-gallery')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-orange-300 dark:border-orange-500/30 bg-white dark:bg-white/5 hover:bg-orange-50 dark:hover:bg-orange-500/10 hover:border-orange-500/50 dark:hover:border-orange-400/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/25 dark:border-white/15 bg-white/8 dark:bg-white/5 backdrop-blur-[2px] text-xs md:text-sm font-medium text-gray-700 dark:text-white hover:border-orange-400/60 hover:bg-orange-50/70 dark:hover:bg-orange-400/10 hover:text-orange-600 dark:hover:text-orange-300 transition-all"
             >
               AI 图库
             </button>
             <button
               onClick={() => navigate('/ai-demo')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-cyan-300 dark:border-cyan-500/30 bg-white dark:bg-white/5 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 hover:border-cyan-500/50 dark:hover:border-cyan-400/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/25 dark:border-white/15 bg-white/8 dark:bg-white/5 backdrop-blur-[2px] text-xs md:text-sm font-medium text-gray-700 dark:text-white hover:border-cyan-400/60 hover:bg-cyan-50/70 dark:hover:bg-cyan-400/10 hover:text-cyan-600 dark:hover:text-cyan-300 transition-all"
             >
               AI Demo
             </button>
             <button
               onClick={() => navigate('/ai-project')}
-              className="px-6 md:px-8 py-2.5 md:py-3 rounded-full border border-emerald-300 dark:border-emerald-500/30 bg-white dark:bg-white/5 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-500/50 dark:hover:border-emerald-400/50 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all text-xs md:text-sm font-medium text-gray-700 dark:text-white"
+              className="px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/25 dark:border-white/15 bg-white/8 dark:bg-white/5 backdrop-blur-[2px] text-xs md:text-sm font-medium text-gray-700 dark:text-white hover:border-emerald-400/60 hover:bg-emerald-50/70 dark:hover:bg-emerald-400/10 hover:text-emerald-600 dark:hover:text-emerald-300 transition-all"
             >
               个人项目
             </button>

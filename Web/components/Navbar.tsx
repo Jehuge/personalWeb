@@ -86,7 +86,7 @@ export const Navbar: React.FC = () => {
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
-                'relative px-4 py-2 rounded-2xl text-lg font-semibold transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
+                'relative px-4 py-2 rounded-2xl text-lg font-display font-medium tracking-tight transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
               const activeClass =
                 'bg-gray-100 text-gray-900 shadow-lg shadow-gray-500/20 ring-1 ring-white/70 dark:bg-gray-800 dark:text-white dark:shadow-gray-600/30 translate-y-0';
               const inactiveClass =
@@ -160,7 +160,7 @@ export const Navbar: React.FC = () => {
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
-                'block w-full text-left px-3 py-3 rounded-2xl text-lg font-semibold transition-all duration-200 ease-out active:scale-[0.97]';
+                'block w-full text-left px-3 py-3 rounded-2xl text-lg font-display font-medium tracking-tight transition-all duration-200 ease-out active:scale-[0.97]';
               const activeClass =
                 'bg-gray-100 text-gray-900 shadow-lg shadow-gray-500/20 dark:bg-gray-800 dark:text-white';
               const inactiveClass =
