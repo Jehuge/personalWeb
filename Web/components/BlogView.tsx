@@ -348,7 +348,8 @@ export const BlogView: React.FC = () => {
 
   // 处理分页
   const handleGoPage = (pageNumber: number) => {
-    const targetPage = typeof pageNumber === 'number' ? pageNumber : pageNumber - 1;
+    // pageNumber 是 1-based 的页码，转换为 0-based
+    const targetPage = pageNumber - 1;
     if (targetPage < 0 || targetPage === currentPage) return;
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
     if (targetPage >= totalPages) return;
@@ -946,47 +947,52 @@ export const BlogView: React.FC = () => {
       </div>
 
       {/* 分页控件 */}
-      {filteredPosts.length > 0 && !id && (
-        <div className="flex flex-wrap items-center justify-center gap-2 py-8">
-          <button
-            onClick={() => handleGoPage(currentPage)}
-            disabled={currentPage === 0 || loading}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currentPage === 0 || loading
-              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-              }`}
-          >
-            上一页
-          </button>
-          {Array.from({ length: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
-            const isActive = pageNum === currentPage + 1;
-            return (
-              <button
-                key={pageNum}
-                onClick={() => handleGoPage(pageNum)}
-                className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+      {filteredPosts.length > 0 && !id && (() => {
+        const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
+        // 只有总页数大于 1 时才显示分页控件
+        if (totalPages <= 1) return null;
+        return (
+          <div className="flex flex-wrap items-center justify-center gap-2 py-8">
+            <button
+              onClick={() => handleGoPage(currentPage)}
+              disabled={currentPage === 0 || loading}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currentPage === 0 || loading
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                 }`}
-                disabled={loading}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-          <button
-            onClick={() => handleGoPage(currentPage + 2)}
-            disabled={!hasMore || loading}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!hasMore || loading
-              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-              }`}
-          >
-            下一页
-          </button>
-        </div>
-      )}
+            >
+              上一页
+            </button>
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => {
+              const isActive = pageNum === currentPage + 1;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handleGoPage(pageNum)}
+                  className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }`}
+                  disabled={loading}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => handleGoPage((currentPage + 1) + 1)}
+              disabled={!hasMore || loading}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!hasMore || loading
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+            >
+              下一页
+            </button>
+          </div>
+        );
+      })()}
 
       {filteredPosts.length === 0 && !loading && (
         <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">

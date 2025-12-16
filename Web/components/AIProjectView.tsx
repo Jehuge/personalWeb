@@ -190,6 +190,7 @@ export const AIProjectView: React.FC = () => {
 
   // 处理分页
   const handleDemosGoPage = (pageNumber: number) => {
+    // pageNumber 是 1-based 的页码
     const totalPages = Math.max(1, Math.ceil(demosTotalCount / PAGE_SIZE));
     const safePage = Math.min(Math.max(1, pageNumber), totalPages);
     const params = new URLSearchParams(searchParams);
@@ -202,6 +203,7 @@ export const AIProjectView: React.FC = () => {
   };
 
   const handleGalleryGoPage = (pageNumber: number) => {
+    // pageNumber 是 1-based 的页码
     const totalPages = Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE));
     const safePage = Math.min(Math.max(1, pageNumber), totalPages);
     const params = new URLSearchParams(searchParams);
@@ -484,47 +486,52 @@ export const AIProjectView: React.FC = () => {
           </div>
 
           {/* 分页控件 */}
-          {demos.length > 0 && (
-            <div className="flex items-center justify-center gap-4 py-8">
-              <button
-                onClick={() => handleDemosGoPage(demosPage)}
-                disabled={demosPage === 0 || demosLoading}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${demosPage === 0 || demosLoading
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                  }`}
-              >
-                上一页
-              </button>
-              {Array.from({ length: Math.max(1, Math.ceil(demosTotalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
-                const isActive = pageNum === demosPage + 1;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handleDemosGoPage(pageNum)}
-                    className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+          {demos.length > 0 && (() => {
+            const totalPages = Math.ceil(demosTotalCount / PAGE_SIZE) || 1;
+            // 只有总页数大于 1 时才显示分页控件
+            if (totalPages <= 1) return null;
+            return (
+              <div className="flex items-center justify-center gap-4 py-8">
+                <button
+                  onClick={() => handleDemosGoPage(demosPage)}
+                  disabled={demosPage === 0 || demosLoading}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${demosPage === 0 || demosLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                     }`}
-                    disabled={demosLoading}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => handleDemosGoPage(demosPage + 2)}
-                disabled={!demosHasMore || demosLoading}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!demosHasMore || demosLoading
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                  }`}
-              >
-                下一页
-              </button>
-            </div>
-          )}
+                >
+                  上一页
+                </button>
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => {
+                  const isActive = pageNum === demosPage + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handleDemosGoPage(pageNum)}
+                      className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                        isActive
+                          ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                      }`}
+                      disabled={demosLoading}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => handleDemosGoPage((demosPage + 1) + 1)}
+                  disabled={!demosHasMore || demosLoading}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!demosHasMore || demosLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                    }`}
+                >
+                  下一页
+                </button>
+              </div>
+            );
+          })()}
 
           {demos.length === 0 && !demosLoading && (
             <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
@@ -619,47 +626,52 @@ export const AIProjectView: React.FC = () => {
           </div>
 
           {/* 分页控件 */}
-          {images.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 py-8">
-              <button
-                onClick={() => handleGalleryGoPage(imagesPage)}
-                disabled={imagesPage === 0 || imagesLoading}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                  }`}
-              >
-                上一页
-              </button>
-              {Array.from({ length: Math.max(1, Math.ceil(imagesTotalCount / PAGE_SIZE)) }, (_, idx) => idx + 1).map((pageNum) => {
-                const isActive = pageNum === imagesPage + 1;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handleGalleryGoPage(pageNum)}
-                    className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+          {images.length > 0 && (() => {
+            const totalPages = Math.ceil(imagesTotalCount / PAGE_SIZE) || 1;
+            // 只有总页数大于 1 时才显示分页控件
+            if (totalPages <= 1) return null;
+            return (
+              <div className="flex flex-wrap items-center justify-center gap-2 py-8">
+                <button
+                  onClick={() => handleGalleryGoPage(imagesPage)}
+                  disabled={imagesPage === 0 || imagesLoading}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${imagesPage === 0 || imagesLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                     }`}
-                    disabled={imagesLoading}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => handleGalleryGoPage(imagesPage + 2)}
-                disabled={!imagesHasMore || imagesLoading}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                  }`}
-              >
-                下一页
-              </button>
-            </div>
-          )}
+                >
+                  上一页
+                </button>
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => {
+                  const isActive = pageNum === imagesPage + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handleGalleryGoPage(pageNum)}
+                      className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                        isActive
+                          ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                      }`}
+                      disabled={imagesLoading}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => handleGalleryGoPage((imagesPage + 1) + 1)}
+                  disabled={!imagesHasMore || imagesLoading}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!imagesHasMore || imagesLoading
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                    }`}
+                >
+                  下一页
+                </button>
+              </div>
+            );
+          })()}
 
           {images.length === 0 && !imagesLoading && (
             <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
