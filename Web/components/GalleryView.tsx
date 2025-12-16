@@ -460,10 +460,17 @@ export const GalleryView: React.FC = () => {
 
   // 关闭模态框并清除 URL 参数
   const handleCloseModal = () => {
+    const hasPhotoId = !!searchParams.get('photoId');
+
+    // 如果 URL 中存在 photoId，说明当前弹窗是通过点击列表打开的
+    // 这时关闭弹窗应等价于浏览器后退一步，而不是再往历史栈压一条记录
+    if (hasPhotoId) {
+      navigate(-1);
+      return;
+    }
+
+    // 否则，仅关闭本地状态（例如某些异常情况下 selectedPhoto 被设置但 URL 中没有参数）
     setSelectedPhoto(null);
-    const params = new URLSearchParams(searchParams);
-    params.delete('photoId');
-    setSearchParams(params);
   };
 
   if (loading && photos.length === 0) {

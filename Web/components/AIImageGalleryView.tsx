@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AIImage } from '../types';
 import { fetchAIImages, fetchAIImage } from '../services/dataService';
 import Loader from './Loader';
@@ -7,6 +7,7 @@ import { ZoomableImage } from './ZoomableImage';
 import PuzzleCaptcha from './PuzzleCaptcha';
 
 export const AIImageGalleryView: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [images, setImages] = useState<AIImage[]>([]);
   const [imagesLoading, setImagesLoading] = useState(true);
@@ -324,10 +325,17 @@ export const AIImageGalleryView: React.FC = () => {
 
   // 关闭模态框并清除 URL 参数
   const handleCloseModal = () => {
+    const hasImageId = !!searchParams.get('imageId');
+
+    // 如果 URL 中存在 imageId，说明当前弹窗是通过点击列表打开的
+    // 这时关闭弹窗应等价于浏览器后退一步，而不是再往历史栈压一条记录
+    if (hasImageId) {
+      navigate(-1);
+      return;
+    }
+
+    // 否则，仅关闭本地状态（例如某些异常情况下 selectedImage 被设置但 URL 中没有参数）
     setSelectedImage(null);
-    const params = new URLSearchParams(searchParams);
-    params.delete('imageId');
-    setSearchParams(params);
   };
 
   if (imagesLoading) {
