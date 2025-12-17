@@ -132,13 +132,19 @@ async def get_videos(
     limit: int = Query(20, ge=1, le=100),
     category_id: Optional[int] = None,
     is_featured: Optional[bool] = None,
-    is_published: Optional[bool] = None,
+    is_published: Optional[bool] = Query(None, description="是否已发布，默认只返回已发布的视频"),
     db: AsyncSession = Depends(get_db),
     response: Response = None
 ):
-    """获取视频列表"""
+    """获取视频列表（默认只返回已发布的视频）"""
     # 构建查询条件
     base_query = select(Video).options(selectinload(Video.category))
+    
+    # 默认只返回已发布的视频（除非明确指定is_published=False）
+    if is_published is None:
+        base_query = base_query.where(Video.is_published == True)
+    elif is_published is not None:
+        base_query = base_query.where(Video.is_published == is_published)
     
     if category_id:
         base_query = base_query.where(Video.category_id == category_id)
@@ -146,17 +152,17 @@ async def get_videos(
     if is_featured is not None:
         base_query = base_query.where(Video.is_featured == is_featured)
     
-    if is_published is not None:
-        base_query = base_query.where(Video.is_published == is_published)
-    
     # 计算总数
     count_query = select(func.count(Video.id))
+    # 应用相同的过滤条件
+    if is_published is None:
+        count_query = count_query.where(Video.is_published == True)
+    elif is_published is not None:
+        count_query = count_query.where(Video.is_published == is_published)
     if category_id:
         count_query = count_query.where(Video.category_id == category_id)
     if is_featured is not None:
         count_query = count_query.where(Video.is_featured == is_featured)
-    if is_published is not None:
-        count_query = count_query.where(Video.is_published == is_published)
     total_result = await db.execute(count_query)
     total_count = total_result.scalar() or 0
     
@@ -174,7 +180,7 @@ async def get_videos(
 
 @router.get("/{video_id}", response_model=VideoSchema)
 async def get_video(video_id: int, db: AsyncSession = Depends(get_db)):
-    """获取单个视频"""
+    """获取单个视频（只返回已发布的视频）"""
     try:
         result = await db.execute(
             select(Video)
@@ -184,6 +190,13 @@ async def get_video(video_id: int, db: AsyncSession = Depends(get_db)):
         video = result.scalar_one_or_none()
         
         if not video:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="视频不存在"
+            )
+        
+        # 只返回已发布的视频
+        if not video.is_published:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="视频不存在"

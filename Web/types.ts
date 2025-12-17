@@ -141,3 +141,38 @@ export interface AIChatMessage {
   content: string;
   timestamp: number;
 }
+
+export interface VideoCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  cover_image?: string | null;
+  created_at: string;
+}
+
+export interface Video {
+  id: number;
+  title: string;
+  description?: string | null;
+  video_url: string;
+  thumbnail_video_url?: string | null;
+  cover_image?: string | null;
+  duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+  file_size?: number | null;
+  thumbnail_file_size?: number | null;
+  format?: string | null;
+  codec?: string | null;
+  fps?: number | null;
+  bitrate?: number | null;
+  category_id?: number | null;
+  is_featured: boolean;
+  is_published: boolean;
+  published_at?: string | null;
+  view_count: number;
+  created_at: string;
+  updated_at?: string | null;
+  category?: VideoCategory | null;
+}

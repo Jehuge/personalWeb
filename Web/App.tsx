@@ -4,6 +4,7 @@ import { ThemeProvider } from './components/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { BlogView } from './components/BlogView';
 import { GalleryView } from './components/GalleryView';
+import { VideoView } from './components/VideoView';
 import { AIImageGalleryView } from './components/AIImageGalleryView';
 import { AIDemoView } from './components/AIDemoView';
 import { AIProjectListView } from './components/AIProjectListView';
@@ -26,6 +27,8 @@ function AppContent() {
             <Route path="/blog/:id" element={<BlogView />} />
             <Route path="/gallery" element={<GalleryView />} />
             <Route path="/gallery/:id" element={<GalleryView />} />
+            <Route path="/video" element={<VideoView />} />
+            <Route path="/video/:id" element={<VideoView />} />
             <Route path="/ai-gallery" element={<AIImageGalleryView />} />
             <Route path="/ai-demo" element={<AIDemoView />} />
             <Route path="/ai-project" element={<AIProjectListView />} />

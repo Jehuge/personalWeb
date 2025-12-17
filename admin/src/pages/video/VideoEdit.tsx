@@ -15,6 +15,7 @@ import {
   Col,
   Typography,
   Progress,
+  Image,
 } from 'antd'
 import { SaveOutlined, ArrowLeftOutlined, UploadOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
@@ -75,6 +76,7 @@ export default function VideoEdit() {
   const [categories, setCategories] = useState<any[]>([])
   const [videoUrl, setVideoUrl] = useState<string>('')
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('')
+  const [coverImage, setCoverImage] = useState<string>('')
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [localPreview, setLocalPreview] = useState<string | null>(null)
   const [videoMeta, setVideoMeta] = useState<VideoMeta>({})
@@ -123,6 +125,7 @@ export default function VideoEdit() {
       })
       setVideoUrl(video.video_url)
       setThumbnailUrl(video.thumbnail_video_url || video.video_url)
+      setCoverImage(video.cover_image || '')
       setPendingFile(null)
       revokePreview()
       setVideoMeta({
@@ -141,7 +144,7 @@ export default function VideoEdit() {
     }
   }
 
-  const handleUpload = async (file: File) => {
+  const handleVideoUpload = async (file: File) => {
     // 检查文件类型
     const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm']
     if (!allowedTypes.includes(file.type) && !file.name.match(/\.(mp4|mov|avi|webm)$/i)) {
@@ -167,6 +170,25 @@ export default function VideoEdit() {
     return false
   }
 
+  const handleCoverImageUpload = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      const response = await api.post('/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const url = response.data.url
+      setCoverImage(url)
+      form.setFieldsValue({ cover_image: url })
+      message.success('封面图片上传成功')
+      return false
+    } catch (error) {
+      message.error('封面图片上传失败')
+      return false
+    }
+  }
+
   const normalizePublishedAt = (value: any) => {
     if (!value) return undefined
     if (typeof value.toISOString === 'function') {
@@ -184,6 +206,7 @@ export default function VideoEdit() {
       category_id: values.category_id,
       is_featured: values.is_featured,
       is_published: values.is_published,
+      cover_image: cleanValue(values.cover_image),
     }
 
     const publishedAtValue = normalizePublishedAt(values.published_at)
@@ -262,11 +285,13 @@ export default function VideoEdit() {
             await api.delete(`/videos/${id}`)
             await api.post('/videos/with-file', formData, {
               headers: { 'Content-Type': 'multipart/form-data' },
+              timeout: 600000, // 10分钟超时，视频处理需要较长时间
             })
             message.success('更新成功')
           } else {
             await api.post('/videos/with-file', formData, {
               headers: { 'Content-Type': 'multipart/form-data' },
+              timeout: 600000, // 10分钟超时，视频处理需要较长时间
             })
             message.success('创建成功')
           }
@@ -489,7 +514,7 @@ export default function VideoEdit() {
                 help={!isEdit && !pendingFile && !videoUrl ? '请上传视频' : undefined}
               >
                 <Upload
-                  beforeUpload={handleUpload}
+                  beforeUpload={handleVideoUpload}
                   showUploadList={false}
                   accept="video/*"
                   maxCount={1}
@@ -502,6 +527,34 @@ export default function VideoEdit() {
               </Form.Item>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 支持 MP4、MOV、AVI、WebM 格式，最大 500MB。上传后会在本地使用 ffmpeg 处理生成缩略视频，然后上传到 OSS。
+              </Text>
+            </section>
+
+            <section className="photo-edit-section">
+              <SectionHeader title="封面图片" subtitle="上传视频封面图片，用于列表页展示（推荐尺寸：16:9）" />
+              <Form.Item name="cover_image" label="封面图片">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Upload
+                    beforeUpload={handleCoverImageUpload}
+                    showUploadList={false}
+                    accept="image/*"
+                  >
+                    <Button icon={<UploadOutlined />}>
+                      {coverImage ? '重新上传封面' : '上传封面图片'}
+                    </Button>
+                  </Upload>
+                  {coverImage && (
+                    <Image
+                      src={coverImage}
+                      alt="封面"
+                      style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }}
+                      preview={false}
+                    />
+                  )}
+                </Space>
+              </Form.Item>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                封面图片会在视频列表页显示，鼠标悬停时会自动播放预览视频。推荐使用 16:9 比例的图片。
               </Text>
 
               {/* 隐藏字段，用于存储视频元数据 */}

@@ -134,6 +134,8 @@ export const GalleryView: React.FC = () => {
     return 1;
   });
   const imageColumnMapRef = useRef<Record<number, number>>({});
+  const hasLoadedCategoriesRef = useRef(false);
+  const hasLoadedPhotosRef = useRef(false);
 
   // 组件挂载时滚动到顶部（只执行一次）
   useEffect(() => {
@@ -301,12 +303,20 @@ export const GalleryView: React.FC = () => {
 
   // 加载分类列表
   useEffect(() => {
+    // 如果已经加载过，直接返回（防止 StrictMode 导致的重复请求）
+    if (hasLoadedCategoriesRef.current) {
+      return;
+    }
+    hasLoadedCategoriesRef.current = true;
+
     fetchPhotoCategories()
       .then(data => {
         setCategories(data);
       })
       .catch(err => {
         console.error('Failed to load categories', err);
+        // 请求失败时重置标志，允许重试
+        hasLoadedCategoriesRef.current = false;
       });
   }, []);
 
@@ -377,7 +387,20 @@ export const GalleryView: React.FC = () => {
 
   // 根据筛选加载列表（不分页，使用加载更多）
   useEffect(() => {
+    // 如果筛选需要分类但分类还没加载，等待分类加载完成
     if (filter !== '全部' && categories.length === 0) return;
+
+    // 防止 StrictMode 或重复的 useEffect 调用导致重复请求
+    // 使用 filter 作为 key，只有在 filter 真正变化时才重新加载
+    // 注意：不要把 categories.length 放入 loadKey，因为初始加载时 categories 从 0 变化会触发重复请求
+    const loadKey = filter;
+    const lastLoadKey = hasLoadedPhotosRef.current as any;
+    
+    if (lastLoadKey === loadKey) {
+      return;
+    }
+    
+    hasLoadedPhotosRef.current = loadKey as any;
     loadPhotos(0, filter);
   }, [filter, categories]);
 

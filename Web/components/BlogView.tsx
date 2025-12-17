@@ -4,8 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
-import { BlogPost } from '../types';
-import { fetchPosts, fetchBlog } from '../services/dataService';
+import { BlogPost, BlogCategory } from '../types';
+import { fetchPosts, fetchBlog, fetchBlogCategories } from '../services/dataService';
 import { LazyImage } from './LazyImage';
 import Loader from './Loader';
 import { MermaidDiagram } from './MermaidDiagram';
@@ -223,12 +223,14 @@ export const BlogView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const blogsLoadedRef = useRef(false);
   const hasScrolledToTopRef = useRef(false);
+  const hasLoadedCategoriesRef = useRef(false);
+  const hasLoadedPostsRef = useRef<string | false>(false);
   
   // 目录相关的 hooks
   const [headings, setHeadings] = useState<Heading[]>([]);
@@ -251,6 +253,25 @@ export const BlogView: React.FC = () => {
       hasScrolledToTopRef.current = true;
     }
   }, [id]);
+
+  // 加载分类列表
+  useEffect(() => {
+    // 如果已经加载过，直接返回（防止 StrictMode 导致的重复请求）
+    if (hasLoadedCategoriesRef.current) {
+      return;
+    }
+    hasLoadedCategoriesRef.current = true;
+
+    fetchBlogCategories()
+      .then(data => {
+        setCategories(data);
+      })
+      .catch(err => {
+        console.error('Failed to load categories', err);
+        // 请求失败时重置标志，允许重试
+        hasLoadedCategoriesRef.current = false;
+      });
+  }, []);
 
   // 根据路由参数加载博客详情
   const lastFetchedBlogIdRef = useRef<number | null>(null);
@@ -316,14 +337,27 @@ export const BlogView: React.FC = () => {
   }, [navigate]);
 
   // 加载博客数据
-  const loadPosts = async (page: number) => {
+  const loadPosts = async (page: number, categoryFilter?: string) => {
     setLoading(true);
     setError(null);
     const MIN_LOADING_MS = 900;
     const start = performance.now();
 
     try {
-      const response = await fetchPosts({ skip: page * PAGE_SIZE, limit: PAGE_SIZE });
+      // 根据筛选条件确定 category_id
+      let categoryId: number | undefined;
+      if (categoryFilter && categoryFilter !== '全部') {
+        const category = categories.find(cat => cat.name === categoryFilter);
+        if (category) {
+          categoryId = category.id;
+        }
+      }
+
+      const response = await fetchPosts({ 
+        skip: page * PAGE_SIZE, 
+        limit: PAGE_SIZE,
+        category_id: categoryId
+      });
       setPosts(response.data);
       setTotalCount(response.total);
       setHasMore((page + 1) * PAGE_SIZE < response.total);
@@ -345,22 +379,38 @@ export const BlogView: React.FC = () => {
     }
   };
 
-  // 监听 URL page 参数
+  // 同步 URL category 参数到筛选状态
+  useEffect(() => {
+    const categoryParam = searchParams.get('category') || '全部';
+    setSelectedCategory((prev) => (prev === categoryParam ? prev : categoryParam));
+  }, [searchParams]);
+
+  // 监听 URL 参数变化，加载博客列表
   useEffect(() => {
     if (id) {
-      // 详情页不处理分页，但如果列表还没加载且没有选中文章，确保 loading 状态正确
-      if (posts.length === 0 && !selectedPost) {
-        // 等待详情加载完成
-        return;
-      }
+      // 详情页不处理列表加载
+      hasLoadedPostsRef.current = false;
       return;
     }
+    
+    // 如果筛选需要分类但分类还没加载，等待分类加载完成
+    if (selectedCategory !== '全部' && categories.length === 0) return;
+
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const nextPage = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
-    if (blogsLoadedRef.current && currentPage === nextPage - 1) return;
-    blogsLoadedRef.current = true;
-    loadPosts(nextPage - 1);
-  }, [searchParams, id, posts.length, selectedPost]);
+
+    // 防止 StrictMode 或重复的 useEffect 调用导致重复请求
+    // 使用 category-page 组合作为 key，只有在真正变化时才重新加载
+    const loadKey = `${selectedCategory}-${nextPage}`;
+    const lastLoadKey = hasLoadedPostsRef.current;
+    
+    if (lastLoadKey === loadKey) {
+      return;
+    }
+    
+    hasLoadedPostsRef.current = loadKey;
+    loadPosts(nextPage - 1, selectedCategory);
+  }, [searchParams, id, selectedCategory, categories]);
 
   // 处理分页
   const handleGoPage = (pageNumber: number) => {
@@ -369,18 +419,14 @@ export const BlogView: React.FC = () => {
     if (targetPage < 0 || targetPage === currentPage) return;
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
     if (targetPage >= totalPages) return;
-    setSearchParams({ page: String(targetPage + 1) });
+    setSearchParams({ category: selectedCategory, page: String(targetPage + 1) });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const categories = useMemo(() => {
-    const names = new Set(posts.map(post => post.category?.name?.trim() || '未分类'));
-    return ['全部', ...Array.from(names)];
-  }, [posts]);
-
-  const filteredPosts = selectedCategory === '全部'
-    ? posts
-    : posts.filter(p => (p.category?.name?.trim() || '未分类') === selectedCategory);
+  // 从 API 获取的分类列表
+  const categoryOptions = useMemo(() => {
+    return ['全部', ...categories.map(cat => cat.name)];
+  }, [categories]);
 
   // 标题提取触发标志
   const [shouldExtractHeadings, setShouldExtractHeadings] = useState(false);
@@ -835,19 +881,22 @@ export const BlogView: React.FC = () => {
           聚焦系统设计、AI 工具链与摄影视角下的产品感。分类按钮会即时过滤，不再跳跃布局。
         </p>
         <div className="flex gap-3 flex-wrap justify-center md:justify-start">
-          {categories.map(cat => (
+          {categoryOptions.map(cat => (
             <CategoryButton
               key={cat}
               label={cat}
               active={selectedCategory === cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => {
+                setSearchParams({ category: cat, page: '1' });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           ))}
         </div>
       </div>
 
       <div className="space-y-4">
-        {filteredPosts.map(post => {
+        {posts.map(post => {
           const categoryLabel = post.category?.name || '未分类';
           const displayDate = formatDate(post.published_at || post.created_at);
           const snippet = post.excerpt || `${post.content.slice(0, 140)}...`;
@@ -963,7 +1012,7 @@ export const BlogView: React.FC = () => {
       </div>
 
       {/* 分页控件 */}
-      {filteredPosts.length > 0 && !id && (() => {
+      {posts.length > 0 && !id && (() => {
         const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
         // 只有总页数大于 1 时才显示分页控件
         if (totalPages <= 1) return null;
@@ -1010,7 +1059,7 @@ export const BlogView: React.FC = () => {
         );
       })()}
 
-      {filteredPosts.length === 0 && !loading && (
+      {posts.length === 0 && !loading && (
         <div className="text-center py-12 text-sm text-gray-500 dark:text-gray-400">
           暂无内容
         </div>

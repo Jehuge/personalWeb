@@ -27,6 +27,7 @@ class Video(Base):
     description = Column(Text, nullable=True)
     video_url = Column(String(500), nullable=False)  # 原视频URL（OSS）
     thumbnail_video_url = Column(String(500), nullable=True)  # 缩略视频URL（OSS）
+    cover_image = Column(String(500), nullable=True)  # 视频封面图片URL
     duration = Column(Integer, nullable=True)  # 视频时长（秒）
     width = Column(Integer, nullable=True)  # 视频宽度
     height = Column(Integer, nullable=True)  # 视频高度

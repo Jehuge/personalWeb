@@ -19,13 +19,14 @@ export const Navbar: React.FC = () => {
     { id: 'home', path: '/', label: '首页' },
     { id: 'blog', path: '/blog', label: '博客' },
     { id: 'gallery', path: '/gallery', label: '摄影' },
+    { id: 'video', path: '/video', label: '视频' },
     { id: 'ai-gallery', path: '/ai-gallery', label: 'AI 图库' },
     { id: 'ai-demo', path: '/ai-demo', label: 'AI Demo' },
     { id: 'ai-project', path: '/ai-project', label: '个人项目' },
   ];
 
   // 判断是否在详情页（有 ID 参数）
-  const isInDetail = /^\/(blog|gallery)\/\d+$/.test(location.pathname);
+  const isInDetail = /^\/(blog|gallery|video)\/\d+$/.test(location.pathname);
   const showBack = isInDetail;
   const backLabel = isInDetail ? '返回列表' : '返回';
 

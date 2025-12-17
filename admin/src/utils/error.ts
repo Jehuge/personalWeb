@@ -1,4 +1,9 @@
 export const extractErrorMessage = (error: any, fallback = '操作失败') => {
+  // 处理超时错误
+  if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+    return '请求超时，但操作可能已经完成，请刷新页面查看结果'
+  }
+
   const detail = error?.response?.data?.detail || error?.message
 
   if (!detail) return fallback

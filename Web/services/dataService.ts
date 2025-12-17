@@ -1,4 +1,4 @@
-import { AIDemo, AIImage, AIProject, BlogPost, PhotoWork, PhotoCategory } from '../types';
+import { AIDemo, AIImage, AIProject, BlogPost, PhotoWork, PhotoCategory, Video, VideoCategory } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/+$/, '');
 
@@ -110,8 +110,16 @@ const clampPagination = (params: PaginationParams, maxLimit: number) => {
 };
 
 export const fetchPosts = async (params: PaginationParams = {}): Promise<PaginatedResponse<BlogPost[]>> => {
-  const { skip, limit } = clampPagination(params, 20);
-  return requestWithTotal<BlogPost[]>(`/blogs?published_only=true&skip=${skip}&limit=${limit}`);
+  const { skip, limit, category_id } = clampPagination(params, 20);
+  let url = `/blogs?published_only=true&skip=${skip}&limit=${limit}`;
+  if (category_id !== undefined) {
+    url += `&category_id=${category_id}`;
+  }
+  return requestWithTotal<BlogPost[]>(url);
+};
+
+export const fetchBlogCategories = async (): Promise<BlogCategory[]> => {
+  return request<BlogCategory[]>('/blogs/categories');
 };
 
 export const fetchBlog = async (blogId: number): Promise<BlogPost> => {
@@ -181,4 +189,21 @@ export interface HomeOverview {
 
 export const fetchHomeOverview = async (): Promise<HomeOverview> => {
   return request<HomeOverview>('/home/overview');
+};
+
+export const fetchVideos = async (params: PaginationParams = {}): Promise<PaginatedResponse<Video[]>> => {
+  const { skip, limit, category_id } = clampPagination(params, 20);
+  let url = `/videos?is_published=true&skip=${skip}&limit=${limit}`;
+  if (category_id !== undefined) {
+    url += `&category_id=${category_id}`;
+  }
+  return requestWithTotal<Video[]>(url);
+};
+
+export const fetchVideoCategories = async (): Promise<VideoCategory[]> => {
+  return request<VideoCategory[]>('/videos/categories');
+};
+
+export const fetchVideo = async (videoId: number): Promise<Video> => {
+  return request<Video>(`/videos/${videoId}`);
 };

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `videos` (
   `description` text COLLATE utf8mb4_unicode_ci COMMENT '视频描述',
   `video_url` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '原视频URL（OSS）',
   `thumbnail_video_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '缩略视频URL（OSS）',
+  `cover_image` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '视频封面图片URL',
   `duration` int(11) DEFAULT NULL COMMENT '视频时长（秒）',
   `width` int(11) DEFAULT NULL COMMENT '视频宽度（像素）',
   `height` int(11) DEFAULT NULL COMMENT '视频高度（像素）',
