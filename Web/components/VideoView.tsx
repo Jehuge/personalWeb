@@ -556,6 +556,13 @@ export const VideoView: React.FC = () => {
                   key={video.id} 
                   className="video-card group relative break-inside-avoid rounded-xl md:rounded-2xl overflow-hidden bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl"
                   onMouseEnter={() => {
+                    // 仅在具备 hover 能力（桌面端）时启用悬停预览，避免移动端出现“缩略图一直播放”的问题
+                    if (typeof window !== 'undefined') {
+                      const supportsHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+                      if (!supportsHover) {
+                        return;
+                      }
+                    }
                     setHoveredVideoId(video.id);
                     // 延迟500ms后再加载预览视频
                     if (thumbnailUrl && !videoSrcMap[video.id]) {
