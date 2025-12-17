@@ -25,14 +25,18 @@ class Video(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False, index=True)
     description = Column(Text, nullable=True)
-    video_url = Column(String(500), nullable=False)  # 原视频URL（OSS）
-    thumbnail_video_url = Column(String(500), nullable=True)  # 缩略视频URL（OSS）
+    video_url = Column(String(500), nullable=False)  # 原画视频URL（OSS）
+    thumbnail_video_url = Column(String(500), nullable=True)  # 缩略视频URL（OSS，最大压缩）
+    video_url_480p = Column(String(500), nullable=True)  # 标清视频URL（480p）
+    video_url_720p = Column(String(500), nullable=True)  # 高清视频URL（720p）
     cover_image = Column(String(500), nullable=True)  # 视频封面图片URL
     duration = Column(Integer, nullable=True)  # 视频时长（秒）
     width = Column(Integer, nullable=True)  # 视频宽度
     height = Column(Integer, nullable=True)  # 视频高度
-    file_size = Column(BigInteger, nullable=True)  # 原视频文件大小（字节）
+    file_size = Column(BigInteger, nullable=True)  # 原画视频文件大小（字节）
     thumbnail_file_size = Column(BigInteger, nullable=True)  # 缩略视频文件大小（字节）
+    video_url_480p_size = Column(BigInteger, nullable=True)  # 标清视频文件大小（字节）
+    video_url_720p_size = Column(BigInteger, nullable=True)  # 高清视频文件大小（字节）
     format = Column(String(50), nullable=True)  # 视频格式（如mp4, mov等）
     codec = Column(String(100), nullable=True)  # 视频编码（如h264, hevc等）
     fps = Column(DECIMAL(10, 2), nullable=True)  # 帧率

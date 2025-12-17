@@ -33,7 +33,7 @@ export const VideoView: React.FC = () => {
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [videoQuality, setVideoQuality] = useState<'compressed' | 'original'>('compressed');
+  const [videoQuality, setVideoQuality] = useState<'thumbnail' | '480p' | '720p' | 'original'>('720p');
   const PAGE_SIZE = 15;
   const hasScrolledToTopRef = useRef(false);
   const isInitialMountRef = useRef(true);
@@ -132,15 +132,23 @@ export const VideoView: React.FC = () => {
       const currentTime = videoRef.current.currentTime;
       const wasPlaying = !videoRef.current.paused;
       
-      if (videoQuality === 'compressed' && selectedVideo.thumbnail_video_url) {
-        videoRef.current.src = selectedVideo.thumbnail_video_url;
+      let newSrc = '';
+      if (videoQuality === 'thumbnail' && selectedVideo.thumbnail_video_url) {
+        newSrc = selectedVideo.thumbnail_video_url;
+      } else if (videoQuality === '480p' && selectedVideo.video_url_480p) {
+        newSrc = selectedVideo.video_url_480p;
+      } else if (videoQuality === '720p' && selectedVideo.video_url_720p) {
+        newSrc = selectedVideo.video_url_720p;
       } else {
-        videoRef.current.src = selectedVideo.video_url;
+        newSrc = selectedVideo.video_url;  // 原画
       }
       
-      videoRef.current.currentTime = currentTime;
-      if (wasPlaying) {
-        videoRef.current.play().catch(() => {});
+      if (videoRef.current.src !== newSrc) {
+        videoRef.current.src = newSrc;
+        videoRef.current.currentTime = currentTime;
+        if (wasPlaying) {
+          videoRef.current.play().catch(() => {});
+        }
       }
     }
   }, [videoQuality, selectedVideo]);
@@ -334,23 +342,21 @@ export const VideoView: React.FC = () => {
     if (loading || !selectedVideo) {
       return <Loader />;
     }
-    const currentVideoUrl = videoQuality === 'compressed' && selectedVideo.thumbnail_video_url
-      ? selectedVideo.thumbnail_video_url
-      : selectedVideo.video_url;
+    // 根据选择的画质获取对应的视频URL
+    const getVideoUrl = () => {
+      if (videoQuality === 'thumbnail' && selectedVideo.thumbnail_video_url) {
+        return selectedVideo.thumbnail_video_url;
+      } else if (videoQuality === '480p' && selectedVideo.video_url_480p) {
+        return selectedVideo.video_url_480p;
+      } else if (videoQuality === '720p' && selectedVideo.video_url_720p) {
+        return selectedVideo.video_url_720p;
+      }
+      return selectedVideo.video_url;  // 原画
+    };
+    const currentVideoUrl = getVideoUrl();
 
     return (
       <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
-        {/* 返回按钮 */}
-        <button
-          onClick={() => navigate('/video')}
-          className="mb-6 flex items-center gap-2 px-4 py-2 rounded-xl text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          返回列表
-        </button>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* 视频播放器 */}
           <div className="lg:col-span-2">
@@ -365,43 +371,43 @@ export const VideoView: React.FC = () => {
             </div>
 
             {/* 分辨率选择 */}
-            {selectedVideo.thumbnail_video_url && (
-              <div className="mt-4 flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">分辨率：</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setVideoQuality('compressed')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      videoQuality === 'compressed'
-                        ? 'bg-purple-600 text-white shadow-lg'
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    压缩视频
-                    {selectedVideo.width && selectedVideo.height && (
-                      <span className="ml-2 text-xs opacity-75">
-                        ({Math.min(selectedVideo.width, 1920)}×{Math.min(selectedVideo.height, 1080)})
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setVideoQuality('original')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      videoQuality === 'original'
-                        ? 'bg-purple-600 text-white shadow-lg'
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    原视频
-                    {selectedVideo.width && selectedVideo.height && (
-                      <span className="ml-2 text-xs opacity-75">
-                        ({selectedVideo.width}×{selectedVideo.height})
-                      </span>
-                    )}
-                  </button>
+            <div className="mt-4 flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+              <label htmlFor="video-quality-select" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                画质：
+              </label>
+              <div className="flex-1 relative">
+                <select
+                  id="video-quality-select"
+                  value={videoQuality}
+                  onChange={(e) => setVideoQuality(e.target.value as 'thumbnail' | '480p' | '720p' | 'original')}
+                  className="w-full px-4 py-2 pr-10 rounded-lg text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                >
+                  {selectedVideo.thumbnail_video_url && (
+                    <option value="thumbnail">
+                      缩略{selectedVideo.thumbnail_file_size ? ` (${formatFileSize(selectedVideo.thumbnail_file_size)})` : ''}
+                    </option>
+                  )}
+                  {selectedVideo.video_url_480p && (
+                    <option value="480p">
+                      标清{selectedVideo.video_url_480p_size ? ` (${formatFileSize(selectedVideo.video_url_480p_size)})` : ''}
+                    </option>
+                  )}
+                  {selectedVideo.video_url_720p && (
+                    <option value="720p">
+                      高清{selectedVideo.video_url_720p_size ? ` (${formatFileSize(selectedVideo.video_url_720p_size)})` : ''}
+                    </option>
+                  )}
+                  <option value="original">
+                    原画{selectedVideo.width && selectedVideo.height ? ` (${selectedVideo.width}×${selectedVideo.height})` : ''}{selectedVideo.file_size ? ` - ${formatFileSize(selectedVideo.file_size)}` : ''}
+                  </option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 8l4 4 4-4" />
+                  </svg>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* 视频信息 */}

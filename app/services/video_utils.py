@@ -117,6 +117,112 @@ def get_video_info(video_path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def generate_video_quality(
+    input_path: str,
+    output_path: str,
+    max_width: Optional[int] = None,
+    max_height: Optional[int] = None,
+    scale_ratio: Optional[float] = None,
+    crf: int = 26,
+    preset: str = 'medium',
+    max_duration: Optional[int] = None,
+    audio_bitrate: str = '128k'
+) -> bool:
+    """
+    生成指定画质的视频
+    
+    Args:
+        input_path: 输入视频路径
+        output_path: 输出视频路径
+        max_width: 最大宽度（如果指定scale_ratio则忽略）
+        max_height: 最大高度（如果指定scale_ratio则忽略）
+        scale_ratio: 缩放比例（0.0-1.0），如果指定则按比例缩放，优先级高于max_width/max_height
+        crf: CRF值（0-51，越小质量越高，文件越大）
+        preset: 编码预设（ultrafast, fast, medium, slow, veryslow）
+        max_duration: 最大时长（秒），如果指定则截取前N秒
+        audio_bitrate: 音频比特率
+        
+    Returns:
+        是否成功
+    """
+    if not check_ffmpeg_available():
+        print("ffmpeg不可用")
+        return False
+    
+    try:
+        # 获取视频信息
+        video_info = get_video_info(input_path)
+        if not video_info:
+            print("无法获取视频信息")
+            return False
+        
+        original_width = video_info['width']
+        original_height = video_info['height']
+        duration = video_info['duration']
+        
+        # 计算缩放尺寸，保持宽高比
+        if scale_ratio is not None:
+            # 按比例缩放
+            scale_width = int(original_width * scale_ratio)
+            scale_height = int(original_height * scale_ratio)
+        elif max_width is not None and max_height is not None:
+            # 按最大尺寸限制缩放
+            scale_width = original_width
+            scale_height = original_height
+            if original_width > max_width or original_height > max_height:
+                ratio = min(max_width / original_width, max_height / original_height)
+                scale_width = int(original_width * ratio)
+                scale_height = int(original_height * ratio)
+        else:
+            # 不缩放
+            scale_width = original_width
+            scale_height = original_height
+        
+        # 确保是偶数（某些编码器要求）
+        scale_width = scale_width - (scale_width % 2)
+        scale_height = scale_height - (scale_height % 2)
+        
+        # 构建ffmpeg命令
+        cmd = ['ffmpeg', '-i', input_path]
+        
+        # 如果指定了最大时长，截取前N秒
+        if max_duration and duration > max_duration:
+            cmd.extend(['-t', str(max_duration)])
+        
+        # 视频编码参数
+        cmd.extend([
+            '-vf', f'scale={scale_width}:{scale_height}',
+            '-c:v', 'libx264',
+            '-preset', preset,
+            '-crf', str(crf),
+            '-c:a', 'aac',
+            '-b:a', audio_bitrate,
+            '-movflags', '+faststart',  # 优化web播放
+            '-y',  # 覆盖输出文件
+            output_path
+        ])
+        
+        # 执行ffmpeg命令
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=600  # 10分钟超时
+        )
+        
+        if result.returncode != 0:
+            print(f"ffmpeg处理失败: {result.stderr}")
+            return False
+        
+        return True
+    except subprocess.TimeoutExpired:
+        print("ffmpeg处理超时")
+        return False
+    except Exception as e:
+        print(f"生成视频失败: {e}")
+        return False
+
+
 def generate_thumbnail_video(
     input_path: str,
     output_path: str,
@@ -173,46 +279,29 @@ def generate_thumbnail_video(
         if max_duration and duration > max_duration:
             cmd.extend(['-t', str(max_duration)])
         
-        # 视频编码参数（高质量）
+        # 使用新的generate_video_quality函数
         if quality == 'high':
-            # 高质量编码：使用H.264编码，CRF 18（高质量），preset slow（更好的压缩）
-            cmd.extend([
-                '-vf', f'scale={scale_width}:{scale_height}',
-                '-c:v', 'libx264',
-                '-preset', 'slow',
-                '-crf', '18',  # CRF 18 是高质量（范围0-51，越小质量越高）
-                '-c:a', 'aac',
-                '-b:a', '192k',  # 音频比特率
-                '-movflags', '+faststart',  # 优化web播放
-            ])
+            return generate_video_quality(
+                input_path,
+                output_path,
+                max_width=max_width,
+                max_height=max_height,
+                crf=26,
+                preset='medium',
+                max_duration=max_duration,
+                audio_bitrate='128k'
+            )
         else:
-            # 中等质量
-            cmd.extend([
-                '-vf', f'scale={scale_width}:{scale_height}',
-                '-c:v', 'libx264',
-                '-preset', 'medium',
-                '-crf', '23',  # CRF 23 是中等质量
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-movflags', '+faststart',
-            ])
-        
-        cmd.append('-y')  # 覆盖输出文件
-        cmd.append(output_path)
-        
-        # 执行ffmpeg命令
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=600  # 10分钟超时
-        )
-        
-        if result.returncode != 0:
-            print(f"ffmpeg处理失败: {result.stderr}")
-            return False
-        
-        return True
+            return generate_video_quality(
+                input_path,
+                output_path,
+                max_width=max_width,
+                max_height=max_height,
+                crf=28,
+                preset='fast',
+                max_duration=max_duration,
+                audio_bitrate='96k'
+            )
     except subprocess.TimeoutExpired:
         print("ffmpeg处理超时")
         return False
@@ -258,14 +347,14 @@ def process_video_file(
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as f:
             temp_output = f.name
         
-        # 生成高质量缩略视频（最大1920x1080，如果视频超过30秒则截取前30秒）
+        # 生成缩略视频（最大1280x720，如果视频超过20秒则截取前20秒）
         success = generate_thumbnail_video(
             temp_input,
             temp_output,
-            max_width=1920,
-            max_height=1080,
+            max_width=1280,
+            max_height=720,
             quality='high',
-            max_duration=30  # 缩略视频最多30秒
+            max_duration=20  # 缩略视频最多20秒
         )
         
         if not success:

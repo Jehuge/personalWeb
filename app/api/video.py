@@ -26,7 +26,8 @@ from app.utils.oss import oss_service
 from app.services.video_utils import (
     check_ffmpeg_available,
     get_video_info,
-    generate_thumbnail_video
+    generate_thumbnail_video,
+    generate_video_quality
 )
 
 router = APIRouter(prefix="/videos", tags=["视频管理"])
@@ -298,7 +299,7 @@ async def create_video_with_file(
     
     # 保存上传的视频到临时文件
     temp_input = None
-    temp_output = None
+    temp_files = {}
     
     try:
         # 读取视频文件
@@ -323,40 +324,13 @@ async def create_video_with_file(
                 detail="无法获取视频信息，请确保文件是有效的视频格式"
             )
         
-        # 生成缩略视频（高质量，最大1920x1080，最多30秒）
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as f:
-            temp_output = f.name
-        
-        success = generate_thumbnail_video(
-            temp_input,
-            temp_output,
-            max_width=1920,
-            max_height=1080,
-            quality='high',
-            max_duration=30  # 缩略视频最多30秒
-        )
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="生成缩略视频失败"
-            )
-        
-        # 读取缩略视频内容
-        with open(temp_output, 'rb') as f:
-            thumbnail_content = f.read()
-        
-        thumbnail_file_size = len(thumbnail_content)
-        
         # 生成OSS路径
         date_str = datetime.now().strftime("%Y/%m")
         import uuid
         video_filename = f"{uuid.uuid4().hex}{suffix}"
-        thumbnail_filename = f"{uuid.uuid4().hex}.mp4"
         video_path = f"videos/{date_str}/{video_filename}"
-        thumbnail_path = f"videos/{date_str}/thumbnails/{thumbnail_filename}"
         
-        # 上传原视频到OSS
+        # 上传原画视频到OSS
         video_url = oss_service.upload_video(
             video_content,
             video_path,
@@ -366,20 +340,115 @@ async def create_video_with_file(
         if not video_url:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="原视频上传失败，请检查OSS配置"
+                detail="原画视频上传失败，请检查OSS配置"
             )
         
-        # 上传缩略视频到OSS
-        thumbnail_url = oss_service.upload_video(
+        # 生成4个不同画质的视频（按压缩比例）
+        temp_files = {}
+        video_urls = {}
+        video_sizes = {}
+        
+        # 1. 缩略视频 - 最大压缩（30%尺寸，CRF 32，20秒，fast preset）
+        temp_thumbnail = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+        temp_files['thumbnail'] = temp_thumbnail.name
+        temp_thumbnail.close()
+        
+        if not generate_video_quality(
+            temp_input,
+            temp_files['thumbnail'],
+            scale_ratio=0.3,  # 30%尺寸
+            crf=32,  # 最大压缩
+            preset='fast',
+            max_duration=20,
+            audio_bitrate='64k'
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="生成缩略视频失败"
+            )
+        
+        with open(temp_files['thumbnail'], 'rb') as f:
+            thumbnail_content = f.read()
+        video_sizes['thumbnail'] = len(thumbnail_content)
+        thumbnail_filename = f"{uuid.uuid4().hex}.mp4"
+        thumbnail_path = f"videos/{date_str}/thumbnails/{thumbnail_filename}"
+        video_urls['thumbnail'] = oss_service.upload_video(
             thumbnail_content,
             thumbnail_path,
             content_type="video/mp4"
         )
-        
-        if not thumbnail_url:
+        if not video_urls['thumbnail']:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="缩略视频上传失败，请检查OSS配置"
+                detail="缩略视频上传失败"
+            )
+        
+        # 2. 标清视频 - 50%尺寸
+        temp_480p = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+        temp_files['480p'] = temp_480p.name
+        temp_480p.close()
+        
+        if not generate_video_quality(
+            temp_input,
+            temp_files['480p'],
+            scale_ratio=0.5,  # 50%尺寸
+            crf=28,
+            preset='medium',
+            audio_bitrate='96k'
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="生成标清视频失败"
+            )
+        
+        with open(temp_files['480p'], 'rb') as f:
+            video_480p_content = f.read()
+        video_sizes['480p'] = len(video_480p_content)
+        video_480p_filename = f"{uuid.uuid4().hex}.mp4"
+        video_480p_path = f"videos/{date_str}/480p/{video_480p_filename}"
+        video_urls['480p'] = oss_service.upload_video(
+            video_480p_content,
+            video_480p_path,
+            content_type="video/mp4"
+        )
+        if not video_urls['480p']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="标清视频上传失败"
+            )
+        
+        # 3. 高清视频 - 70%尺寸
+        temp_720p = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+        temp_files['720p'] = temp_720p.name
+        temp_720p.close()
+        
+        if not generate_video_quality(
+            temp_input,
+            temp_files['720p'],
+            scale_ratio=0.7,  # 70%尺寸
+            crf=26,
+            preset='medium',
+            audio_bitrate='128k'
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="生成高清视频失败"
+            )
+        
+        with open(temp_files['720p'], 'rb') as f:
+            video_720p_content = f.read()
+        video_sizes['720p'] = len(video_720p_content)
+        video_720p_filename = f"{uuid.uuid4().hex}.mp4"
+        video_720p_path = f"videos/{date_str}/720p/{video_720p_filename}"
+        video_urls['720p'] = oss_service.upload_video(
+            video_720p_content,
+            video_720p_path,
+            content_type="video/mp4"
+        )
+        if not video_urls['720p']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="高清视频上传失败"
             )
         
         # 解析发布时间
@@ -394,13 +463,17 @@ async def create_video_with_file(
         db_video = Video(
             title=title,
             description=description,
-            video_url=video_url,
-            thumbnail_video_url=thumbnail_url,
+            video_url=video_url,  # 原画
+            thumbnail_video_url=video_urls['thumbnail'],  # 缩略
+            video_url_480p=video_urls['480p'],  # 标清
+            video_url_720p=video_urls['720p'],  # 高清
             duration=video_info.get('duration'),
             width=video_info.get('width'),
             height=video_info.get('height'),
             file_size=video_info.get('file_size'),
-            thumbnail_file_size=thumbnail_file_size,
+            thumbnail_file_size=video_sizes['thumbnail'],
+            video_url_480p_size=video_sizes['480p'],
+            video_url_720p_size=video_sizes['720p'],
             format=video_info.get('format'),
             codec=video_info.get('codec'),
             fps=video_info.get('fps'),
@@ -439,11 +512,13 @@ async def create_video_with_file(
                 os.unlink(temp_input)
             except:
                 pass
-        if temp_output and os.path.exists(temp_output):
-            try:
-                os.unlink(temp_output)
-            except:
-                pass
+        # 清理所有生成的临时视频文件
+        for temp_file in temp_files.values():
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.unlink(temp_file)
+                except:
+                    pass
 
 
 @router.put("/{video_id}", response_model=VideoSchema)

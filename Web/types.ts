@@ -155,14 +155,18 @@ export interface Video {
   id: number;
   title: string;
   description?: string | null;
-  video_url: string;
-  thumbnail_video_url?: string | null;
+  video_url: string;  // 原画
+  thumbnail_video_url?: string | null;  // 缩略（最大压缩）
+  video_url_480p?: string | null;  // 标清
+  video_url_720p?: string | null;  // 高清
   cover_image?: string | null;
   duration?: number | null;
   width?: number | null;
   height?: number | null;
-  file_size?: number | null;
+  file_size?: number | null;  // 原画文件大小
   thumbnail_file_size?: number | null;
+  video_url_480p_size?: number | null;  // 标清文件大小
+  video_url_720p_size?: number | null;  // 高清文件大小
   format?: string | null;
   codec?: string | null;
   fps?: number | null;
