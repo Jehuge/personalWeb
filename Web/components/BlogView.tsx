@@ -253,36 +253,52 @@ export const BlogView: React.FC = () => {
   }, [id]);
 
   // 根据路由参数加载博客详情
+  const lastFetchedBlogIdRef = useRef<number | null>(null);
   useEffect(() => {
     if (id) {
       const blogId = parseInt(id, 10);
       if (!isNaN(blogId)) {
+        // 如果已经为这个博客 ID 获取过详情，避免重复请求
+        // 但如果是第一次查看，需要调用 API 更新浏览次数
         const post = posts.find(p => p.id === blogId);
-        if (post) {
+        if (post && lastFetchedBlogIdRef.current === blogId) {
+          // 已经获取过，直接使用
           setSelectedPost(post);
-          setLoading(false); // 如果找到了，确保 loading 状态为 false
+          setLoading(false);
         } else {
-          // 如果列表还没加载，先设置 loading 为 true
+          // 需要调用 API 获取最新数据（包括更新的浏览次数）
           if (posts.length === 0) {
             setLoading(true);
           }
+          lastFetchedBlogIdRef.current = blogId;
           fetchBlog(blogId)
             .then(singleBlog => {
               setSelectedPost(singleBlog);
               setLoading(false);
-              if (!posts.find(p => p.id === blogId)) {
-                setPosts(prev => [singleBlog, ...prev]);
-              }
+              // 更新列表中的数据，以便显示最新的浏览次数
+              setPosts(prev => {
+                const existing = prev.find(p => p.id === blogId);
+                if (existing) {
+                  return prev.map(p => p.id === blogId ? singleBlog : p);
+                } else {
+                  return [singleBlog, ...prev];
+                }
+              });
             })
             .catch(error => {
               console.error('Failed to fetch blog:', error);
               setError('博客加载失败，请稍后重试');
               setLoading(false);
+              // 如果获取失败，仍然使用列表中的数据
+              if (post) {
+                setSelectedPost(post);
+              }
             });
         }
       }
     } else {
       setSelectedPost(null);
+      lastFetchedBlogIdRef.current = null;
     }
   }, [id, posts]);
 

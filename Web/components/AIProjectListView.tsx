@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AIProject } from '../types';
-import { fetchAIProjects } from '../services/dataService';
+import { fetchAIProjects, fetchAIProject } from '../services/dataService';
 import Loader from './Loader';
 
 const parseTechStack = (stack?: string | null) => {
@@ -111,6 +111,9 @@ export const AIProjectListView: React.FC = () => {
     loadProjects();
   }, []);
 
+  // 跟踪最近获取过详情的项目 ID，避免重复调用 API
+  const lastFetchedProjectIdRef = useRef<number | null>(null);
+  
   // 根据 URL projectId 参数选择项目
   useEffect(() => {
     // 跳过首次加载时的处理（已经在上面的 useEffect 中处理了刷新情况）
@@ -124,7 +127,24 @@ export const AIProjectListView: React.FC = () => {
         if (project) {
           // 只有当当前选中的项目不同时才更新，避免重复设置导致闪烁
           if (selectedProject?.id !== projectId) {
-            setSelectedProject(project);
+            // 如果刚刚获取过这个项目，直接使用；否则调用 API 更新浏览次数
+            if (lastFetchedProjectIdRef.current === projectId) {
+              setSelectedProject(project);
+            } else {
+              // 调用 API 获取最新数据（包括更新的浏览次数）
+              lastFetchedProjectIdRef.current = projectId;
+              fetchAIProject(projectId)
+                .then(updatedProject => {
+                  setSelectedProject(updatedProject);
+                  // 更新列表中的数据，以便显示最新的浏览次数
+                  setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+                })
+                .catch(error => {
+                  console.error('Failed to fetch project details:', error);
+                  // 如果获取失败，仍然使用列表中的数据
+                  setSelectedProject(project);
+                });
+            }
             // 滚动到顶部
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
@@ -134,6 +154,7 @@ export const AIProjectListView: React.FC = () => {
       // 如果没有 projectId 参数，清除选中的项目
       if (selectedProject !== null) {
         setSelectedProject(null);
+        lastFetchedProjectIdRef.current = null;
       }
     }
   }, [searchParams, projects]);

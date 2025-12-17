@@ -305,6 +305,9 @@ export const HomeView: React.FC = () => {
 
   // 使用 useRef 防止 StrictMode 导致的重复请求
   const hasLoadedRef = useRef(false);
+  // 跟踪最近获取过详情的照片和 AI 图片 ID，避免重复调用 API
+  const lastFetchedPhotoIdRef = useRef<number | null>(null);
+  const lastFetchedAiImageIdRef = useRef<number | null>(null);
   
   useEffect(() => {
     // 如果已经加载过，直接返回（防止 StrictMode 重复调用）
@@ -619,17 +622,28 @@ export const HomeView: React.FC = () => {
                   key={photo.id} 
                     className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-teal-500/50 dark:hover:border-teal-400/50 transition-all"
                     onClick={() => {
-                      // 如果照片信息完整，直接显示；否则获取详情
-                      if (photo.image_url && photo.title !== undefined) {
+                      // 每次点击都调用 API 更新浏览次数，但如果刚刚获取过同一个照片，避免重复请求
+                      if (lastFetchedPhotoIdRef.current === photo.id) {
+                        // 刚刚获取过，直接使用
                         setSelectedPhoto(photo);
                         setPhotoExifData(parsePhotoExif(photo));
                       } else {
+                        // 调用 API 获取最新数据（包括更新的浏览次数）
+                        lastFetchedPhotoIdRef.current = photo.id;
                         fetchPhoto(photo.id)
                           .then(p => {
                             setSelectedPhoto(p);
                             setPhotoExifData(parsePhotoExif(p));
+                            // 更新列表中的数据，以便显示最新的浏览次数
+                            setPhotos(prev => prev.map(ph => ph.id === photo.id ? p : ph));
+                            setFeaturedPhotos(prev => prev.map(ph => ph.id === photo.id ? p : ph));
                           })
-                          .catch(err => console.error('Failed to fetch photo details:', err));
+                          .catch(err => {
+                            console.error('Failed to fetch photo details:', err);
+                            // 如果获取失败，仍然显示原照片
+                            setSelectedPhoto(photo);
+                            setPhotoExifData(parsePhotoExif(photo));
+                          });
                       }
                     }}
                 >
@@ -681,15 +695,25 @@ export const HomeView: React.FC = () => {
                     key={image.id} 
                     className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-orange-500/50 dark:hover:border-orange-400/50 transition-all"
                     onClick={() => {
-                      // 如果图片信息完整，直接显示；否则获取详情
-                      if (image.image_url && image.title !== undefined) {
+                      // 每次点击都调用 API 更新浏览次数，但如果刚刚获取过同一张图片，避免重复请求
+                      if (lastFetchedAiImageIdRef.current === image.id) {
+                        // 刚刚获取过，直接使用
                         setSelectedAiImage(image);
                       } else {
+                        // 调用 API 获取最新数据（包括更新的浏览次数）
+                        lastFetchedAiImageIdRef.current = image.id;
                         fetchAIImage(image.id)
                           .then(img => {
                             setSelectedAiImage(img);
+                            // 更新列表中的数据，以便显示最新的浏览次数
+                            setAiImages(prev => prev.map(im => im.id === image.id ? img : im));
+                            setFeaturedAiImages(prev => prev.map(im => im.id === image.id ? img : im));
                           })
-                          .catch(err => console.error('Failed to fetch image:', err));
+                          .catch(err => {
+                            console.error('Failed to fetch image:', err);
+                            // 如果获取失败，仍然显示原图片
+                            setSelectedAiImage(image);
+                          });
                       }
                     }}
                   >

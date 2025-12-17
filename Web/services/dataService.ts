@@ -140,6 +140,10 @@ export const fetchAIProjects = async (params: PaginationParams = {}): Promise<AI
   return request<AIProject[]>(`/ai-projects?published_only=true&skip=${skip}&limit=${limit}`);
 };
 
+export const fetchAIProject = async (projectId: number): Promise<AIProject> => {
+  return request<AIProject>(`/ai-projects/${projectId}`);
+};
+
 export const fetchAIDemos = async (params: PaginationParams = {}): Promise<PaginatedResponse<AIDemo[]>> => {
   const { skip, limit } = clampPagination(params, 20);
   return requestWithTotal<AIDemo[]>(`/ai-demos?published_only=true&skip=${skip}&limit=${limit}`);

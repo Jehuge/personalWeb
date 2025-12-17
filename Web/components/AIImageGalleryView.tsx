@@ -262,29 +262,29 @@ export const AIImageGalleryView: React.FC = () => {
     if (imageIdParam) {
       const imageId = parseInt(imageIdParam, 10);
       if (!isNaN(imageId)) {
-        // 如果图片已经在列表中，直接选择（避免闪烁）
-        const image = images.find(img => img.id === imageId);
-        if (image) {
-          // 只有当当前选中的图片不同时才更新，避免重复设置导致闪烁
-          if (selectedImage?.id !== imageId) {
-            setSelectedImage(image);
-          }
-          return;
-        }
-        
-        // 如果列表已加载但图片不在当前页的列表中，获取图片详情
         // 如果列表还在加载中，等待加载完成
         if (imagesLoading) return;
         
         // 只有当当前选中的图片不同时才获取，避免重复请求
         if (selectedImage?.id !== imageId) {
+          const image = images.find(img => img.id === imageId);
+          // 调用 API 获取最新数据（包括更新的浏览次数）
           fetchAIImage(imageId)
             .then(img => {
               setSelectedImage(img);
+              // 如果图片在列表中，更新列表中的数据，以便显示最新的浏览次数
+              if (image) {
+                setImages(prev => prev.map(im => im.id === imageId ? img : im));
+              }
             })
             .catch(err => {
               console.error('Failed to fetch image:', err);
-              setSelectedImage(null);
+              // 如果获取失败，仍然使用列表中的数据（如果有）
+              if (image) {
+                setSelectedImage(image);
+              } else {
+                setSelectedImage(null);
+              }
             });
         }
       }

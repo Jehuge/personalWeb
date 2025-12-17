@@ -551,6 +551,53 @@ class OSSService:
         except Exception as e:
             print(f"OSS删除失败: {e}")
             return False
+    
+    def upload_video(
+        self,
+        video_content: bytes,
+        file_path: str,
+        content_type: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        上传视频到OSS
+        
+        Args:
+            video_content: 视频内容（字节）
+            file_path: OSS中的文件路径
+            content_type: 文件MIME类型（如 video/mp4）
+            
+        Returns:
+            文件URL，如果上传失败返回None
+        """
+        if not self.enabled:
+            return None
+        
+        try:
+            file_path = file_path.lstrip('/')
+            
+            headers = {}
+            if content_type:
+                headers['Content-Type'] = content_type
+            else:
+                # 根据文件扩展名推断
+                if file_path.endswith('.mp4'):
+                    headers['Content-Type'] = 'video/mp4'
+                elif file_path.endswith('.mov'):
+                    headers['Content-Type'] = 'video/quicktime'
+                elif file_path.endswith('.webm'):
+                    headers['Content-Type'] = 'video/webm'
+                else:
+                    headers['Content-Type'] = 'video/mp4'
+            
+            self.bucket.put_object(file_path, video_content, headers=headers)
+            
+            if settings.OSS_BASE_URL:
+                return f"{settings.OSS_BASE_URL.rstrip('/')}/{file_path.lstrip('/')}"
+            else:
+                return f"https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/{file_path.lstrip('/')}"
+        except Exception as e:
+            print(f"视频上传失败: {e}")
+            return None
 
 
 # 创建全局OSS服务实例

@@ -199,29 +199,29 @@ export const GalleryView: React.FC = () => {
     if (photoIdParam) {
       const photoId = parseInt(photoIdParam, 10);
       if (!isNaN(photoId)) {
-        // 如果照片已经在列表中，直接选择
-        const photo = photos.find(p => p.id === photoId);
-        if (photo) {
-          // 只有当当前选中的照片不同时才更新，避免重复设置导致闪烁
-          if (selectedPhoto?.id !== photoId) {
-            setSelectedPhoto(photo);
-          }
-          return;
-        }
-        
-        // 如果列表已加载但照片不在当前页的列表中，获取照片详情
         // 如果列表还在加载中，等待加载完成
         if (loading) return;
         
         // 只有当当前选中的照片不同时才获取，避免重复请求
         if (selectedPhoto?.id !== photoId) {
+          const photo = photos.find(p => p.id === photoId);
+          // 调用 API 获取最新数据（包括更新的浏览次数）
           fetchPhoto(photoId)
             .then(singlePhoto => {
               setSelectedPhoto(singlePhoto);
+              // 如果照片在列表中，更新列表中的数据，以便显示最新的浏览次数
+              if (photo) {
+                setPhotos(prev => prev.map(p => p.id === photoId ? singlePhoto : p));
+              }
             })
             .catch(error => {
               console.error('Failed to fetch photo:', error);
-              setSelectedPhoto(null);
+              // 如果获取失败，仍然使用列表中的数据（如果有）
+              if (photo) {
+                setSelectedPhoto(photo);
+              } else {
+                setSelectedPhoto(null);
+              }
             });
         }
       }

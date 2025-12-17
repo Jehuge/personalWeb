@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api import auth
-from app.api import blog, photo, ai_project, upload, user, media, ai_demo, ai_image, home
+from app.api import blog, photo, ai_project, upload, user, media, ai_demo, ai_image, home, video
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -35,6 +35,7 @@ app.include_router(media.router, prefix="/api")
 app.include_router(ai_demo.router, prefix="/api")
 app.include_router(ai_image.router, prefix="/api")
 app.include_router(home.router, prefix="/api")
+app.include_router(video.router, prefix="/api")
 
 
 @app.get("/")

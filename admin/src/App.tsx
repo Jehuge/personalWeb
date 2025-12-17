@@ -7,6 +7,7 @@ import BlogList from './pages/blog/BlogList'
 import BlogEdit from './pages/blog/BlogEdit'
 import BlogCategoryList from './pages/category/BlogCategoryList'
 import PhotoCategoryList from './pages/category/PhotoCategoryList'
+import VideoCategoryList from './pages/category/VideoCategoryList'
 import TagList from './pages/tag/TagList'
 import PhotoList from './pages/photo/PhotoList'
 import PhotoEdit from './pages/photo/PhotoEdit'
@@ -20,6 +21,8 @@ import AIImageEdit from './pages/ai/AIImageEdit'
 import AIImageBulkUpload from './pages/ai/AIImageBulkUpload'
 import UserList from './pages/user/UserList'
 import MediaList from './pages/media/MediaList'
+import VideoList from './pages/video/VideoList'
+import VideoEdit from './pages/video/VideoEdit'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
@@ -50,6 +53,7 @@ function App() {
           <Route path="photos/bulk" element={<PhotoBulkUpload />} />
           <Route path="photos/:id" element={<PhotoEdit />} />
           <Route path="photo-categories" element={<PhotoCategoryList />} />
+          <Route path="video-categories" element={<VideoCategoryList />} />
           <Route path="ai-projects" element={<AIProjectList />} />
           <Route path="ai-projects/new" element={<AIProjectEdit />} />
           <Route path="ai-projects/:id" element={<AIProjectEdit />} />
@@ -60,6 +64,9 @@ function App() {
           <Route path="ai-images/new" element={<AIImageEdit />} />
           <Route path="ai-images/bulk-upload" element={<AIImageBulkUpload />} />
           <Route path="ai-images/:id" element={<AIImageEdit />} />
+          <Route path="videos" element={<VideoList />} />
+          <Route path="videos/new" element={<VideoEdit />} />
+          <Route path="videos/:id" element={<VideoEdit />} />
           <Route path="users" element={<UserList />} />
           <Route path="media" element={<MediaList />} />
         </Route>

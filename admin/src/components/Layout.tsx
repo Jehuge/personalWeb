@@ -13,6 +13,7 @@ import {
   TagsOutlined,
   TeamOutlined,
   UserOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '../store/authStore'
 
@@ -51,6 +52,16 @@ const menuItems = [
     label: '摄影分类',
   },
   {
+    key: '/videos',
+    icon: <PlayCircleOutlined />,
+    label: '视频管理',
+  },
+  {
+    key: '/video-categories',
+    icon: <FolderOutlined />,
+    label: '视频分类',
+  },
+  {
     key: '/ai-projects',
     icon: <RobotOutlined />,
     label: 'AI项目',
@@ -86,6 +97,9 @@ const routeTitles: Record<string, string> = {
   '/photos': '摄影作品',
   '/photos/new': '上传照片',
   '/photo-categories': '摄影分类',
+  '/videos': '视频管理',
+  '/videos/new': '上传视频',
+  '/video-categories': '视频分类',
   '/ai-projects': 'AI项目',
   '/ai-projects/new': '新建AI项目',
   '/ai-demos': 'AI Lab Demo',
@@ -100,6 +114,7 @@ const routeTitles: Record<string, string> = {
 const dynamicRouteMatchers: Array<{ pattern: RegExp; title: string }> = [
   { pattern: /^\/blogs\/\d+$/, title: '编辑博客' },
   { pattern: /^\/photos\/\d+$/, title: '编辑照片' },
+  { pattern: /^\/videos\/\d+$/, title: '编辑视频' },
   { pattern: /^\/ai-projects\/\d+$/, title: '编辑AI项目' },
   { pattern: /^\/ai-demos\/\d+$/, title: '编辑AI Demo' },
   { pattern: /^\/ai-images\/\d+$/, title: '编辑 AI 图片' },
