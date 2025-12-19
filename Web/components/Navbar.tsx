@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from './ThemeContext';
 import ThemeSwitch from './ThemeSwitch';
 import CubeLogo from './CubeLogo';
+import GitHubButton from './GitHubButton';
 
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -125,7 +126,8 @@ export const Navbar: React.FC = () => {
 
           {/* Right side actions */}
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center">
+            <div className="hidden md:flex items-center gap-3">
+              <GitHubButton />
               <ThemeSwitch
                 checked={theme === 'dark'}
                 onToggle={toggleTheme}

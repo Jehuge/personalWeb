@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
 import { fetchPhotos, fetchPhoto, fetchPhotoCategories } from '../services/dataService';
 import { PhotoCategory } from '../types';
@@ -7,6 +7,7 @@ import Loader from './Loader';
 import CategoryButton from './CategoryButton';
 import { ZoomableImage } from './ZoomableImage';
 import PuzzleCaptcha from './PuzzleCaptcha';
+import { LazyImage } from './LazyImage';
 
 type ParsedExifData = {
   make: string;
@@ -80,6 +81,7 @@ const formatPhotoShootDate = (photo: PhotoWork) => {
 };
 
 export const GalleryView: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [photos, setPhotos] = useState<PhotoWork[]>([]);
@@ -124,7 +126,6 @@ export const GalleryView: React.FC = () => {
   const selectedMeta = selectedPhoto ? parsePhotoMeta(selectedPhoto.description) : { exif: '——' };
   const hasScrolledToTopRef = useRef(false);
   const isInitialMountRef = useRef(true);
-  const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<number, number>>({});
   const [columnImages, setColumnImages] = useState<PhotoWork[][]>([]);
   const [columnCount, setColumnCount] = useState(() => {
@@ -137,16 +138,14 @@ export const GalleryView: React.FC = () => {
   const hasLoadedCategoriesRef = useRef(false);
   const hasLoadedPhotosRef = useRef(false);
 
-  // 组件挂载时滚动到顶部（只执行一次）
+  // 组件挂载时滚动到顶部（列表页和详情页都需要）
   useEffect(() => {
-    if (!hasScrolledToTopRef.current) {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      hasScrolledToTopRef.current = true;
-    }
-  }, []);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
 
   // 响应式列数，保持布局稳定
   useEffect(() => {
+    if (id) return; // 详情页不需要列数
     const handleResize = () => {
       const width = window.innerWidth;
       const next =
@@ -157,87 +156,60 @@ export const GalleryView: React.FC = () => {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [id]);
 
-  // 检测页面刷新：如果是首次加载且 URL 中有 photoId，清除它（只保留从其他页面导航过来的情况）
+  // 根据路由参数加载照片详情
+  const lastFetchedPhotoIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (isInitialMountRef.current) {
-      isInitialMountRef.current = false;
-      const photoIdParam = searchParams.get('photoId');
-      
-      if (!photoIdParam) return;
-      
-      // 检测是否是页面刷新
-      let isPageRefresh = false;
-      try {
-        const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-        if (navEntry) {
-          isPageRefresh = navEntry.type === 'reload';
-        }
-      } catch (e) {
-        const referrer = document.referrer;
-        const currentPath = window.location.pathname;
-        isPageRefresh = !referrer || 
-          (referrer.includes(window.location.origin) && referrer.includes(currentPath));
-      }
-      
-      if (isPageRefresh) {
-        // 页面刷新时清除 photoId 参数
-        const params = new URLSearchParams(searchParams);
-        params.delete('photoId');
-        setSearchParams(params, { replace: true });
-        setSelectedPhoto(null);
-        return;
-      }
-    }
-  }, []);
-
-  // 根据 URL photoId 参数选择照片（在列表加载完成后处理）
-  useEffect(() => {
-    // 跳过首次加载时的处理（已经在上面的 useEffect 中处理了刷新情况）
-    if (isInitialMountRef.current) return;
-    
-    const photoIdParam = searchParams.get('photoId');
-    if (photoIdParam) {
-      const photoId = parseInt(photoIdParam, 10);
+    if (id) {
+      const photoId = parseInt(id, 10);
       if (!isNaN(photoId)) {
-        // 如果列表还在加载中，等待加载完成
-        if (loading) return;
-        
-        // 只有当当前选中的照片不同时才获取，避免重复请求
-        if (selectedPhoto?.id !== photoId) {
-          const photo = photos.find(p => p.id === photoId);
-          // 调用 API 获取最新数据（包括更新的浏览次数）
+        // 如果已经为这个照片 ID 获取过详情，避免重复请求
+        const photo = photos.find(p => p.id === photoId);
+        if (photo && lastFetchedPhotoIdRef.current === photoId) {
+          // 已经获取过，直接使用
+          setSelectedPhoto(photo);
+          setLoading(false);
+        } else {
+          // 需要调用 API 获取最新数据（包括更新的浏览次数）
+          if (photos.length === 0) {
+            setLoading(true);
+          }
+          lastFetchedPhotoIdRef.current = photoId;
           fetchPhoto(photoId)
             .then(singlePhoto => {
               setSelectedPhoto(singlePhoto);
-              // 如果照片在列表中，更新列表中的数据，以便显示最新的浏览次数
-              if (photo) {
-                setPhotos(prev => prev.map(p => p.id === photoId ? singlePhoto : p));
-              }
+              setLoading(false);
+              // 更新列表中的数据，以便显示最新的浏览次数
+              setPhotos(prev => {
+                const existing = prev.find(p => p.id === photoId);
+                if (existing) {
+                  return prev.map(p => p.id === photoId ? singlePhoto : p);
+                } else {
+                  return [singlePhoto, ...prev];
+                }
+              });
             })
             .catch(error => {
               console.error('Failed to fetch photo:', error);
-              // 如果获取失败，仍然使用列表中的数据（如果有）
+              setError('照片加载失败，请稍后重试');
+              setLoading(false);
+              // 如果获取失败，仍然使用列表中的数据
               if (photo) {
                 setSelectedPhoto(photo);
-              } else {
-                setSelectedPhoto(null);
               }
             });
         }
       }
     } else {
-      // 如果没有 photoId 参数，清除选中的照片
-      if (selectedPhoto !== null) {
-        setSelectedPhoto(null);
-      }
+      setSelectedPhoto(null);
+      lastFetchedPhotoIdRef.current = null;
     }
-  }, [searchParams, photos, loading]);
+  }, [id, photos]);
 
-  // 当弹出框打开时禁用背景滚动
+  // 当下载验证弹出框打开时禁用背景滚动
   useEffect(() => {
-    if (selectedPhoto || showDownloadVerification) {
+    if (showDownloadVerification) {
       // 保存当前滚动位置
       const scrollY = window.scrollY;
       document.body.style.position = 'fixed';
@@ -254,7 +226,7 @@ export const GalleryView: React.FC = () => {
         window.scrollTo(0, scrollY);
       };
     }
-  }, [selectedPhoto, showDownloadVerification]);
+  }, [showDownloadVerification]);
 
   useEffect(() => {
     if (!selectedPhoto) {
@@ -481,21 +453,128 @@ export const GalleryView: React.FC = () => {
   };
 
 
-  // 关闭模态框并清除 URL 参数
-  const handleCloseModal = () => {
-    const hasPhotoId = !!searchParams.get('photoId');
 
-    // 如果 URL 中存在 photoId，说明当前弹窗是通过点击列表打开的
-    // 这时关闭弹窗应等价于浏览器后退一步，而不是再往历史栈压一条记录
-    if (hasPhotoId) {
-      navigate(-1);
-      return;
+  // 如果是详情页，显示详情视图或加载状态
+  if (id) {
+    if (loading || !selectedPhoto) {
+      return <Loader />;
     }
 
-    // 否则，仅关闭本地状态（例如某些异常情况下 selectedPhoto 被设置但 URL 中没有参数）
-    setSelectedPhoto(null);
-  };
+    if (error) {
+      return (
+        <div className="max-w-2xl mx-auto p-10 text-center text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-2xl">
+          {error}
+        </div>
+      );
+    }
 
+    return (
+      <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* 图片展示区域 */}
+          <div className="lg:col-span-2">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-slate-700">
+              <div className="relative w-full" style={{ height: 'calc(100vh - 240px)', minHeight: '600px', maxHeight: '85vh' }}>
+                <ZoomableImage
+                  src={selectedPhoto.thumbnail_url || selectedPhoto.image_url}
+                  alt={selectedPhoto.title}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 照片信息 */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-slate-700 lg:sticky lg:top-24">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                    {selectedPhoto.category?.name || '未分类'}
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(selectedPhoto.created_at).toLocaleDateString('zh-CN', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{selectedPhoto.title}</h1>
+                
+                {selectedPhoto.description && (
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                      {selectedPhoto.description.split('|')[0].trim()}
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filename = `${selectedPhoto.title || 'photo'}-${selectedPhoto.id}.jpg`;
+                    handleDownloadRequest(selectedPhoto.image_url, filename);
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-gray-700 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white transition-all shadow-md hover:shadow-lg"
+                >
+                  下载原图
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+
+                <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">
+                      拍摄参数
+                    </label>
+                    {exifData ? (
+                      <div className="grid grid-cols-2 gap-3 text-xs font-mono text-gray-700 dark:text-gray-300">
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">相机</p>
+                          <p>{[exifData.make, exifData.model].filter(Boolean).join(' ') || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">焦距</p>
+                          <p>{exifData.focalLength || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">光圈</p>
+                          <p>{exifData.aperture || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">快门</p>
+                          <p>{exifData.shutterSpeed || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">ISO</p>
+                          <p>{exifData.iso || '——'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">时间</p>
+                          <p>{exifData.shootTime || '——'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-700 dark:text-gray-300 font-mono">
+                        {selectedPhoto.description ? parsePhotoMeta(selectedPhoto.description).exif : '——'}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-slate-700">
+                    <p>作品编号：#{selectedPhoto.id}</p>
+                    <p className="mt-1">浏览次数：{selectedPhoto.view_count || 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 列表视图
   if (loading && photos.length === 0) {
     return <Loader />;
   }
@@ -560,47 +639,23 @@ export const GalleryView: React.FC = () => {
                   onMouseMove={handlePhotoCardMove}
                   onMouseLeave={handlePhotoCardLeave}
                   onClick={() => {
-                    setSelectedPhoto(photo);
-                    // 更新 URL 参数，保持 URL 和状态同步
-                    const params = new URLSearchParams(searchParams);
-                    params.set('photoId', String(photo.id));
-                    setSearchParams(params);
+                    navigate(`/gallery/${photo.id}`);
                   }}
                 >
                   {/* 图片容器 - 保持原始比例 */}
-                  <div 
+                  <LazyImage
+                    src={thumbSrc}
+                    alt={photo.title}
+                    imageId={photo.id}
+                    autoAspectRatio={true}
+                    defaultAspectRatio={aspectRatio || 4 / 3}
+                    placeholderType="pulse"
+                    imageClassName="w-full h-full object-contain"
                     className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-xl md:rounded-2xl"
-                    style={{
-                      aspectRatio: imageAspectRatios[photo.id] || aspectRatio || 4 / 3
+                    onAspectRatioChange={(ratio) => {
+                      setImageAspectRatios((prev) => ({ ...prev, [photo.id]: ratio }));
                     }}
-                  >
-                    {(() => {
-                      const isLoaded = imageLoadedMap[photo.id];
-                      return (
-                        <>
-                          {!isLoaded && (
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
-                          )}
-                          <img
-                            src={thumbSrc}
-                            alt={photo.title}
-                            className={`w-full h-full object-contain transition-opacity duration-300 ${
-                              isLoaded ? 'opacity-100' : 'opacity-0'
-                            }`}
-                            loading="lazy"
-                            decoding="async"
-                            onLoad={(e) => {
-                              const img = e.currentTarget;
-                              if (img.naturalWidth && img.naturalHeight) {
-                                const ratio = img.naturalWidth / img.naturalHeight;
-                                setImageAspectRatios((prev) => ({ ...prev, [photo.id]: ratio }));
-                              }
-                              setImageLoadedMap((prev) => ({ ...prev, [photo.id]: true }));
-                            }}
-                          />
-                        </>
-                      );
-                    })()}
+                  />
                     
                     {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
                     <div className="absolute inset-0 pointer-events-none flex">
@@ -645,7 +700,6 @@ export const GalleryView: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
                 </article>
               );
             })}
@@ -676,115 +730,6 @@ export const GalleryView: React.FC = () => {
         </div>
       )}
 
-      {/* 照片详情弹出框 */}
-      {selectedPhoto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
-          onClick={handleCloseModal}
-        >
-          <div
-            className="relative max-w-6xl w-full max-h-[90vh] flex flex-col md:flex-row bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-slate-700 animate-fade-in"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* 关闭按钮 - 统一放在右上角 */}
-            <button
-              onClick={handleCloseModal}
-              className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-2 rounded-full shadow-lg"
-              aria-label="关闭"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            
-            <ZoomableImage
-              src={selectedPhoto.thumbnail_url || selectedPhoto.image_url}
-              alt={selectedPhoto.title}
-            />
-            <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                    {selectedPhoto.category?.name || '未分类'}
-                  </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(selectedPhoto.created_at).toLocaleDateString('zh-CN', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white pr-8">{selectedPhoto.title}</h3>
-                
-                {selectedPhoto.description && (
-                  <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                      {selectedPhoto.description.split('|')[0].trim()}
-                    </p>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const filename = `${selectedPhoto.title || 'photo'}-${selectedPhoto.id}.jpg`;
-                    handleDownloadRequest(selectedPhoto.image_url, filename);
-                  }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-gray-700 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white transition-all shadow-md hover:shadow-lg"
-                >
-                  下载原图
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                </button>
-
-                <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">
-                      拍摄参数
-                    </label>
-                    {exifData ? (
-                      <div className="grid grid-cols-2 gap-3 text-xs font-mono text-gray-700 dark:text-gray-300">
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">相机</p>
-                          <p>{[exifData.make, exifData.model].filter(Boolean).join(' ') || '——'}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">焦距</p>
-                          <p>{exifData.focalLength || '——'}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">光圈</p>
-                          <p>{exifData.aperture || '——'}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">快门</p>
-                          <p>{exifData.shutterSpeed || '——'}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">ISO</p>
-                          <p>{exifData.iso || '——'}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 font-semibold">时间</p>
-                          <p>{exifData.shootTime || '——'}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-700 dark:text-gray-300 font-mono">{selectedMeta.exif}</p>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-slate-700">
-                    <p>作品编号：#{selectedPhoto.id}</p>
-                    <p className="mt-1">浏览次数：{selectedPhoto.view_count || 0}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
 
       {/* 下载验证 */}

@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { AIImage } from '../types';
 import { fetchAIImages, fetchAIImage } from '../services/dataService';
 import Loader from './Loader';
 import { ZoomableImage } from './ZoomableImage';
 import PuzzleCaptcha from './PuzzleCaptcha';
+import { LazyImage } from './LazyImage';
 
 export const AIImageGalleryView: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [images, setImages] = useState<AIImage[]>([]);
@@ -45,7 +47,6 @@ export const AIImageGalleryView: React.FC = () => {
   };
   const [fwAccessCode, setFwAccessCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
-  const [imageLoadedMap, setImageLoadedMap] = useState<Record<number, boolean>>({});
   const [imageAspectMap, setImageAspectMap] = useState<Record<number, number>>({});
   const [columnImages, setColumnImages] = useState<AIImage[][]>([]);
   const [columnCount, setColumnCount] = useState(() => {
@@ -156,13 +157,10 @@ export const AIImageGalleryView: React.FC = () => {
     }
   };
 
-  // 组件挂载时滚动到顶部（只执行一次）
+  // 组件挂载时滚动到顶部（列表页和详情页都需要）
   useEffect(() => {
-    if (!hasScrolledToTopRef.current) {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      hasScrolledToTopRef.current = true;
-    }
-  }, []);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
 
 
   // 初始加载
@@ -213,92 +211,57 @@ export const AIImageGalleryView: React.FC = () => {
     setColumnImages(columns);
   }, [images, imageAspectMap, columnCount]);
 
-  // 检测页面刷新：如果是首次加载且 URL 中有 imageId，清除它（只保留从其他页面导航过来的情况）
+  // 根据路由参数加载图片详情
+  const lastFetchedImageIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (isInitialMountRef.current) {
-      isInitialMountRef.current = false;
-      const imageIdParam = searchParams.get('imageId');
-      
-      if (!imageIdParam) return;
-      
-      // 检测是否是页面刷新
-      // 使用 PerformanceNavigationTiming API 检测导航类型
-      let isPageRefresh = false;
-      try {
-        const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-        if (navEntry) {
-          // type 为 'reload' 表示刷新
-          isPageRefresh = navEntry.type === 'reload';
-        }
-      } catch (e) {
-        // API 不可用时，使用 referrer 判断
-        // 如果 referrer 是当前页面（包含 /ai-gallery），可能是刷新
-        // 如果 referrer 是其他页面（如首页），则是导航过来的
-        const referrer = document.referrer;
-        const currentPath = window.location.pathname;
-        // referrer 为空或 referrer 包含当前路径，可能是刷新
-        // referrer 不包含当前路径，说明是从其他页面导航过来的
-        isPageRefresh = !referrer || 
-          (referrer.includes(window.location.origin) && referrer.includes(currentPath));
-      }
-      
-      if (isPageRefresh) {
-        // 页面刷新时清除 imageId 参数
-        const params = new URLSearchParams(searchParams);
-        params.delete('imageId');
-        setSearchParams(params, { replace: true });
-        setSelectedImage(null);
-        return;
-      }
-    }
-  }, []);
-
-  // 根据 URL imageId 参数选择图片（在列表加载完成后处理）
-  useEffect(() => {
-    // 跳过首次加载时的处理（已经在上面的 useEffect 中处理了刷新情况）
-    if (isInitialMountRef.current) return;
-    
-    const imageIdParam = searchParams.get('imageId');
-    if (imageIdParam) {
-      const imageId = parseInt(imageIdParam, 10);
+    if (id) {
+      const imageId = parseInt(id, 10);
       if (!isNaN(imageId)) {
-        // 如果列表还在加载中，等待加载完成
-        if (imagesLoading) return;
-        
-        // 只有当当前选中的图片不同时才获取，避免重复请求
-        if (selectedImage?.id !== imageId) {
-          const image = images.find(img => img.id === imageId);
-          // 调用 API 获取最新数据（包括更新的浏览次数）
+        // 如果已经为这个图片 ID 获取过详情，避免重复请求
+        const image = images.find(img => img.id === imageId);
+        if (image && lastFetchedImageIdRef.current === imageId) {
+          // 已经获取过，直接使用
+          setSelectedImage(image);
+          setImagesLoading(false);
+        } else {
+          // 需要调用 API 获取最新数据（包括更新的浏览次数）
+          if (images.length === 0) {
+            setImagesLoading(true);
+          }
+          lastFetchedImageIdRef.current = imageId;
           fetchAIImage(imageId)
             .then(img => {
               setSelectedImage(img);
-              // 如果图片在列表中，更新列表中的数据，以便显示最新的浏览次数
-              if (image) {
-                setImages(prev => prev.map(im => im.id === imageId ? img : im));
-              }
+              setImagesLoading(false);
+              // 更新列表中的数据，以便显示最新的浏览次数
+              setImages(prev => {
+                const existing = prev.find(im => im.id === imageId);
+                if (existing) {
+                  return prev.map(im => im.id === imageId ? img : im);
+                } else {
+                  return [img, ...prev];
+                }
+              });
             })
             .catch(err => {
               console.error('Failed to fetch image:', err);
-              // 如果获取失败，仍然使用列表中的数据（如果有）
+              setImagesLoading(false);
+              // 如果获取失败，仍然使用列表中的数据
               if (image) {
                 setSelectedImage(image);
-              } else {
-                setSelectedImage(null);
               }
             });
         }
       }
     } else {
-      // 如果没有 imageId 参数，清除选中的图片
-      if (selectedImage !== null) {
-        setSelectedImage(null);
-      }
+      setSelectedImage(null);
+      lastFetchedImageIdRef.current = null;
     }
-  }, [searchParams, images, imagesLoading]);
+  }, [id, images]);
 
-  // 当弹出框打开时禁用背景滚动
+  // 当下载验证弹出框打开时禁用背景滚动
   useEffect(() => {
-    if (selectedImage || showDownloadVerification) {
+    if (showDownloadVerification) {
       // 保存当前滚动位置
       const scrollY = window.scrollY;
       document.body.style.position = 'fixed';
@@ -315,7 +278,7 @@ export const AIImageGalleryView: React.FC = () => {
         window.scrollTo(0, scrollY);
       };
     }
-  }, [selectedImage, showDownloadVerification]);
+  }, [showDownloadVerification]);
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,21 +286,95 @@ export const AIImageGalleryView: React.FC = () => {
     loadImages(0, inputCode);
   };
 
-  // 关闭模态框并清除 URL 参数
-  const handleCloseModal = () => {
-    const hasImageId = !!searchParams.get('imageId');
 
-    // 如果 URL 中存在 imageId，说明当前弹窗是通过点击列表打开的
-    // 这时关闭弹窗应等价于浏览器后退一步，而不是再往历史栈压一条记录
-    if (hasImageId) {
-      navigate(-1);
-      return;
+  // 如果是详情页，显示详情视图或加载状态
+  if (id) {
+    if (imagesLoading || !selectedImage) {
+      return <Loader fullscreen />;
     }
 
-    // 否则，仅关闭本地状态（例如某些异常情况下 selectedImage 被设置但 URL 中没有参数）
-    setSelectedImage(null);
-  };
+    return (
+      <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* 图片展示区域 */}
+          <div className="lg:col-span-2">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-slate-700">
+              <div className="relative w-full" style={{ height: 'calc(100vh - 240px)', minHeight: '600px', maxHeight: '85vh' }}>
+                <ZoomableImage
+                  src={selectedImage.thumbnail_url || selectedImage.image_url}
+                  alt={selectedImage.title || 'AI Image'}
+                />
+              </div>
+            </div>
+          </div>
 
+          {/* 图片信息 */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-slate-700 lg:sticky lg:top-24">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{selectedImage.title || '无标题'}</h3>
+
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filename = `${selectedImage.title || 'ai-image'}-${selectedImage.id}.jpg`;
+                    handleDownloadRequest(selectedImage.image_url, filename);
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-gray-700 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white transition-all shadow-md hover:shadow-lg"
+                >
+                  下载原图
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">浏览次数</label>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.view_count || 0} 次</p>
+                </div>
+                {selectedImage.prompt && (
+                  <div>
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">提示词 (Prompt)</label>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedImage.prompt}</p>
+                  </div>
+                )}
+
+                {selectedImage.negative_prompt && (
+                  <div>
+                    <label className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider block mb-1">反向提示词 (Negative)</label>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{selectedImage.negative_prompt}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">模型</label>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.model_name || '未知'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">创建时间</label>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{new Date(selectedImage.created_at).toLocaleDateString('zh-CN')}</p>
+                  </div>
+                </div>
+
+                {selectedImage.parameters && (
+                  <div>
+                    <label className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-1">生成参数</label>
+                    <pre className="mt-2 p-3 bg-gray-50 dark:bg-slate-900 rounded-lg text-xs text-gray-700 dark:text-gray-300 overflow-x-auto border border-gray-200 dark:border-slate-700">
+                      {typeof selectedImage.parameters === 'string'
+                        ? selectedImage.parameters
+                        : JSON.stringify(selectedImage.parameters, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 列表视图
   if (imagesLoading) {
     return <Loader fullscreen />;
   }
@@ -389,40 +426,23 @@ export const AIImageGalleryView: React.FC = () => {
                     onMouseMove={handleCardMove}
                     onMouseLeave={handleCardLeave}
                     onClick={() => {
-                      setSelectedImage(image);
-                      // 更新 URL 参数，保持 URL 和状态同步
-                      const params = new URLSearchParams(searchParams);
-                      params.set('imageId', String(image.id));
-                      setSearchParams(params);
+                      navigate(`/ai-gallery/${image.id}`);
                     }}
                   >
-                    {(() => {
-                      const ratio = imageAspectMap[image.id];
-                      return (
-                        <div
-                          className="relative overflow-hidden bg-gray-100 dark:bg-gray-700"
-                          style={ratio ? { aspectRatio: ratio } : { aspectRatio: '16 / 9' }}
-                        >
-                          {!imageLoadedMap[image.id] && (
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
-                          )}
-                          <img
-                            src={image.thumbnail_url || image.image_url}
-                            alt={image.title || 'AI Generated Image'}
-                            className="absolute inset-0 w-full h-full object-contain block"
-                            loading="lazy"
-                            onLoad={(e) => {
-                              const { naturalWidth, naturalHeight } = e.currentTarget;
-                              if (naturalWidth && naturalHeight) {
-                                const nextRatio = Number((naturalWidth / naturalHeight).toFixed(4));
-                                setImageAspectMap((prev) => ({ ...prev, [image.id]: nextRatio }));
-                              }
-                              setImageLoadedMap((prev) => ({ ...prev, [image.id]: true }));
-                            }}
-                          />
-                        </div>
-                      );
-                    })()}
+                    <LazyImage
+                      src={image.thumbnail_url || image.image_url}
+                      alt={image.title || 'AI Generated Image'}
+                      imageId={image.id}
+                      autoAspectRatio={true}
+                      defaultAspectRatio={16 / 9}
+                      placeholderType="pulse"
+                      imageClassName="w-full h-full object-contain"
+                      className="overflow-hidden bg-gray-100 dark:bg-gray-700"
+                      onAspectRatioChange={(ratio) => {
+                        const nextRatio = Number(ratio.toFixed(4));
+                        setImageAspectMap((prev) => ({ ...prev, [image.id]: nextRatio }));
+                      }}
+                    />
                     <div className="px-3 pt-0.5 pb-0.5 md:px-4 md:pt-1 md:pb-1 min-h-[46px] flex flex-col justify-between gap-1">
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-sm font-normal text-gray-900 dark:text-white truncate flex-1 leading-tight">
@@ -467,92 +487,6 @@ export const AIImageGalleryView: React.FC = () => {
           </div>
         )}
 
-        {/* Image Modal */}
-        {selectedImage && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
-            onClick={handleCloseModal}
-          >
-            <div
-              className="relative max-w-6xl w-full max-h-[90vh] flex flex-col md:flex-row bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-slate-700 animate-fade-in"
-              onClick={e => e.stopPropagation()}
-            >
-              {/* 关闭按钮 - 统一放在右上角 */}
-              <button
-                onClick={handleCloseModal}
-                className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-2 rounded-full shadow-lg"
-                aria-label="关闭"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              
-              <ZoomableImage
-                src={selectedImage.thumbnail_url || selectedImage.image_url}
-                alt={selectedImage.title || 'AI Image'}
-              />
-              <div className="w-full md:w-96 bg-white dark:bg-slate-800 p-6 overflow-y-auto border-t md:border-t-0 md:border-l border-gray-200 dark:border-slate-700">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pr-8">{selectedImage.title || '无标题'}</h3>
-
-                <div className="space-y-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const filename = `${selectedImage.title || 'ai-image'}-${selectedImage.id}.jpg`;
-                      handleDownloadRequest(selectedImage.image_url, filename);
-                    }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-gray-700 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white transition-all shadow-md hover:shadow-lg"
-                  >
-                    下载原图
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">浏览次数</label>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.view_count || 0} 次</p>
-                  </div>
-                  {selectedImage.prompt && (
-                    <div>
-                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">提示词 (Prompt)</label>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedImage.prompt}</p>
-                    </div>
-                  )}
-
-                  {selectedImage.negative_prompt && (
-                    <div>
-                      <label className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider block mb-1">反向提示词 (Negative)</label>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{selectedImage.negative_prompt}</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">模型</label>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.model_name || '未知'}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">创建时间</label>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{new Date(selectedImage.created_at).toLocaleDateString('zh-CN')}</p>
-                    </div>
-                  </div>
-
-                  {selectedImage.parameters && (
-                    <div>
-                      <label className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-1">生成参数</label>
-                      <pre className="mt-2 p-3 bg-gray-50 dark:bg-slate-900 rounded-lg text-xs text-gray-700 dark:text-gray-300 overflow-x-auto border border-gray-200 dark:border-slate-700">
-                        {typeof selectedImage.parameters === 'string'
-                          ? selectedImage.parameters
-                          : JSON.stringify(selectedImage.parameters, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* 下载验证 */}
         {showDownloadVerification && (

@@ -30,6 +30,7 @@ function AppContent() {
             <Route path="/video" element={<VideoView />} />
             <Route path="/video/:id" element={<VideoView />} />
             <Route path="/ai-gallery" element={<AIImageGalleryView />} />
+            <Route path="/ai-gallery/:id" element={<AIImageGalleryView />} />
             <Route path="/ai-demo" element={<AIDemoView />} />
             <Route path="/ai-project" element={<AIProjectListView />} />
           </Routes>
