@@ -1,7 +1,7 @@
 """
 博客API路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
@@ -9,6 +9,8 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.anti_crawler import limiter
+from app.core.config import settings
 from app.api.dependencies import get_current_active_user
 from app.models.user import User
 from app.models.blog import Blog, Category, Tag
@@ -197,7 +199,9 @@ async def delete_tag(
 
 # ========== 博客文章管理 ==========
 @router.get("", response_model=List[BlogSchema])
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def get_blogs(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     category_id: Optional[int] = None,
@@ -264,7 +268,8 @@ async def get_blogs(
 
 
 @router.get("/{blog_id}", response_model=BlogSchema)
-async def get_blog(blog_id: int, db: AsyncSession = Depends(get_db)):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def get_blog(request: Request, blog_id: int, db: AsyncSession = Depends(get_db)):
     """获取单篇博客"""
     result = await db.execute(
         select(Blog)

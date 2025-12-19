@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Video, VideoCategory } from '../types';
 import { fetchVideos, fetchVideo, fetchVideoCategories } from '../services/dataService';
-import Loader from './Loader';
-import CategoryButton from './CategoryButton';
+import Loader from '../components/ui/Loader';
+import CategoryButton from '../components/ui/CategoryButton';
 
 const formatDuration = (seconds?: number | null) => {
   if (!seconds) return '00:00';

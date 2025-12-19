@@ -3,11 +3,11 @@ import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { PhotoWork, PhotoExif } from '../types';
 import { fetchPhotos, fetchPhoto, fetchPhotoCategories } from '../services/dataService';
 import { PhotoCategory } from '../types';
-import Loader from './Loader';
-import CategoryButton from './CategoryButton';
-import { ZoomableImage } from './ZoomableImage';
-import PuzzleCaptcha from './PuzzleCaptcha';
-import { LazyImage } from './LazyImage';
+import Loader from '../components/ui/Loader';
+import CategoryButton from '../components/ui/CategoryButton';
+import { ZoomableImage } from '../components/image/ZoomableImage';
+import PuzzleCaptcha from '../components/features/PuzzleCaptcha';
+import { LazyImage } from '../components/image/LazyImage';
 
 type ParsedExifData = {
   make: string;

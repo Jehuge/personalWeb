@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AIDemo } from '../types';
 import { fetchAIDemos } from '../services/dataService';
-import PlayButton from './PlayButton';
-import Loader from './Loader';
+import PlayButton from '../components/ui/PlayButton';
+import Loader from '../components/ui/Loader';
 
 const parseDemoTags = (tags?: string | null) => {
   if (!tags) return [];

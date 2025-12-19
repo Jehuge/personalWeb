@@ -1,9 +1,17 @@
 """
 FastAPI主应用文件
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.core.config import settings
+from app.core.anti_crawler import (
+    limiter,
+    check_user_agent_middleware,
+    get_rate_limit_key
+)
 from app.api import auth
 from app.api import blog, photo, ai_project, upload, user, media, ai_demo, ai_image, home, video
 
@@ -15,6 +23,15 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# 配置速率限制器
+limiter.key_func = get_rate_limit_key
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# 添加速率限制中间件（如果启用）
+if settings.ENABLE_RATE_LIMIT:
+    app.add_middleware(SlowAPIMiddleware)
+
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
@@ -23,6 +40,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 添加User-Agent检查中间件（如果启用）
+if settings.ENABLE_USER_AGENT_CHECK:
+    @app.middleware("http")
+    async def user_agent_check_middleware(request: Request, call_next):
+        return await check_user_agent_middleware(request, call_next)
 
 # 注册路由
 app.include_router(auth.router, prefix="/api")

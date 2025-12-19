@@ -6,10 +6,10 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
 import { BlogPost, BlogCategory } from '../types';
 import { fetchPosts, fetchBlog, fetchBlogCategories } from '../services/dataService';
-import { LazyImage } from './LazyImage';
-import Loader from './Loader';
-import { MermaidDiagram } from './MermaidDiagram';
-import CategoryButton from './CategoryButton';
+import { LazyImage } from '../components/image/LazyImage';
+import Loader from '../components/ui/Loader';
+import { MermaidDiagram } from '../components/content/MermaidDiagram';
+import CategoryButton from '../components/ui/CategoryButton';
 
 interface Heading {
   id: string;

@@ -2,7 +2,7 @@
 首页API路由
 用于获取首页展示数据
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
@@ -11,6 +11,8 @@ from pydantic import BaseModel
 import random
 
 from app.core.database import get_db
+from app.core.anti_crawler import limiter
+from app.core.config import settings
 from app.models.blog import Blog
 from app.models.photo import Photo
 from app.models.ai_demo import AIDemo
@@ -35,7 +37,9 @@ class HomeOverviewResponse(BaseModel):
 
 
 @router.get("/overview", response_model=HomeOverviewResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def get_home_overview(
+    request: Request,
     blog_limit: int = Query(6, ge=1, le=20, description="博客数量"),
     photo_limit: int = Query(10, ge=1, le=20, description="随机图片数量"),
     ai_image_limit: int = Query(10, ge=1, le=20, description="AI图片数量"),
@@ -164,7 +168,9 @@ async def get_home_overview(
 
 
 @router.get("/random-photos", response_model=List[PhotoSchema])
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def get_random_photos(
+    request: Request,
     limit: int = Query(8, ge=1, le=20, description="随机图片数量"),
     db: AsyncSession = Depends(get_db)
 ):

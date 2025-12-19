@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import { feature } from 'topojson-client';
-import { useTheme } from './ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface GeoFeature {
   type: string;

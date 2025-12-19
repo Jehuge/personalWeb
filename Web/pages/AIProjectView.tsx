@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AIDemo, AIImage, AIProject } from '../types';
 import { fetchAIDemos, fetchAIImages, fetchAIProjects, fetchAIImage } from '../services/dataService';
-import PlayButton from './PlayButton';
-import Loader from './Loader';
+import PlayButton from '../components/ui/PlayButton';
+import Loader from '../components/ui/Loader';
 
 const parseTechStack = (stack?: string | null) => {
   if (!stack) return [];

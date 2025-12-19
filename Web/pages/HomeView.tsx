@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BlogPost, PhotoWork, AIDemo, AIImage, AIProject, PhotoExif } from '../types';
 import { fetchHomeOverview, fetchAIImage, fetchPhoto } from '../services/dataService';
-import { LazyImage } from './LazyImage';
-import { useTheme } from './ThemeContext';
-import Loader from './Loader';
-import { ZoomableImage } from './ZoomableImage';
-import PuzzleCaptcha from './PuzzleCaptcha';
-import { GlobeAnimation } from './GlobeAnimation';
-import PhotoGallery from './PhotoGallery';
-import ImageGallery from './ImageGallery';
+import { LazyImage } from '../components/image/LazyImage';
+import { useTheme } from '../components/context/ThemeContext';
+import Loader from '../components/ui/Loader';
+import { ZoomableImage } from '../components/image/ZoomableImage';
+import PuzzleCaptcha from '../components/features/PuzzleCaptcha';
+import { GlobeAnimation } from '../components/animation/GlobeAnimation';
+import PhotoGallery from '../components/image/PhotoGallery';
+import ImageGallery from '../components/image/ImageGallery';
 
 // 摄影图片 EXIF 数据处理辅助函数
 type ParsedExifData = {

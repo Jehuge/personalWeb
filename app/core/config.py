@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     # 图片访问特殊码
     FW_ACCESS_CODE: str = ""
     
+    # 反爬虫配置
+    ENABLE_RATE_LIMIT: bool = True  # 是否启用速率限制
+    RATE_LIMIT_PER_MINUTE: int = 60  # 每分钟请求数限制（默认60次/分钟）
+    RATE_LIMIT_PER_HOUR: int = 1000  # 每小时请求数限制（默认1000次/小时）
+    ENABLE_USER_AGENT_CHECK: bool = True  # 是否启用User-Agent检查
+    ALLOW_EMPTY_USER_AGENT: bool = False  # 是否允许空的User-Agent
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # 处理CORS_ORIGINS，支持JSON字符串或列表

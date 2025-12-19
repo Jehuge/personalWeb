@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { AIImage } from '../types';
 import { fetchAIImages, fetchAIImage } from '../services/dataService';
-import Loader from './Loader';
-import { ZoomableImage } from './ZoomableImage';
-import PuzzleCaptcha from './PuzzleCaptcha';
-import { LazyImage } from './LazyImage';
+import Loader from '../components/ui/Loader';
+import { ZoomableImage } from '../components/image/ZoomableImage';
+import PuzzleCaptcha from '../components/features/PuzzleCaptcha';
+import { LazyImage } from '../components/image/LazyImage';
 
 export const AIImageGalleryView: React.FC = () => {
   const { id } = useParams<{ id?: string }>();

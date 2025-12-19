@@ -1,16 +1,16 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { ThemeProvider } from './components/ThemeContext';
-import { Navbar } from './components/Navbar';
-import { BlogView } from './components/BlogView';
-import { GalleryView } from './components/GalleryView';
-import { VideoView } from './components/VideoView';
-import { AIImageGalleryView } from './components/AIImageGalleryView';
-import { AIDemoView } from './components/AIDemoView';
-import { AIProjectListView } from './components/AIProjectListView';
-import { Footer } from './components/Footer';
-import { HomeView } from './components/HomeView';
-import { ScrollToTop } from './components/ScrollToTop';
+import { ThemeProvider } from './components/context/ThemeContext';
+import { Navbar } from './components/layout/Navbar';
+import { Footer } from './components/layout/Footer';
+import { ScrollToTop } from './components/layout/ScrollToTop';
+import { HomeView } from './pages/HomeView';
+import { BlogView } from './pages/BlogView';
+import { GalleryView } from './pages/GalleryView';
+import { VideoView } from './pages/VideoView';
+import { AIImageGalleryView } from './pages/AIImageGalleryView';
+import { AIDemoView } from './pages/AIDemoView';
+import { AIProjectListView } from './pages/AIProjectListView';
 
 function AppContent() {
   const location = useLocation();

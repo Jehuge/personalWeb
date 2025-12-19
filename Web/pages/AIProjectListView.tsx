@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AIProject } from '../types';
 import { fetchAIProjects, fetchAIProject } from '../services/dataService';
-import Loader from './Loader';
+import Loader from '../components/ui/Loader';
 
 const parseTechStack = (stack?: string | null) => {
   if (!stack) return [];

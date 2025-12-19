@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useTheme } from './ThemeContext';
-import ThemeSwitch from './ThemeSwitch';
-import CubeLogo from './CubeLogo';
-import GitHubButton from './GitHubButton';
+import { useTheme } from '../context/ThemeContext';
+import ThemeSwitch from '../ui/ThemeSwitch';
+import CubeLogo from '../ui/CubeLogo';
+import GitHubButton from '../ui/GitHubButton';
 
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();

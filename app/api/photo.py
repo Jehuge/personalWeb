@@ -1,7 +1,7 @@
 """
 摄影作品API路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -10,6 +10,8 @@ from datetime import datetime
 import json
 
 from app.core.database import get_db
+from app.core.anti_crawler import limiter
+from app.core.config import settings
 from app.api.dependencies import get_current_active_user
 from app.models.user import User
 from app.models.photo import Photo, PhotoCategory
@@ -121,7 +123,9 @@ async def delete_photo_category(
 
 # ========== 摄影作品管理 ==========
 @router.get("", response_model=List[PhotoSchema])
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def get_photos(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     category_id: Optional[int] = None,
@@ -161,7 +165,8 @@ async def get_photos(
 
 
 @router.get("/{photo_id}", response_model=PhotoSchema)
-async def get_photo(photo_id: int, db: AsyncSession = Depends(get_db)):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def get_photo(request: Request, photo_id: int, db: AsyncSession = Depends(get_db)):
     """获取单张摄影作品"""
     try:
         result = await db.execute(
