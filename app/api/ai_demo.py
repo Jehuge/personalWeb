@@ -24,7 +24,7 @@ router = APIRouter(prefix="/ai-demos", tags=["AI Demo"])
 @router.get("", response_model=List[AIDemoSchema])
 async def list_ai_demos(
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=200),
+    limit: int = Query(20, ge=1, le=30),
     is_featured: Optional[bool] = None,
     category: Optional[str] = None,
     published_only: bool = Query(False, description="只返回已发布的 Demo"),

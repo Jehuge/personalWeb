@@ -203,7 +203,7 @@ async def delete_tag(
 async def get_blogs(
     request: Request,
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=30),
     category_id: Optional[int] = None,
     tag_id: Optional[int] = None,
     search: Optional[str] = None,

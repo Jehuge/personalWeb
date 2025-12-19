@@ -127,7 +127,7 @@ async def delete_photo_category(
 async def get_photos(
     request: Request,
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=30),
     category_id: Optional[int] = None,
     is_featured: Optional[bool] = None,
     db: AsyncSession = Depends(get_db),

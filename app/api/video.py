@@ -130,7 +130,7 @@ async def delete_video_category(
 @router.get("", response_model=List[VideoSchema])
 async def get_videos(
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=30),
     category_id: Optional[int] = None,
     is_featured: Optional[bool] = None,
     is_published: Optional[bool] = Query(None, description="是否已发布，默认只返回已发布的视频"),

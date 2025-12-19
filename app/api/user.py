@@ -17,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["用户管理"])
 @router.get("", response_model=List[UserSchema])
 async def get_users(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
+    limit: int = Query(30, ge=1, le=30),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_superuser)  # 只有超级管理员可以查看用户列表
 ):

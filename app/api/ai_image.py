@@ -29,7 +29,7 @@ router = APIRouter(prefix="/ai-images", tags=["AI Image"])
 async def list_ai_images(
     request: Request,
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=200),
+    limit: int = Query(20, ge=1, le=30),
     is_featured: Optional[bool] = None,
     category: Optional[str] = None,
     published_only: bool = Query(False, description="只返回已发布的图片"),

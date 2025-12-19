@@ -53,7 +53,7 @@ async def get_media_stats(
 @router.get("")
 async def get_media_list(
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    limit: int = Query(30, ge=1, le=30),
     media_type: Optional[str] = Query(None, description="资源类型: blog_cover, photo, ai_cover"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)

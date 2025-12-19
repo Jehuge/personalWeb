@@ -23,7 +23,7 @@ router = APIRouter(prefix="/ai-projects", tags=["AI项目"])
 @router.get("", response_model=List[AIProjectSchema])
 async def get_ai_projects(
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=30),
     is_featured: Optional[bool] = None,
     published_only: bool = Query(False, description="是否只返回已发布的项目"),
     db: AsyncSession = Depends(get_db)
