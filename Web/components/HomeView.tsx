@@ -8,6 +8,8 @@ import Loader from './Loader';
 import { ZoomableImage } from './ZoomableImage';
 import PuzzleCaptcha from './PuzzleCaptcha';
 import { GlobeAnimation } from './GlobeAnimation';
+import PhotoGallery from './PhotoGallery';
+import ImageGallery from './ImageGallery';
 
 // 摄影图片 EXIF 数据处理辅助函数
 type ParsedExifData = {
@@ -336,8 +338,8 @@ export const HomeView: React.FC = () => {
 
         // 随机挑选首页展示内容：每个板块显示2-3个
         setFeaturedBlogs(pickRandomItems(allBlogs, 2));
-        setFeaturedPhotos(pickRandomItems(allPhotos, 6));
-        setFeaturedAiImages(pickRandomItems(allAiImages, 6));
+        setFeaturedPhotos(pickRandomItems(allPhotos, 10));
+        setFeaturedAiImages(pickRandomItems(allAiImages, 10));
         setFeaturedAiDemos(pickRandomItems(allAiDemos, 2));
         setFeaturedAiProjects(pickRandomItems(allAiProjects, 2));
         setStats(data.stats || { 
@@ -616,59 +618,34 @@ export const HomeView: React.FC = () => {
                   查看更多 →
                 </button>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-              {featuredPhotos.map((photo) => (
-                <div 
-                  key={photo.id} 
-                    className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-teal-500/50 dark:hover:border-teal-400/50 transition-all"
-                    onClick={() => {
-                      // 每次点击都调用 API 更新浏览次数，但如果刚刚获取过同一个照片，避免重复请求
-                      if (lastFetchedPhotoIdRef.current === photo.id) {
-                        // 刚刚获取过，直接使用
+              <PhotoGallery
+                photos={featuredPhotos}
+                onPhotoClick={(photo) => {
+                  // 每次点击都调用 API 更新浏览次数，但如果刚刚获取过同一个照片，避免重复请求
+                  if (lastFetchedPhotoIdRef.current === photo.id) {
+                    // 刚刚获取过，直接使用
+                    setSelectedPhoto(photo);
+                    setPhotoExifData(parsePhotoExif(photo));
+                  } else {
+                    // 调用 API 获取最新数据（包括更新的浏览次数）
+                    lastFetchedPhotoIdRef.current = photo.id;
+                    fetchPhoto(photo.id)
+                      .then(p => {
+                        setSelectedPhoto(p);
+                        setPhotoExifData(parsePhotoExif(p));
+                        // 更新列表中的数据，以便显示最新的浏览次数
+                        setPhotos(prev => prev.map(ph => ph.id === photo.id ? p : ph));
+                        setFeaturedPhotos(prev => prev.map(ph => ph.id === photo.id ? p : ph));
+                      })
+                      .catch(err => {
+                        console.error('Failed to fetch photo details:', err);
+                        // 如果获取失败，仍然显示原照片
                         setSelectedPhoto(photo);
                         setPhotoExifData(parsePhotoExif(photo));
-                      } else {
-                        // 调用 API 获取最新数据（包括更新的浏览次数）
-                        lastFetchedPhotoIdRef.current = photo.id;
-                        fetchPhoto(photo.id)
-                          .then(p => {
-                            setSelectedPhoto(p);
-                            setPhotoExifData(parsePhotoExif(p));
-                            // 更新列表中的数据，以便显示最新的浏览次数
-                            setPhotos(prev => prev.map(ph => ph.id === photo.id ? p : ph));
-                            setFeaturedPhotos(prev => prev.map(ph => ph.id === photo.id ? p : ph));
-                          })
-                          .catch(err => {
-                            console.error('Failed to fetch photo details:', err);
-                            // 如果获取失败，仍然显示原照片
-                            setSelectedPhoto(photo);
-                            setPhotoExifData(parsePhotoExif(photo));
-                          });
-                      }
-                    }}
-                >
-                  <img 
-                    src={photo.thumbnail_url || photo.image_url} 
-                    alt={photo.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <h3 className="text-sm font-semibold text-white line-clamp-1 mb-1">
-                        {photo.title}
-                      </h3>
-                        <div className="flex items-center gap-2 text-xs text-white/80">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span>{photo.view_count || 0}</span>
-                        </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      });
+                  }
+                }}
+              />
             </div>
           )}
 
@@ -689,58 +666,32 @@ export const HomeView: React.FC = () => {
                   查看更多 →
                 </button>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                {featuredAiImages.map((image) => (
-                  <div 
-                    key={image.id} 
-                    className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60 hover:border-orange-500/50 dark:hover:border-orange-400/50 transition-all"
-                    onClick={() => {
-                      // 每次点击都调用 API 更新浏览次数，但如果刚刚获取过同一张图片，避免重复请求
-                      if (lastFetchedAiImageIdRef.current === image.id) {
-                        // 刚刚获取过，直接使用
+              <ImageGallery
+                items={featuredAiImages}
+                layoutIdPrefix="ai-image"
+                onItemClick={(image) => {
+                  // 每次点击都调用 API 更新浏览次数，但如果刚刚获取过同一张图片，避免重复请求
+                  if (lastFetchedAiImageIdRef.current === image.id) {
+                    // 刚刚获取过，直接使用
+                    setSelectedAiImage(image);
+                  } else {
+                    // 调用 API 获取最新数据（包括更新的浏览次数）
+                    lastFetchedAiImageIdRef.current = image.id;
+                    fetchAIImage(image.id)
+                      .then(img => {
+                        setSelectedAiImage(img);
+                        // 更新列表中的数据，以便显示最新的浏览次数
+                        setAiImages(prev => prev.map(im => im.id === image.id ? img : im));
+                        setFeaturedAiImages(prev => prev.map(im => im.id === image.id ? img : im));
+                      })
+                      .catch(err => {
+                        console.error('Failed to fetch image:', err);
+                        // 如果获取失败，仍然显示原图片
                         setSelectedAiImage(image);
-                      } else {
-                        // 调用 API 获取最新数据（包括更新的浏览次数）
-                        lastFetchedAiImageIdRef.current = image.id;
-                        fetchAIImage(image.id)
-                          .then(img => {
-                            setSelectedAiImage(img);
-                            // 更新列表中的数据，以便显示最新的浏览次数
-                            setAiImages(prev => prev.map(im => im.id === image.id ? img : im));
-                            setFeaturedAiImages(prev => prev.map(im => im.id === image.id ? img : im));
-                          })
-                          .catch(err => {
-                            console.error('Failed to fetch image:', err);
-                            // 如果获取失败，仍然显示原图片
-                            setSelectedAiImage(image);
-                          });
-                      }
-                    }}
-                  >
-                    <img 
-                      src={image.thumbnail_url || image.image_url} 
-                      alt={image.title || 'AI Image'}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        {image.title && (
-                          <h3 className="text-sm font-semibold text-white line-clamp-1 mb-1">
-                            {image.title}
-                          </h3>
-                        )}
-                        <div className="flex items-center gap-2 text-xs text-white/80">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span>{image.view_count || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      });
+                  }
+                }}
+              />
             </div>
           )}
 

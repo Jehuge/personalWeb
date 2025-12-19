@@ -12,6 +12,7 @@
     "@google/genai": "^1.30.0",
     "create-puzzle": "^3.0.3",
     "d3": "^7.9.0",
+    "framer-motion": "^12.23.26",
     "lucide-react": "^0.562.0",
     "mermaid": "^11.12.2",
     "rc-slider-captcha": "^1.9.0",

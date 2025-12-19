@@ -37,8 +37,8 @@ class HomeOverviewResponse(BaseModel):
 @router.get("/overview", response_model=HomeOverviewResponse)
 async def get_home_overview(
     blog_limit: int = Query(6, ge=1, le=20, description="博客数量"),
-    photo_limit: int = Query(8, ge=1, le=20, description="随机图片数量"),
-    ai_image_limit: int = Query(6, ge=1, le=20, description="AI图片数量"),
+    photo_limit: int = Query(10, ge=1, le=20, description="随机图片数量"),
+    ai_image_limit: int = Query(10, ge=1, le=20, description="AI图片数量"),
     ai_demo_limit: int = Query(4, ge=1, le=10, description="AI Demo数量"),
     ai_project_limit: int = Query(4, ge=1, le=10, description="AI项目数量"),
     db: AsyncSession = Depends(get_db)
