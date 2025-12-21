@@ -35,9 +35,12 @@ export default function BlogList() {
   const [categories, setCategories] = useState<any[]>([])
   const [searchText, setSearchText] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<number | undefined>()
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchBlogs()
+    fetchBlogs(1, pageSize)
     fetchCategories()
   }, [categoryFilter, searchText])
 
@@ -50,15 +53,20 @@ export default function BlogList() {
     }
   }
 
-  const fetchBlogs = async () => {
+  const fetchBlogs = async (page = 1, size = pageSize) => {
     setLoading(true)
     try {
-      const params: any = { limit: 30 }
+      const skip = (page - 1) * size
+      const params: any = { skip, limit: size }
       if (categoryFilter) params.category_id = categoryFilter
       if (searchText) params.search = searchText
-      
+
       const response = await api.get('/blogs', { params })
       setBlogs(response.data)
+      const headerCount = response.headers?.['x-total-count'] || response.headers?.['X-Total-Count']
+      setTotalCount(headerCount ? Number(headerCount) : response.data.length)
+      setCurrentPage(page)
+      setPageSize(size)
     } catch (error) {
       message.error('获取博客列表失败')
     } finally {
@@ -166,7 +174,7 @@ export default function BlogList() {
         title="博客管理"
         description="快速筛选、批量管理所有博客文章，支持分类和关键字组合过滤。"
         stats={[
-          { label: '文章总数', value: blogs.length },
+          { label: '文章总数', value: totalCount ?? blogs.length },
           { label: '已发布', value: publishedCount },
           { label: '累计浏览', value: totalViews },
         ]}
@@ -222,6 +230,15 @@ export default function BlogList() {
           rowKey="id"
           loading={loading}
           scroll={{ x: 1200 }}
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: totalCount ?? blogs.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              fetchBlogs(page, size)
+            },
+          }}
         />
       </Card>
     </div>

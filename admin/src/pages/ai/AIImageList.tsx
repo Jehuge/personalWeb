@@ -38,18 +38,23 @@ export default function AIImageList() {
   const [images, setImages] = useState<AIImage[]>([])
   const [totalCount, setTotalCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
 
   useEffect(() => {
-    fetchImages()
+    fetchImages(1, pageSize)
   }, [])
 
-  const fetchImages = async () => {
+  const fetchImages = async (page = 1, size = pageSize) => {
     setLoading(true)
     try {
-      const res = await api.get('/ai-images', { params: { limit: 30 } })
+      const skip = (page - 1) * size
+      const res = await api.get('/ai-images', { params: { skip, limit: size } })
       setImages(res.data)
       const headerCount = res.headers?.['x-total-count'] || res.headers?.['X-Total-Count']
       setTotalCount(headerCount ? Number(headerCount) : res.data.length)
+      setCurrentPage(page)
+      setPageSize(size)
     } catch (error) {
       message.error('获取图片列表失败')
     } finally {
@@ -196,7 +201,7 @@ export default function AIImageList() {
         ]}
         extra={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={fetchImages}>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchImages(1, pageSize)}>
               刷新
             </Button>
             <Button onClick={() => navigate('/ai-images/bulk-upload')}>
@@ -216,6 +221,15 @@ export default function AIImageList() {
           dataSource={images}
           loading={loading}
           scroll={{ x: 1400 }}
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: totalCount ?? images.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              fetchImages(page, size)
+            },
+          }}
         />
       </Card>
     </div>

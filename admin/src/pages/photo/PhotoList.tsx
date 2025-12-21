@@ -40,9 +40,12 @@ export default function PhotoList() {
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<any[]>([])
   const [categoryFilter, setCategoryFilter] = useState<number | undefined>()
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchPhotos()
+    fetchPhotos(1, pageSize)
     fetchCategories()
   }, [categoryFilter])
 
@@ -55,14 +58,19 @@ export default function PhotoList() {
     }
   }
 
-  const fetchPhotos = async () => {
+  const fetchPhotos = async (page = 1, size = pageSize) => {
     setLoading(true)
     try {
-      const params: any = { limit: 30 }
+      const skip = (page - 1) * size
+      const params: any = { skip, limit: size }
       if (categoryFilter) params.category_id = categoryFilter
-      
+
       const response = await api.get('/photos', { params })
       setPhotos(response.data)
+      const headerCount = response.headers?.['x-total-count'] || response.headers?.['X-Total-Count']
+      setTotalCount(headerCount ? Number(headerCount) : response.data.length)
+      setCurrentPage(page)
+      setPageSize(size)
     } catch (error) {
       message.error('获取摄影作品列表失败')
     } finally {
@@ -172,7 +180,7 @@ export default function PhotoList() {
         title="摄影作品"
         description="集中管理已发布及待发布的摄影素材，支持分类筛选与精选标记。"
         stats={[
-          { label: '作品总数', value: photos.length },
+          { label: '作品总数', value: totalCount ?? photos.length },
           { label: '精选', value: featuredCount },
           { label: '累计浏览', value: totalViews },
         ]}
@@ -222,6 +230,15 @@ export default function PhotoList() {
           rowKey="id"
           loading={loading}
           scroll={{ x: 1200 }}
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: totalCount ?? photos.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              fetchPhotos(page, size)
+            },
+          }}
         />
       </Card>
     </div>
