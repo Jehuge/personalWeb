@@ -73,7 +73,8 @@ function Gallery<T extends ImageItem>({
                 setIndex(i);
               }}
               onMouseLeave={() => {
-                setIndex(i);
+                // 鼠标离开时恢复为无选中态，避免离开后仍保持放大
+                setIndex(-1);
               }}
               onClick={() => {
                 setIndex(i);
