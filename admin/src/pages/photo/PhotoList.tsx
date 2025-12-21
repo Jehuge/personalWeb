@@ -186,7 +186,7 @@ export default function PhotoList() {
         ]}
         extra={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={fetchPhotos}>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchPhotos(1, pageSize)}>
               刷新
             </Button>
             <Button icon={<UploadOutlined />} onClick={() => navigate('/photos/bulk')}>

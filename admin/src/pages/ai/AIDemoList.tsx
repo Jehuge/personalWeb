@@ -45,16 +45,24 @@ export default function AIDemoList() {
   const navigate = useNavigate()
   const [demos, setDemos] = useState<AIDemo[]>([])
   const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchDemos()
+    fetchDemos(1, pageSize)
   }, [])
 
-  const fetchDemos = async () => {
+  const fetchDemos = async (page = 1, size = pageSize) => {
     setLoading(true)
     try {
-      const { data } = await api.get('/ai-demos', { params: { limit: 30 } })
-      setDemos(data)
+      const skip = (page - 1) * size
+      const res = await api.get('/ai-demos', { params: { skip, limit: size } })
+      setDemos(res.data)
+      const headerCount = res.headers?.['x-total-count'] || res.headers?.['X-Total-Count']
+      setTotalCount(headerCount ? Number(headerCount) : res.data.length)
+      setCurrentPage(page)
+      setPageSize(size)
     } catch (error) {
       message.error('获取 Demo 列表失败')
     } finally {
@@ -204,13 +212,13 @@ export default function AIDemoList() {
         title="AI Lab Demo"
         description="管理 Gemini 生成或自研的小实验，统一控制展示与素材。"
         stats={[
-          { label: 'Demo 总数', value: demos.length },
+          { label: 'Demo 总数', value: totalCount ?? demos.length },
           { label: '已发布', value: publishedCount },
           { label: '精选', value: featuredCount },
         ]}
         extra={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={fetchDemos}>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchDemos(1, pageSize)}>
               刷新
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/ai-demos/new')}>
@@ -227,6 +235,15 @@ export default function AIDemoList() {
           dataSource={demos}
           loading={loading}
           scroll={{ x: 1400 }}
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: totalCount ?? demos.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              fetchDemos(page, size)
+            },
+          }}
         />
       </Card>
     </div>

@@ -32,16 +32,24 @@ export default function AIProjectList() {
   const navigate = useNavigate()
   const [projects, setProjects] = useState<AIProject[]>([])
   const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchProjects()
+    fetchProjects(1, pageSize)
   }, [])
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (page = 1, size = pageSize) => {
     setLoading(true)
     try {
-      const response = await api.get('/ai-projects', { params: { limit: 30 } })
+      const skip = (page - 1) * size
+      const response = await api.get('/ai-projects', { params: { skip, limit: size } })
       setProjects(response.data)
+      const headerCount = response.headers?.['x-total-count'] || response.headers?.['X-Total-Count']
+      setTotalCount(headerCount ? Number(headerCount) : response.data.length)
+      setCurrentPage(page)
+      setPageSize(size)
     } catch (error) {
       message.error('获取AI项目列表失败')
     } finally {
@@ -166,13 +174,13 @@ export default function AIProjectList() {
         title="个人项目"
         description="管理 AI 相关项目，快速查看发布状态与浏览表现。"
         stats={[
-          { label: '项目总数', value: projects.length },
+          { label: '项目总数', value: totalCount ?? projects.length },
           { label: '已发布', value: publishedCount },
           { label: '精选', value: featuredCount },
         ]}
         extra={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={fetchProjects}>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchProjects(1, pageSize)}>
               刷新
             </Button>
             <Button
@@ -193,6 +201,15 @@ export default function AIProjectList() {
           rowKey="id"
           loading={loading}
           scroll={{ x: 1200 }}
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: totalCount ?? projects.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              fetchProjects(page, size)
+            },
+          }}
         />
       </Card>
     </div>

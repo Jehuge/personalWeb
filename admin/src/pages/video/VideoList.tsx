@@ -59,9 +59,12 @@ export default function VideoList() {
   const [categories, setCategories] = useState<any[]>([])
   const [categoryFilter, setCategoryFilter] = useState<number | undefined>()
   const [publishedFilter, setPublishedFilter] = useState<boolean | undefined>()
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchVideos()
+    fetchVideos(1, pageSize)
     fetchCategories()
   }, [categoryFilter, publishedFilter])
 
@@ -74,15 +77,20 @@ export default function VideoList() {
     }
   }
 
-  const fetchVideos = async () => {
+  const fetchVideos = async (page = 1, size = pageSize) => {
     setLoading(true)
     try {
-      const params: any = { limit: 30 }
+      const skip = (page - 1) * size
+      const params: any = { skip, limit: size }
       if (categoryFilter) params.category_id = categoryFilter
       if (publishedFilter !== undefined) params.is_published = publishedFilter
-      
+
       const response = await api.get('/videos', { params })
       setVideos(response.data)
+      const headerCount = response.headers?.['x-total-count'] || response.headers?.['X-Total-Count']
+      setTotalCount(headerCount ? Number(headerCount) : response.data.length)
+      setCurrentPage(page)
+      setPageSize(size)
     } catch (error) {
       message.error('获取视频列表失败')
     } finally {
@@ -212,14 +220,14 @@ export default function VideoList() {
         title="视频管理"
         description="集中管理已发布及待发布的视频素材，支持分类筛选与精选标记。"
         stats={[
-          { label: '视频总数', value: videos.length },
+          { label: '视频总数', value: totalCount ?? videos.length },
           { label: '精选', value: featuredCount },
           { label: '已发布', value: publishedCount },
           { label: '累计浏览', value: totalViews },
         ]}
         extra={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={fetchVideos}>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchVideos(1, pageSize)}>
               刷新
             </Button>
             <Button
@@ -273,6 +281,15 @@ export default function VideoList() {
           rowKey="id"
           loading={loading}
           scroll={{ x: 1400 }}
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: totalCount ?? videos.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              fetchVideos(page, size)
+            },
+          }}
         />
       </Card>
     </div>

@@ -47,10 +47,13 @@ export default function MediaList() {
   const [mediaType, setMediaType] = useState<string | undefined>()
   const [previewVisible, setPreviewVisible] = useState(false)
   const [previewImage, setPreviewImage] = useState<string>('')
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
 
   useEffect(() => {
     fetchStats()
-    fetchMediaList()
+    fetchMediaList(1, pageSize)
   }, [mediaType])
 
   const fetchStats = async () => {
@@ -62,14 +65,19 @@ export default function MediaList() {
     }
   }
 
-  const fetchMediaList = async () => {
+  const fetchMediaList = async (page = 1, size = pageSize) => {
     setLoading(true)
     try {
-      const params: any = { limit: 30 }
+      const skip = (page - 1) * size
+      const params: any = { skip, limit: size }
       if (mediaType) params.media_type = mediaType
       
       const response = await api.get('/media', { params })
       setMediaList(response.data.items || [])
+      const total = response.data?.total
+      setTotalCount(typeof total === 'number' ? total : response.data.items?.length || 0)
+      setCurrentPage(page)
+      setPageSize(size)
     } catch (error) {
       message.error('获取媒体列表失败')
     } finally {
@@ -111,7 +119,7 @@ export default function MediaList() {
 
   const refreshAll = () => {
     fetchStats()
-    fetchMediaList()
+    fetchMediaList(1, pageSize)
   }
 
   const columns: ColumnsType<MediaItem> = [
@@ -273,6 +281,15 @@ export default function MediaList() {
           rowKey="id"
           loading={loading}
           scroll={{ x: 1200 }}
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: totalCount ?? mediaList.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              fetchMediaList(page, size)
+            },
+          }}
         />
       </Card>
 

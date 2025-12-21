@@ -180,7 +180,7 @@ export default function BlogList() {
         ]}
         extra={
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={fetchBlogs}>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchBlogs(1, pageSize)}>
               刷新
             </Button>
             <Button
