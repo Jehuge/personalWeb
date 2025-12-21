@@ -11,7 +11,7 @@ import { EditOutlined, ReloadOutlined, InfoCircleOutlined } from '@ant-design/ic
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface User {
   id: number

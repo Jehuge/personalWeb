@@ -15,7 +15,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface Category {
   id: number

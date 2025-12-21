@@ -24,7 +24,7 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import api from '../../utils/api'
 import dayjs from 'dayjs'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface MediaItem {
   id: string
@@ -65,7 +65,7 @@ export default function MediaList() {
   const fetchMediaList = async () => {
     setLoading(true)
     try {
-      const params: any = { limit: 100 }
+      const params: any = { limit: 30 }
       if (mediaType) params.media_type = mediaType
       
       const response = await api.get('/media', { params })

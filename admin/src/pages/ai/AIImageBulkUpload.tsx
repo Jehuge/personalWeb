@@ -23,7 +23,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 import api from '../../utils/api'
 import { extractErrorMessage } from '../../utils/error'
 

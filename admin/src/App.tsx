@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import Login from './pages/Login'
-import Layout from './components/Layout'
+import Layout from './pages/components/Layout'
 import Dashboard from './pages/Dashboard'
 import BlogList from './pages/blog/BlogList'
 import BlogEdit from './pages/blog/BlogEdit'

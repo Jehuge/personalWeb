@@ -15,7 +15,7 @@ import {
   UserOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons'
-import { useAuthStore } from '../store/authStore'
+import { useAuthStore } from '../../store/authStore'
 
 const { Sider, Content } = AntLayout
 const { Text } = Typography

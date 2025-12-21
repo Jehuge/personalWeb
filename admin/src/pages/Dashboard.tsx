@@ -10,7 +10,7 @@ import {
   ApartmentOutlined,
 } from '@ant-design/icons'
 import api from '../utils/api'
-import PageHeader from '../components/PageHeader'
+import PageHeader from './components/PageHeader'
 
 interface Stats {
   blog_count: number
@@ -40,9 +40,9 @@ export default function Dashboard() {
     setLoading(true)
     try {
       const [blogs, photos, projects] = await Promise.all([
-        api.get('/blogs', { params: { limit: 100 } }),
-        api.get('/photos', { params: { limit: 100 } }),
-        api.get('/ai-projects', { params: { limit: 100 } }),
+        api.get('/blogs', { params: { limit: 30 } }),
+        api.get('/photos', { params: { limit: 30 } }),
+        api.get('/ai-projects', { params: { limit: 30 } }),
       ])
 
       setStats({

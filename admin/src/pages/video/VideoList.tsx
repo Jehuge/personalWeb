@@ -19,7 +19,7 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface Video {
   id: number
@@ -77,7 +77,7 @@ export default function VideoList() {
   const fetchVideos = async () => {
     setLoading(true)
     try {
-      const params: any = { limit: 100 }
+      const params: any = { limit: 30 }
       if (categoryFilter) params.category_id = categoryFilter
       if (publishedFilter !== undefined) params.is_published = publishedFilter
       

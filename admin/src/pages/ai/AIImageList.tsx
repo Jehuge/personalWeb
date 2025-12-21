@@ -14,7 +14,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface AIImage {
   id: number
@@ -36,6 +36,7 @@ interface AIImage {
 export default function AIImageList() {
   const navigate = useNavigate()
   const [images, setImages] = useState<AIImage[]>([])
+  const [totalCount, setTotalCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -45,8 +46,10 @@ export default function AIImageList() {
   const fetchImages = async () => {
     setLoading(true)
     try {
-      const { data } = await api.get('/ai-images', { params: { limit: 200 } })
-      setImages(data)
+      const res = await api.get('/ai-images', { params: { limit: 30 } })
+      setImages(res.data)
+      const headerCount = res.headers?.['x-total-count'] || res.headers?.['X-Total-Count']
+      setTotalCount(headerCount ? Number(headerCount) : res.data.length)
     } catch (error) {
       message.error('获取图片列表失败')
     } finally {
@@ -187,7 +190,7 @@ export default function AIImageList() {
         title="AI 图片管理"
         description="管理 AI 生成的图片，展示生成参数与效果。"
         stats={[
-          { label: '图片总数', value: images.length },
+          { label: '图片总数', value: totalCount ?? images.length },
           { label: '已发布', value: publishedCount },
           { label: '精选', value: featuredCount },
         ]}

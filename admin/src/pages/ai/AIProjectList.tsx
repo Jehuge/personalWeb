@@ -14,7 +14,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface AIProject {
   id: number
@@ -40,7 +40,7 @@ export default function AIProjectList() {
   const fetchProjects = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/ai-projects', { params: { limit: 100 } })
+      const response = await api.get('/ai-projects', { params: { limit: 30 } })
       setProjects(response.data)
     } catch (error) {
       message.error('获取AI项目列表失败')

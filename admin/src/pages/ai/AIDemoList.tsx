@@ -14,7 +14,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { EditOutlined, EyeOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface AIDemo {
   id: number
@@ -53,7 +53,7 @@ export default function AIDemoList() {
   const fetchDemos = async () => {
     setLoading(true)
     try {
-      const { data } = await api.get('/ai-demos', { params: { limit: 200 } })
+      const { data } = await api.get('/ai-demos', { params: { limit: 30 } })
       setDemos(data)
     } catch (error) {
       message.error('获取 Demo 列表失败')

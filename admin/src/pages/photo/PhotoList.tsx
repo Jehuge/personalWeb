@@ -21,7 +21,7 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface Photo {
   id: number
@@ -58,7 +58,7 @@ export default function PhotoList() {
   const fetchPhotos = async () => {
     setLoading(true)
     try {
-      const params: any = { limit: 100 }
+      const params: any = { limit: 30 }
       if (categoryFilter) params.category_id = categoryFilter
       
       const response = await api.get('/photos', { params })

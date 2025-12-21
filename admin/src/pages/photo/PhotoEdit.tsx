@@ -18,7 +18,7 @@ import {
 } from 'antd'
 import { SaveOutlined, ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 import api from '../../utils/api'
 import { extractErrorMessage } from '../../utils/error'
 

@@ -15,7 +15,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, FilterOutli
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import api from '../../utils/api'
-import PageHeader from '../../components/PageHeader'
+import PageHeader from '../components/PageHeader'
 
 interface Blog {
   id: number
@@ -53,7 +53,7 @@ export default function BlogList() {
   const fetchBlogs = async () => {
     setLoading(true)
     try {
-      const params: any = { limit: 100 }
+      const params: any = { limit: 30 }
       if (categoryFilter) params.category_id = categoryFilter
       if (searchText) params.search = searchText
       
