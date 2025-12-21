@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-primary-50: #f9fafb;
@@ -27,38 +28,89 @@
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   @keyframes fadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0;
+    }
+
+    100% {
+      opacity: 1;
+    }
   }
 
   @keyframes slideUp {
-    0% { transform: translateY(20px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
+    0% {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   @keyframes orbital {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.05); }
-    100% { transform: rotate(360deg) scale(1); }
+    0% {
+      transform: rotate(0deg) scale(1);
+    }
+
+    50% {
+      transform: rotate(180deg) scale(1.05);
+    }
+
+    100% {
+      transform: rotate(360deg) scale(1);
+    }
   }
 
   @keyframes blob {
-    0% { transform: translate3d(0,0,0) scale(1); }
-    33% { transform: translate3d(5%, -2%, 0) scale(1.05); }
-    66% { transform: translate3d(-3%, 2%, 0) scale(0.98); }
-    100% { transform: translate3d(0,0,0) scale(1); }
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    33% {
+      transform: translate3d(5%, -2%, 0) scale(1.05);
+    }
+
+    66% {
+      transform: translate3d(-3%, 2%, 0) scale(0.98);
+    }
+
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
   }
 
   @keyframes scan {
-    0% { transform: translateX(-100%); opacity: 0; }
-    10% { opacity: 0.25; }
-    50% { opacity: 0.6; }
-    100% { transform: translateX(100%); opacity: 0; }
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    10% {
+      opacity: 0.25;
+    }
+
+    50% {
+      opacity: 0.6;
+    }
+
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
   }
 }
 
@@ -67,9 +119,11 @@
    - 提升文字对比度
    - 让没有显式 dark: 类的区域在深色下也更协调 */
 @layer utilities {
+
   /* 顶部导航蒙版，避免被其他 bg 类覆盖 */
   .site-navbar {
-    background: rgba(249, 250, 251, 0.85) !important; /* gray-50 with transparency */
+    background: rgba(249, 250, 251, 0.85) !important;
+    /* gray-50 with transparency */
     backdrop-filter: blur(20px) saturate(1.5) !important;
     -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
     box-shadow: none;
@@ -77,7 +131,8 @@
   }
 
   .dark .site-navbar {
-    background: rgba(10, 10, 10, 0.85) !important; /* black with transparency */
+    background: rgba(10, 10, 10, 0.85) !important;
+    /* black with transparency */
     backdrop-filter: blur(20px) saturate(1.5) !important;
     -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
     box-shadow: none;
@@ -93,14 +148,19 @@
     line-height: 1.1;
     padding: 4px 8px;
     border-radius: 9999px;
-    color: #374151; /* gray-700 */
-    background: #f3f4f6; /* gray-100 */
-    border: 1px solid #e5e7eb; /* gray-200 */
+    color: #374151;
+    /* gray-700 */
+    background: #f3f4f6;
+    /* gray-100 */
+    border: 1px solid #e5e7eb;
+    /* gray-200 */
   }
 
   .dark .pill-tag {
-    color: #e5e7eb; /* gray-200 */
-    background: rgba(107, 114, 128, 0.2); /* gray-500 with transparency */
+    color: #e5e7eb;
+    /* gray-200 */
+    background: rgba(107, 114, 128, 0.2);
+    /* gray-500 with transparency */
     border-color: rgba(107, 114, 128, 0.4);
   }
 
@@ -199,17 +259,17 @@
     html.dark {
       background-color: var(--color-cyber-dark);
     }
-    
+
     html.dark body {
       background-color: var(--color-cyber-dark);
       color: #e5e7eb;
     }
-    
+
     /* 确保主要容器在移动端也能正确应用深色 */
     html.dark .app-background {
       background-color: var(--color-cyber-dark);
     }
-    
+
     /* 修复移动端可能出现的白色背景元素 */
     html.dark .bg-white,
     html.dark .bg-slate-50,
@@ -218,7 +278,7 @@
     html.dark .bg-gray-100 {
       background-color: color-mix(in srgb, var(--color-cyber-panel) 88%, black 12%);
     }
-    
+
     /* 修复移动端菜单渐变背景在深色模式下的问题 - 强制使用纯色背景 */
     html.dark .bg-gradient-to-br.from-slate-50.via-slate-100.to-slate-50 {
       background: rgb(15, 23, 42) !important;
