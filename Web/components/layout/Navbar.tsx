@@ -54,13 +54,13 @@ export const Navbar: React.FC = () => {
       <div className="w-full">
         {/* 顶部栏：浅色模式降低透明度，深色保持纯色 */}
         <div
-          className={`site-navbar rounded-b-2xl px-4 sm:px-6 md:px-8 transition-colors duration-300 backdrop-blur-xl ${
+          className={`site-navbar rounded-b-2xl px-4 sm:px-6 md:px-8 transition-colors duration-300 backdrop-blur-2xl ${
             theme === 'dark'
-              ? 'bg-slate-900/92 shadow-lg shadow-black/25'
-              : 'bg-white/82 shadow-[0_10px_30px_rgba(0,0,0,0.08)]'
+              ? 'bg-slate-900/40 shadow-lg shadow-black/10'
+              : 'bg-white/40 shadow-[0_8px_20px_rgba(0,0,0,0.04)]'
           }`}
         >
-        <div className="flex items-center h-16">
+        <div className="flex items-center h-12">
           {/* Left side: Back button or Logo */}
           <div className="flex items-center gap-3">
             {showBack ? (
@@ -75,7 +75,7 @@ export const Navbar: React.FC = () => {
               </button>
             ) : (
               <Link to="/" className="flex-shrink-0 flex items-center cursor-pointer group">
-                <CubeLogo size={32} className="mr-2" />
+                <CubeLogo size={28} className="mr-2" />
                 <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                   TianJQ<span className="text-gray-600 dark:text-gray-400">.Space</span>
                 </span>
@@ -88,7 +88,7 @@ export const Navbar: React.FC = () => {
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
-                'relative px-4 py-2 rounded-2xl text-lg font-display font-medium tracking-tight transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
+                'relative px-3 py-1.5 rounded-2xl text-base font-display font-medium tracking-tight transition-all duration-300 ease-out overflow-hidden group active:scale-[0.97]';
               const activeClass =
                 'bg-gray-100 text-gray-900 shadow-lg shadow-gray-500/20 ring-1 ring-white/70 dark:bg-gray-800 dark:text-white dark:shadow-gray-600/30 translate-y-0';
               const inactiveClass =
@@ -131,7 +131,7 @@ export const Navbar: React.FC = () => {
               <ThemeSwitch
                 checked={theme === 'dark'}
                 onToggle={toggleTheme}
-                size={6}
+                size={5}
                 className="translate-y-[2px]"
               />
             </div>
@@ -156,14 +156,14 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="fixed top-16 left-0 right-0 z-40 md:hidden mx-0 px-4">
+        <div className="fixed top-12 left-0 right-0 z-40 md:hidden mx-0 px-4">
           {/* Mobile dropdown：浅色模式保持柔和渐变，深色模式改为纯深色背景，和顶部栏一致 */}
-          <div className={`backdrop-blur-xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-gray-500/10 dark:shadow-black/50 border border-gray-200/70 dark:border-slate-700/80 transition-transform duration-300 ease-out ${theme === 'dark' ? 'bg-slate-900' : 'bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50'}`}>
+          <div className={`backdrop-blur-2xl rounded-2xl overflow-hidden animate-slide-up shadow-xl shadow-gray-500/8 dark:shadow-black/40 border border-gray-200/70 dark:border-slate-700/80 transition-transform duration-300 ease-out ${theme === 'dark' ? 'bg-slate-900/40' : 'bg-white/40'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => {
               const isCurrent = isActive(item.path);
               const shared =
-                'block w-full text-left px-3 py-3 rounded-2xl text-lg font-display font-medium tracking-tight transition-all duration-200 ease-out active:scale-[0.97]';
+                'block w-full text-left px-3 py-2 rounded-2xl text-base font-display font-medium tracking-tight transition-all duration-200 ease-out active:scale-[0.97]';
               const activeClass =
                 'bg-gray-100 text-gray-900 shadow-lg shadow-gray-500/20 dark:bg-gray-800 dark:text-white';
               const inactiveClass =
@@ -192,7 +192,7 @@ export const Navbar: React.FC = () => {
               <ThemeSwitch
                 checked={theme === 'dark'}
                 onToggle={handleMobileThemeToggle}
-                size={7}
+                size={6}
                 className="translate-y-[4px]"
               />
             </div>

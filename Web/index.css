@@ -122,19 +122,17 @@
 
   /* 顶部导航蒙版，避免被其他 bg 类覆盖 */
   .site-navbar {
-    background: rgba(249, 250, 251, 0.85) !important;
-    /* gray-50 with transparency */
-    backdrop-filter: blur(20px) saturate(1.5) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+    /* Reduced blur to decrease frosted glass appearance; background controlled in components */
+    backdrop-filter: blur(6px) saturate(1.05);
+    -webkit-backdrop-filter: blur(6px) saturate(1.05);
     box-shadow: none;
     border: none;
   }
 
   .dark .site-navbar {
-    background: rgba(10, 10, 10, 0.85) !important;
-    /* black with transparency */
-    backdrop-filter: blur(20px) saturate(1.5) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+    /* Dark-mode backdrop reduced for less heavy frosted effect */
+    backdrop-filter: blur(6px) saturate(1.05);
+    -webkit-backdrop-filter: blur(6px) saturate(1.05);
     box-shadow: none;
     border: none;
   }
