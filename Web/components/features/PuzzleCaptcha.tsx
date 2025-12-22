@@ -36,6 +36,10 @@ const PuzzleCaptcha: React.FC<PuzzleCaptchaProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {};
+  }, []);
+
   // 获取图片真实尺寸
   const getImageSize = useCallback((url: string): Promise<ImageSize> => {
     return new Promise((resolve) => {
@@ -66,12 +70,18 @@ const PuzzleCaptcha: React.FC<PuzzleCaptchaProps> = ({
     return new Promise<void>((resolve, reject) => {
       if (isVerified) {
         timerRef.current = setTimeout(() => {
-          if (typeof onSuccess === 'function') {
-            onSuccess();
+          try {
+            if (typeof onSuccess === 'function') {
+              onSuccess();
+            }
+            resolve();
+          } catch (err) {
+            console.error('[PuzzleCaptcha] onSuccess handler threw', err);
+            reject(err);
           }
-          resolve();
         }, 500);
       } else {
+        console.warn('[PuzzleCaptcha] verification failed', { expected: offsetXRef.current, got: data.x });
         reject(new Error('验证失败'));
       }
     });
@@ -81,7 +91,7 @@ const PuzzleCaptcha: React.FC<PuzzleCaptchaProps> = ({
   const generatePuzzle = useCallback(() => {
     const displaySize = displaySizeRef.current;
     const desiredDisplayPuzzleSize = 50; // 希望拼图块显示为50px
-
+    // start generatePuzzle
     // 先获取原始图片尺寸
     return getImageSize(defaultBackgroundImage).then((originalSize) => {
       // 计算缩放比例：原始图片 -> 显示尺寸
@@ -117,7 +127,7 @@ const PuzzleCaptcha: React.FC<PuzzleCaptchaProps> = ({
         };
       });
     }).catch((error) => {
-      console.error('拼图生成失败:', error);
+      console.error('[PuzzleCaptcha] 拼图生成失败:', error);
       return Promise.reject(error);
     });
   }, [getImageSize]);

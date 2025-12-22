@@ -7,6 +7,7 @@ import { useTheme } from '../components/context/ThemeContext';
 import Loader from '../components/ui/Loader';
 import { ZoomableImage } from '../components/image/ZoomableImage';
 import PuzzleCaptcha from '../components/features/PuzzleCaptcha';
+import { showPuzzleCaptcha } from '../components/features/showPuzzleCaptcha';
 import { GlobeAnimation } from '../components/animation/GlobeAnimation';
 import PhotoGallery from '../components/image/PhotoGallery';
 import ImageGallery from '../components/image/ImageGallery';
@@ -259,6 +260,18 @@ export const HomeView: React.FC = () => {
   const [showPhotoDownloadVerification, setShowPhotoDownloadVerification] = useState(false);
   const [pendingDownload, setPendingDownload] = useState<{ url: string; filename: string } | null>(null);
 
+  useEffect(() => {
+    if (showAiImageDownloadVerification || showPhotoDownloadVerification) {
+      const t = setTimeout(() => {
+        const node = document.querySelector('.captcha-container');
+        if (!node) {
+          // PuzzleCaptcha DOM not found after 1s
+        }
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+  }, [showAiImageDownloadVerification, showPhotoDownloadVerification]);
+
   // 下载图片函数
   const downloadImage = (url: string, filename: string) => {
     const link = document.createElement('a');
@@ -271,12 +284,14 @@ export const HomeView: React.FC = () => {
   };
 
   // 处理下载请求（先显示验证）
-  const handleDownloadRequest = (url: string, filename: string, type: 'ai' | 'photo') => {
+  const handleDownloadRequest = async (url: string, filename: string, type: 'ai' | 'photo') => {
     setPendingDownload({ url, filename });
-    if (type === 'ai') {
-      setShowAiImageDownloadVerification(true);
-    } else {
-      setShowPhotoDownloadVerification(true);
+    try {
+      await showPuzzleCaptcha({ title: '下载验证' });
+      downloadImage(url, filename);
+      setPendingDownload(null);
+    } catch (err) {
+      setPendingDownload(null);
     }
   };
 

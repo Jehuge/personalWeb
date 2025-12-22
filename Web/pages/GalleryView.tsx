@@ -7,6 +7,7 @@ import Loader from '../components/ui/Loader';
 import CategoryButton from '../components/ui/CategoryButton';
 import { ZoomableImage } from '../components/image/ZoomableImage';
 import PuzzleCaptcha from '../components/features/PuzzleCaptcha';
+import { showPuzzleCaptcha } from '../components/features/showPuzzleCaptcha';
 import { LazyImage } from '../components/image/LazyImage';
 
 type ParsedExifData = {
@@ -94,6 +95,18 @@ export const GalleryView: React.FC = () => {
   const [showDownloadVerification, setShowDownloadVerification] = useState(false);
   const [pendingDownload, setPendingDownload] = useState<{ url: string; filename: string } | null>(null);
 
+  useEffect(() => {
+    if (showDownloadVerification) {
+      const t = setTimeout(() => {
+        const node = document.querySelector('.captcha-container');
+        if (!node) {
+          // PuzzleCaptcha DOM not found after 1s
+        }
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+  }, [showDownloadVerification]);
+
   // 下载图片函数
   const downloadImage = (url: string, filename: string) => {
     const link = document.createElement('a');
@@ -106,9 +119,15 @@ export const GalleryView: React.FC = () => {
   };
 
   // 处理下载请求（先显示验证）
-  const handleDownloadRequest = (url: string, filename: string) => {
+  const handleDownloadRequest = async (url: string, filename: string) => {
     setPendingDownload({ url, filename });
-    setShowDownloadVerification(true);
+    try {
+      await showPuzzleCaptcha({ title: '下载验证' });
+      downloadImage(url, filename);
+      setPendingDownload(null);
+    } catch (err) {
+      setPendingDownload(null);
+    }
   };
 
   // 验证通过后执行下载
