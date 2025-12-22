@@ -12,13 +12,15 @@ function Gallery({
   setIndex, 
   setOpen, 
   index,
-  onPhotoClick 
+  onPhotoClick,
+  setSelectedId
 }: {
   items: PhotoWork[];
   setIndex: (index: number) => void;
   setOpen: (open: boolean) => void;
   index: number;
   onPhotoClick?: (photo: PhotoWork) => void;
+  setSelectedId: (id: number | null) => void;
 }) {
   return (
     <>
@@ -31,6 +33,7 @@ function Gallery({
               whileTap={{ scale: 0.95 }}
               className='relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-white dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700/60'
               onClick={() => {
+                setSelectedId(item.id);
                 setIndex(i);
                 setOpen(true);
               }}
@@ -65,6 +68,7 @@ function Gallery({
                 setIndex(-1);
               }}
               onClick={() => {
+                setSelectedId(item.id);
                 setIndex(i);
                 setOpen(true);
               }}
@@ -82,6 +86,7 @@ function Gallery({
 export default function PhotoGallery({ photos, onPhotoClick }: PhotoGalleryProps) {
   const [index, setIndex] = useState(2);
   const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -104,7 +109,10 @@ export default function PhotoGallery({ photos, onPhotoClick }: PhotoGalleryProps
     return null;
   }
 
-  const currentPhoto = photos[index] || photos[0];
+  const currentPhoto =
+    (selectedId !== null ? photos.find((p) => p.id === selectedId) : undefined) ||
+    photos[index] ||
+    photos[0];
 
   return (
     <div className='relative w-full'>
@@ -114,6 +122,7 @@ export default function PhotoGallery({ photos, onPhotoClick }: PhotoGalleryProps
         setIndex={setIndex}
         setOpen={setOpen}
         onPhotoClick={onPhotoClick}
+        setSelectedId={setSelectedId}
       />
       <AnimatePresence>
         {open && currentPhoto && (
@@ -125,6 +134,7 @@ export default function PhotoGallery({ photos, onPhotoClick }: PhotoGalleryProps
             className='dark:bg-black/40 bg-white/40 backdrop-blur-lg fixed inset-0 z-50 top-0 left-0 bottom-0 right-0 w-full h-full grid place-content-center'
             onClick={() => {
               setOpen(false);
+              setSelectedId(null);
             }}
           >
             <div onClick={(e) => e.stopPropagation()}>
