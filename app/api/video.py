@@ -133,7 +133,8 @@ async def get_videos(
     limit: int = Query(20, ge=1, le=30),
     category_id: Optional[int] = None,
     is_featured: Optional[bool] = None,
-    is_published: Optional[bool] = Query(None, description="是否已发布，默认只返回已发布的视频"),
+    is_published: Optional[bool] = Query(None, description="是否已发布（True/False），如果未传递且 include_unpublished=False 则默认只返回已发布的视频"),
+    include_unpublished: bool = Query(False, description="管理员使用：是否包含未发布的视频（为 True 时忽略 is_published 过滤）"),
     db: AsyncSession = Depends(get_db),
     response: Response = None
 ):
@@ -141,11 +142,12 @@ async def get_videos(
     # 构建查询条件
     base_query = select(Video).options(selectinload(Video.category))
     
-    # 默认只返回已发布的视频（除非明确指定is_published=False）
-    if is_published is None:
-        base_query = base_query.where(Video.is_published == True)
-    elif is_published is not None:
-        base_query = base_query.where(Video.is_published == is_published)
+    # 默认只返回已发布的视频；当 include_unpublished 为 True 时，返回全部（供管理员使用）
+    if not include_unpublished:
+        if is_published is None:
+            base_query = base_query.where(Video.is_published == True)
+        else:
+            base_query = base_query.where(Video.is_published == is_published)
     
     if category_id:
         base_query = base_query.where(Video.category_id == category_id)
@@ -153,13 +155,13 @@ async def get_videos(
     if is_featured is not None:
         base_query = base_query.where(Video.is_featured == is_featured)
     
-    # 计算总数
+    # 计算总数（应用相同的过滤条件）
     count_query = select(func.count(Video.id))
-    # 应用相同的过滤条件
-    if is_published is None:
-        count_query = count_query.where(Video.is_published == True)
-    elif is_published is not None:
-        count_query = count_query.where(Video.is_published == is_published)
+    if not include_unpublished:
+        if is_published is None:
+            count_query = count_query.where(Video.is_published == True)
+        else:
+            count_query = count_query.where(Video.is_published == is_published)
     if category_id:
         count_query = count_query.where(Video.category_id == category_id)
     if is_featured is not None:

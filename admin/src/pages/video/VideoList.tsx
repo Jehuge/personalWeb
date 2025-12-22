@@ -84,6 +84,8 @@ export default function VideoList() {
       const params: any = { skip, limit: size }
       if (categoryFilter) params.category_id = categoryFilter
       if (publishedFilter !== undefined) params.is_published = publishedFilter
+      // 管理后台需要看到未发布的视频，默认请求包含未发布项
+      params.include_unpublished = true
 
       const response = await api.get('/videos', { params })
       setVideos(response.data)
