@@ -4,6 +4,7 @@ import { Video, VideoCategory } from '../types';
 import { fetchVideos, fetchVideo, fetchVideoCategories } from '../services/dataService';
 import Loader from '../components/ui/Loader';
 import CategoryButton from '../components/ui/CategoryButton';
+import { VoteButtons } from '../components/ui/VoteButtons';
 
 const formatDuration = (seconds?: number | null) => {
   if (!seconds) return '00:00';
@@ -70,7 +71,7 @@ export const VideoView: React.FC = () => {
       const width = window.innerWidth;
       const next =
         width >= 1280 ? 3 :
-        width >= 768 ? 2 : 1;
+          width >= 768 ? 2 : 1;
       setColumnCount((prev) => (prev === next ? prev : next));
     };
     handleResize();
@@ -131,7 +132,7 @@ export const VideoView: React.FC = () => {
     if (videoRef.current && selectedVideo) {
       const currentTime = videoRef.current.currentTime;
       const wasPlaying = !videoRef.current.paused;
-      
+
       let newSrc = '';
       if (videoQuality === 'thumbnail' && selectedVideo.thumbnail_video_url) {
         newSrc = selectedVideo.thumbnail_video_url;
@@ -142,12 +143,12 @@ export const VideoView: React.FC = () => {
       } else {
         newSrc = selectedVideo.video_url;  // 原画
       }
-      
+
       if (videoRef.current.src !== newSrc) {
         videoRef.current.src = newSrc;
         videoRef.current.currentTime = currentTime;
         if (wasPlaying) {
-          videoRef.current.play().catch(() => {});
+          videoRef.current.play().catch(() => { });
         }
       }
     }
@@ -157,19 +158,19 @@ export const VideoView: React.FC = () => {
   const hoveredVideoIdRef = useRef<number | null>(null);
   const videoSrcMapRef = useRef<Record<number, string | null>>({});
   const videoLoadedMapRef = useRef<Record<number, boolean>>({});
-  
+
   useEffect(() => {
     hoveredVideoIdRef.current = hoveredVideoId;
   }, [hoveredVideoId]);
-  
+
   useEffect(() => {
     videoSrcMapRef.current = videoSrcMap;
   }, [videoSrcMap]);
-  
+
   useEffect(() => {
     videoLoadedMapRef.current = videoLoadedMap;
   }, [videoLoadedMap]);
-  
+
   // 监听悬停状态变化，播放已加载的视频
   useEffect(() => {
     if (hoveredVideoId !== null) {
@@ -178,7 +179,7 @@ export const VideoView: React.FC = () => {
       if (videoEl && videoSrcMap[videoId] && videoLoadedMap[videoId]) {
         // 如果视频已经加载且处于暂停状态，则播放
         if (videoEl.paused && videoEl.readyState >= 2) {
-          videoEl.play().catch(() => {});
+          videoEl.play().catch(() => { });
         }
       }
     }
@@ -224,8 +225,8 @@ export const VideoView: React.FC = () => {
         }
       }
 
-      const response = await fetchVideos({ 
-        skip: page * PAGE_SIZE, 
+      const response = await fetchVideos({
+        skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         category_id: categoryId
       });
@@ -281,11 +282,11 @@ export const VideoView: React.FC = () => {
     // 注意：不要把 categories.length 放入 loadKey，因为初始加载时 categories 从 0 变化会触发重复请求
     const loadKey = filter;
     const lastLoadKey = hasLoadedVideosRef.current as any;
-    
+
     if (lastLoadKey === loadKey) {
       return;
     }
-    
+
     hasLoadedVideosRef.current = loadKey as any;
     loadVideos(0, filter);
   }, [filter, categories, id]);
@@ -427,7 +428,7 @@ export const VideoView: React.FC = () => {
                   </span>
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{selectedVideo.title}</h1>
-                
+
                 {selectedVideo.description && (
                   <div>
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
@@ -486,6 +487,10 @@ export const VideoView: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+                <VoteButtons contentType="video" contentId={selectedVideo.id} />
+              </div>
             </div>
           </div>
         </div>
@@ -513,7 +518,7 @@ export const VideoView: React.FC = () => {
           <h2 className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 mb-2 tracking-tight">视频作品</h2>
           <p className="text-gray-500 dark:text-gray-400 text-lg">用镜头记录生活的精彩</p>
         </div>
-        
+
         <div className="flex gap-3 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {categoryOptions.map(cat => (
             <CategoryButton
@@ -542,7 +547,7 @@ export const VideoView: React.FC = () => {
               const categoryLabel = video.category?.name || '未分类';
               const aspectRatio = video.width && video.height ? video.width / video.height : 16 / 9;
               const isHovered = hoveredVideoId === video.id;
-              
+
               const formatVideoDate = (dateStr: string) => {
                 return new Date(dateStr).toLocaleDateString('zh-CN', {
                   year: 'numeric',
@@ -552,8 +557,8 @@ export const VideoView: React.FC = () => {
               };
 
               return (
-                <article 
-                  key={video.id} 
+                <article
+                  key={video.id}
                   className="video-card group relative break-inside-avoid rounded-xl md:rounded-2xl overflow-hidden bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl"
                   onMouseEnter={() => {
                     // 仅在具备 hover 能力（桌面端）时启用悬停预览，避免移动端出现“缩略图一直播放”的问题
@@ -601,7 +606,7 @@ export const VideoView: React.FC = () => {
                   }}
                 >
                   {/* 视频容器 */}
-                  <div 
+                  <div
                     className="relative w-full overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-t-xl md:rounded-t-2xl cursor-pointer"
                     style={{
                       aspectRatio: aspectRatio
@@ -619,22 +624,21 @@ export const VideoView: React.FC = () => {
                           {!coverLoaded && !videoLoaded && (
                             <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-pulse" />
                           )}
-                          
+
                           {/* 封面图片 - 默认显示，悬停时隐藏 */}
                           {coverImageUrl && (
                             <img
                               src={coverImageUrl}
                               alt={video.title}
-                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                                coverLoaded && (!isHovered || !videoSrcMap[video.id]) ? 'opacity-100' : 'opacity-0'
-                              }`}
+                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${coverLoaded && (!isHovered || !videoSrcMap[video.id]) ? 'opacity-100' : 'opacity-0'
+                                }`}
                               style={{ zIndex: 1 }}
                               onLoad={() => {
                                 setCoverLoadedMap((prev) => ({ ...prev, [video.id]: true }));
                               }}
                             />
                           )}
-                          
+
                           {/* 预览视频 - 悬停时显示，延迟加载 */}
                           {videoSrcMap[video.id] && (
                             <video
@@ -647,9 +651,8 @@ export const VideoView: React.FC = () => {
                                 }
                               }}
                               src={videoSrcMap[video.id]}
-                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                                videoLoaded && isHovered ? 'opacity-100' : 'opacity-0'
-                              }`}
+                              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${videoLoaded && isHovered ? 'opacity-100' : 'opacity-0'
+                                }`}
                               style={{ zIndex: 2 }}
                               preload="none"
                               muted
@@ -667,7 +670,7 @@ export const VideoView: React.FC = () => {
                               onLoadedData={(e) => {
                                 const videoEl = e.currentTarget;
                                 setVideoLoadedMap((prev) => ({ ...prev, [video.id]: true }));
-                                
+
                                 // 视频加载完成后，如果还在悬停状态，则播放
                                 if (hoveredVideoIdRef.current === video.id) {
                                   videoEl.play().catch((err) => {
@@ -687,7 +690,7 @@ export const VideoView: React.FC = () => {
                     {/* 进度条 - 只在悬停时显示 */}
                     {isHovered && (
                       <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30 pointer-events-none">
-                        <div 
+                        <div
                           className="h-full bg-purple-500 transition-all duration-100"
                           style={{ width: `${(videoProgressMap[video.id] || 0) * 100}%` }}
                         />
@@ -726,6 +729,14 @@ export const VideoView: React.FC = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         {video.view_count || 0}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
+                        {video.like_count || 0}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" /></svg>
+                        {video.dislike_count || 0}
                       </span>
                     </div>
                   </div>

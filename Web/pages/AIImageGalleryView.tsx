@@ -109,7 +109,7 @@ export const AIImageGalleryView: React.FC = () => {
     card.style.transition = 'transform 220ms ease-out, box-shadow 260ms ease';
     card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2), 0 0 12px rgba(255,255,255,0.1)';
   };
-  
+
   // 使用 useRef 防止组件意外重新挂载导致的重复请求
   const hasLoadedRef = useRef(false);
 
@@ -121,7 +121,7 @@ export const AIImageGalleryView: React.FC = () => {
       const width = window.innerWidth;
       const next =
         width >= 1024 ? 3 :
-        width >= 768 ? 2 : 1;
+          width >= 768 ? 2 : 1;
       setColumnCount((prev) => (prev === next ? prev : next));
     };
     handleResize();
@@ -139,8 +139,8 @@ export const AIImageGalleryView: React.FC = () => {
       setImagesLoading(true);
     }
     try {
-      const response = await fetchAIImages({ 
-        skip: page * PAGE_SIZE, 
+      const response = await fetchAIImages({
+        skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         fw_access_code: accessCode || fwAccessCode || undefined
       });
@@ -290,7 +290,7 @@ export const AIImageGalleryView: React.FC = () => {
       document.body.style.top = `-${scrollY}px`;
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
-      
+
       return () => {
         // 恢复滚动
         document.body.style.position = '';
@@ -328,6 +328,7 @@ export const AIImageGalleryView: React.FC = () => {
                 />
               </div>
             </div>
+
           </div>
 
           {/* 图片信息 */}
@@ -353,12 +354,7 @@ export const AIImageGalleryView: React.FC = () => {
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">浏览次数</label>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.view_count || 0} 次</p>
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">评价</label>
-                  <div className="mt-2">
-                    <VoteButtons contentType="ai_image" contentId={selectedImage.id} />
-                  </div>
-                </div>
+
                 {selectedImage.prompt && (
                   <div>
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">提示词 (Prompt)</label>
@@ -395,12 +391,16 @@ export const AIImageGalleryView: React.FC = () => {
                   </div>
                 )}
               </div>
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+                <VoteButtons contentType="ai_image" contentId={selectedImage.id} />
+              </div>
             </div>
           </div>
         </div>
       </div>
     );
   }
+
 
   // 列表视图
   if (imagesLoading) {
@@ -480,9 +480,19 @@ export const AIImageGalleryView: React.FC = () => {
                           <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                             点击查看 Prompt
                           </span>
-                          <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                            {image.view_count || 0} 次浏览
+                          <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex items-center gap-2">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                              {image.view_count || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
+                              {image.like_count || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" /></svg>
+                              {image.dislike_count || 0}
+                            </span>
                           </span>
                         </div>
                       </div>

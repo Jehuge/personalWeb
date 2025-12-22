@@ -9,6 +9,7 @@ import { ZoomableImage } from '../components/image/ZoomableImage';
 import PuzzleCaptcha from '../components/features/PuzzleCaptcha';
 import { showPuzzleCaptcha } from '../components/features/showPuzzleCaptcha';
 import { LazyImage } from '../components/image/LazyImage';
+import { VoteButtons } from '../components/ui/VoteButtons';
 
 type ParsedExifData = {
   make: string;
@@ -169,7 +170,7 @@ export const GalleryView: React.FC = () => {
       const width = window.innerWidth;
       const next =
         width >= 1280 ? 3 :
-        width >= 768 ? 2 : 1;
+          width >= 768 ? 2 : 1;
       setColumnCount((prev) => (prev === next ? prev : next));
     };
     handleResize();
@@ -235,7 +236,7 @@ export const GalleryView: React.FC = () => {
       document.body.style.top = `-${scrollY}px`;
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
-      
+
       return () => {
         // 恢复滚动
         document.body.style.position = '';
@@ -334,8 +335,8 @@ export const GalleryView: React.FC = () => {
         }
       }
 
-      const response = await fetchPhotos({ 
-        skip: page * PAGE_SIZE, 
+      const response = await fetchPhotos({
+        skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         category_id: categoryId
       });
@@ -386,11 +387,11 @@ export const GalleryView: React.FC = () => {
     // 注意：不要把 categories.length 放入 loadKey，因为初始加载时 categories 从 0 变化会触发重复请求
     const loadKey = filter;
     const lastLoadKey = hasLoadedPhotosRef.current as any;
-    
+
     if (lastLoadKey === loadKey) {
       return;
     }
-    
+
     hasLoadedPhotosRef.current = loadKey as any;
     loadPhotos(0, filter);
   }, [filter, categories]);
@@ -519,7 +520,7 @@ export const GalleryView: React.FC = () => {
                   </span>
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{selectedPhoto.title}</h1>
-                
+
                 {selectedPhoto.description && (
                   <div>
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
@@ -586,6 +587,10 @@ export const GalleryView: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+                <VoteButtons contentType="photo" contentId={selectedPhoto.id} />
+              </div>
             </div>
           </div>
         </div>
@@ -611,10 +616,10 @@ export const GalleryView: React.FC = () => {
     <div className="max-w-7xl mx-auto py-20 px-4 md:px-6">
       <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
         <div>
-           <h2 className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-500 mb-2 tracking-tight">光影瞬间</h2>
-           <p className="text-gray-500 dark:text-gray-400 text-lg">用镜头捕捉世界的切片</p>
+          <h2 className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-500 mb-2 tracking-tight">光影瞬间</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-lg">用镜头捕捉世界的切片</p>
         </div>
-        
+
         <div className="flex gap-3 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {categoryOptions.map(cat => (
             <CategoryButton
@@ -643,12 +648,12 @@ export const GalleryView: React.FC = () => {
               const categoryLabel = photo.category?.name || '未分类';
               const aspectRatio = photo.width && photo.height ? photo.width / photo.height : 4 / 3;
               const shootDate = formatPhotoShootDate(photo);
-              
+
               return (
-                <article 
-                  key={photo.id} 
+                <article
+                  key={photo.id}
                   className="photo-card group relative break-inside-avoid rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
-                  style={{ 
+                  style={{
                     transform: 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
                     boxShadow: '0 10px 22px rgba(0,0,0,0.22), 0 0 12px rgba(255,255,255,0.12)',
                     background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 30%), linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
@@ -675,50 +680,64 @@ export const GalleryView: React.FC = () => {
                       setImageAspectRatios((prev) => ({ ...prev, [photo.id]: ratio }));
                     }}
                   />
-                    
-                    {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
-                    <div className="absolute inset-0 pointer-events-none flex">
-                      <div
-                        className="relative flex flex-col justify-between w-full h-full px-3 py-3 md:px-4 md:py-4 opacity-0 group-hover:opacity-100"
-                        style={{ transition: 'opacity 260ms ease-out' }}
-                      >
-                        {/* 顶部一行：标题 + 时间 */}
-                        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                          {[photo.title, shootDate].map((text, idx) => (
-                            <span
-                              key={`top-${idx}`}
-                              className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
-                              style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
-                            >
-                              {text}
-                            </span>
-                          ))}
-                          <span
-                            className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)] flex items-center gap-1"
-                            style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                            {photo.view_count || 0}
-                          </span>
-                        </div>
 
-                        {/* 底部一行：标签 + CTA */}
-                        <div className="flex items-center gap-2.5 md:gap-3 flex-wrap">
+                  {/* 悬停信息层 - 不遮挡全图，标题/时间上方，其他下方 */}
+                  <div className="absolute inset-0 pointer-events-none flex">
+                    <div
+                      className="relative flex flex-col justify-between w-full h-full px-3 py-3 md:px-4 md:py-4 opacity-0 group-hover:opacity-100"
+                      style={{ transition: 'opacity 260ms ease-out' }}
+                    >
+                      {/* 顶部一行：标题 + 时间 */}
+                      <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                        {[photo.title, shootDate].map((text, idx) => (
                           <span
-                            className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 text-white border border-white/45 text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
+                            key={`top-${idx}`}
+                            className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
                             style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
                           >
-                            {categoryLabel}
+                            {text}
                           </span>
-                          <span
-                            className="px-4.5 md:px-5 py-1.5 md:py-2 rounded-full bg-black/82 text-white text-xs md:text-sm font-semibold tracking-wide inline-flex items-center gap-2 border border-white/45 shadow-[0_8px_20px_rgba(0,0,0,0.32)]"
-                            style={{ boxShadow: '0 10px 20px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
-                          >
-                            前往 →
-                          </span>
-                        </div>
+                        ))}
+                        <span
+                          className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)] flex items-center gap-1"
+                          style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          {photo.view_count || 0}
+                        </span>
+                        <span
+                          className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)] flex items-center gap-1"
+                          style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
+                          {photo.like_count || 0}
+                        </span>
+                        <span
+                          className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 border border-white/45 text-white text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)] flex items-center gap-1"
+                          style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" /></svg>
+                          {photo.dislike_count || 0}
+                        </span>
+                      </div>
+
+                      {/* 底部一行：标签 + CTA */}
+                      <div className="flex items-center gap-2.5 md:gap-3 flex-wrap">
+                        <span
+                          className="px-3 md:px-3.5 py-1.5 rounded-full bg-black/72 text-white border border-white/45 text-xs md:text-sm font-semibold shadow-[0_0_12px_rgba(0,0,0,0.3)]"
+                          style={{ boxShadow: '0 0 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                        >
+                          {categoryLabel}
+                        </span>
+                        <span
+                          className="px-4.5 md:px-5 py-1.5 md:py-2 rounded-full bg-black/82 text-white text-xs md:text-sm font-semibold tracking-wide inline-flex items-center gap-2 border border-white/45 shadow-[0_8px_20px_rgba(0,0,0,0.32)]"
+                          style={{ boxShadow: '0 10px 20px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(255,255,255,0.22)' }}
+                        >
+                          前往 →
+                        </span>
                       </div>
                     </div>
+                  </div>
                 </article>
               );
             })}

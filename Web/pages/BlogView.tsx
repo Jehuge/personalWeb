@@ -10,6 +10,7 @@ import { LazyImage } from '../components/image/LazyImage';
 import Loader from '../components/ui/Loader';
 import { MermaidDiagram } from '../components/content/MermaidDiagram';
 import CategoryButton from '../components/ui/CategoryButton';
+import { VoteButtons } from '../components/ui/VoteButtons';
 
 interface Heading {
   id: string;
@@ -64,14 +65,14 @@ const getPlaceholderStyle = (categoryName?: string | null) => {
 const extractHeadingsFromDOM = (): Heading[] => {
   const headings: Heading[] = [];
   const headingElements = document.querySelectorAll('.markdown-content h1[id], .markdown-content h2[id], .markdown-content h3[id], .markdown-content h4[id], .markdown-content h5[id], .markdown-content h6[id]');
-  
+
   headingElements.forEach((element) => {
     const level = parseInt(element.tagName.charAt(1));
     const id = element.id;
     const text = element.textContent || '';
     headings.push({ id, text, level });
   });
-  
+
   return headings;
 };
 
@@ -98,11 +99,11 @@ const throttle = <T extends (...args: any[]) => any>(
 ): ((...args: Parameters<T>) => void) => {
   let lastCall = 0;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  
+
   return (...args: Parameters<T>) => {
     const now = Date.now();
     const timeSinceLastCall = now - lastCall;
-    
+
     if (timeSinceLastCall >= delay) {
       lastCall = now;
       func(...args);
@@ -121,7 +122,7 @@ const rafThrottle = <T extends (...args: any[]) => any>(
   func: T
 ): ((...args: Parameters<T>) => void) => {
   let rafId: number | null = null;
-  
+
   return (...args: Parameters<T>) => {
     if (rafId !== null) {
       cancelAnimationFrame(rafId);
@@ -148,7 +149,7 @@ const simpleHash = (str: string): string => {
 const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () => void }>(({ content, onRenderComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasNotifiedRef = useRef(false);
-  
+
   // 渲染完成后通知父组件（只通知一次）
   useEffect(() => {
     if (!hasNotifiedRef.current && onRenderComplete) {
@@ -157,27 +158,27 @@ const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () =
       const timer = setTimeout(() => {
         if (!hasNotifiedRef.current) {
           hasNotifiedRef.current = true;
-            onRenderComplete();
+          onRenderComplete();
         }
       }, hasMermaid ? 800 : 200);
       return () => clearTimeout(timer);
-      }
+    }
   }, [content, onRenderComplete]);
-  
+
   // 重置通知状态当内容改变时
   useEffect(() => {
     hasNotifiedRef.current = false;
   }, [content]);
-  
+
   // 使用内容哈希作为整体 key，确保内容变化时正确重新渲染
   const contentKey = useMemo(() => simpleHash(content), [content]);
-  
+
   return (
     <div ref={containerRef} className="markdown-content max-w-none leading-relaxed text-gray-700 dark:text-gray-200">
-        <ReactMarkdown
+      <ReactMarkdown
         key={contentKey}
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw, rehypeSlug]}
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw, rehypeSlug]}
         components={{
           code(props: any) {
             const { className, children } = props;
@@ -190,8 +191,8 @@ const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () =
               // 使用内容哈希作为 key，确保唯一性和稳定性
               const chartKey = simpleHash(codeString);
               return (
-                <MermaidDiagram 
-                  key={`mermaid-${chartKey}`} 
+                <MermaidDiagram
+                  key={`mermaid-${chartKey}`}
                   id={chartKey}
                   chart={codeString}
                 />
@@ -208,7 +209,7 @@ const OptimizedMarkdownContent = memo<{ content: string; onRenderComplete?: () =
         }}
       >
         {content}
-        </ReactMarkdown>
+      </ReactMarkdown>
     </div>
   );
 });
@@ -231,7 +232,7 @@ export const BlogView: React.FC = () => {
   const hasScrolledToTopRef = useRef(false);
   const hasLoadedCategoriesRef = useRef(false);
   const hasLoadedPostsRef = useRef<string | false>(false);
-  
+
   // 目录相关的 hooks
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeHeading, setActiveHeading] = useState<string>('');
@@ -240,10 +241,10 @@ export const BlogView: React.FC = () => {
   const tocNavRef = useRef<HTMLElement>(null);
   const tocContainerRef = useRef<HTMLElement>(null);
   const [tocTop, setTocTop] = useState(100);
-  
+
   // 缓存 DOM 查询结果
   const headingElementsCacheRef = useRef<Map<string, HTMLElement>>(new Map());
-  
+
   const PAGE_SIZE = 12;
 
   // 组件挂载时滚动到顶部（只执行一次，且只在列表页时）
@@ -353,8 +354,8 @@ export const BlogView: React.FC = () => {
         }
       }
 
-      const response = await fetchPosts({ 
-        skip: page * PAGE_SIZE, 
+      const response = await fetchPosts({
+        skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         category_id: categoryId
       });
@@ -392,7 +393,7 @@ export const BlogView: React.FC = () => {
       hasLoadedPostsRef.current = false;
       return;
     }
-    
+
     // 如果筛选需要分类但分类还没加载，等待分类加载完成
     if (selectedCategory !== '全部' && categories.length === 0) return;
 
@@ -403,11 +404,11 @@ export const BlogView: React.FC = () => {
     // 使用 category-page 组合作为 key，只有在真正变化时才重新加载
     const loadKey = `${selectedCategory}-${nextPage}`;
     const lastLoadKey = hasLoadedPostsRef.current;
-    
+
     if (lastLoadKey === loadKey) {
       return;
     }
-    
+
     hasLoadedPostsRef.current = loadKey;
     loadPosts(nextPage - 1, selectedCategory);
   }, [searchParams, id, selectedCategory, categories]);
@@ -462,7 +463,7 @@ export const BlogView: React.FC = () => {
     const extractHeadings = () => {
       const extractedHeadings = extractHeadingsFromDOM();
       setHeadings(extractedHeadings);
-      
+
       // 缓存标题元素
       headingElementsCacheRef.current.clear();
       extractedHeadings.forEach(heading => {
@@ -471,7 +472,7 @@ export const BlogView: React.FC = () => {
           headingElementsCacheRef.current.set(heading.id, element);
         }
       });
-      
+
       // 重置标志
       setShouldExtractHeadings(false);
     };
@@ -484,7 +485,7 @@ export const BlogView: React.FC = () => {
       // 先延迟一点，确保所有块都已渲染
       timeoutId = setTimeout(() => {
         extractHeadings();
-        
+
         // 如果还没提取到，使用 MutationObserver 继续监听
         if (contentRef.current) {
           observer = new MutationObserver(() => {
@@ -539,14 +540,14 @@ export const BlogView: React.FC = () => {
       for (let i = headings.length - 1; i >= 0; i--) {
         const heading = headings[i];
         let element = headingElementsCacheRef.current.get(heading.id);
-        
+
         if (!element) {
           element = document.getElementById(heading.id);
           if (element) {
             headingElementsCacheRef.current.set(heading.id, element);
           }
         }
-        
+
         if (element) {
           const offsetTop = element.offsetTop;
           if (scrollPosition >= offsetTop) {
@@ -555,7 +556,7 @@ export const BlogView: React.FC = () => {
           }
         }
       }
-      
+
       // 如果没有找到，设置为第一个标题
       if (headings.length > 0) {
         setActiveHeading(headings[0].id);
@@ -581,7 +582,7 @@ export const BlogView: React.FC = () => {
 
     const nav = tocNavRef.current;
     const activeButton = nav.querySelector(`[data-heading-id="${activeHeading}"]`) as HTMLElement;
-    
+
     if (!activeButton) return;
 
     const navRect = nav.getBoundingClientRect();
@@ -615,10 +616,10 @@ export const BlogView: React.FC = () => {
       const viewportHeight = window.innerHeight;
       const footer = document.querySelector('footer');
       const footerRect = footer?.getBoundingClientRect();
-      
+
       // 目录高度
       const estimatedTocHeight = 480;
-      
+
       // 如果 footer 进入视口，调整目录位置避免重叠
       if (footerRect && footerRect.top < viewportHeight) {
         // 确保目录完全在footer上方，留出20px间距
@@ -627,7 +628,7 @@ export const BlogView: React.FC = () => {
           newTop = Math.max(100, maxTop);
         }
       }
-      
+
       // 确保目录不会超出视口，同时考虑footer高度
       const footerHeight = footerRect ? footerRect.height : 0;
       const availableHeight = viewportHeight - newTop - footerHeight - 20;
@@ -705,10 +706,14 @@ export const BlogView: React.FC = () => {
               </div>
 
               <div ref={contentRef}>
-                <OptimizedMarkdownContent 
-                  content={selectedPost.content} 
+                <OptimizedMarkdownContent
+                  content={selectedPost.content}
                   onRenderComplete={handleMarkdownRenderComplete}
                 />
+              </div>
+
+              <div className="pt-8 border-t border-gray-200 dark:border-gray-800">
+                <VoteButtons contentType="blog" contentId={selectedPost.id} />
               </div>
             </div>
           </article>
@@ -770,12 +775,11 @@ export const BlogView: React.FC = () => {
                             scrollToHeading(heading.id);
                             setTocExpanded(false);
                           }}
-                          className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
-                            activeHeading === heading.id
-                              ? 'bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold'
-                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
-                          }`}
-                          style={{ 
+                          className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${activeHeading === heading.id
+                            ? 'bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                            }`}
+                          style={{
                             paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem`,
                             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                             willChange: 'background-color, transform'
@@ -804,10 +808,10 @@ export const BlogView: React.FC = () => {
             </div>
 
             {/* 桌面端固定目录 */}
-            <aside 
+            <aside
               ref={tocContainerRef}
-              className="hidden lg:block fixed z-40 w-64 toc-fixed animate-fade-in" 
-              style={{ 
+              className="hidden lg:block fixed z-40 w-64 toc-fixed animate-fade-in"
+              style={{
                 top: `${tocTop}px`,
                 transition: 'top 0.2s ease-out, opacity 0.3s ease-out',
                 opacity: headings.length > 0 ? 1 : 0.7,
@@ -820,9 +824,9 @@ export const BlogView: React.FC = () => {
                   </svg>
                   目录
                 </h2>
-                <nav 
+                <nav
                   ref={tocNavRef}
-                  className="space-y-1 overflow-y-auto flex-1 min-h-0 toc-scroll" 
+                  className="space-y-1 overflow-y-auto flex-1 min-h-0 toc-scroll"
                   style={{ maxHeight: '420px' }}
                 >
                   {headings.length > 0 ? (
@@ -831,12 +835,11 @@ export const BlogView: React.FC = () => {
                         key={heading.id}
                         data-heading-id={heading.id}
                         onClick={() => scrollToHeading(heading.id)}
-                        className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
-                          activeHeading === heading.id
-                            ? 'bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
-                        }`}
-                        style={{ 
+                        className={`block w-full text-left px-3 py-2 rounded-lg text-sm whitespace-nowrap ${activeHeading === heading.id
+                          ? 'bg-gray-200 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                          }`}
+                        style={{
                           paddingLeft: `${(heading.level - 1) * 0.75 + 0.75}rem`,
                           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                           willChange: 'background-color, transform'
@@ -973,6 +976,14 @@ export const BlogView: React.FC = () => {
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                       {post.view_count || 0} 次浏览
                     </span>
+                    <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
+                      {post.like_count || 0}
+                    </span>
+                    <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" /></svg>
+                      {post.dislike_count || 0}
+                    </span>
                   </div>
 
                   <h3
@@ -1034,11 +1045,10 @@ export const BlogView: React.FC = () => {
                 <button
                   key={pageNum}
                   onClick={() => handleGoPage(pageNum)}
-                  className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                  }`}
+                  className={`min-w-[36px] px-3 py-2 rounded-full text-sm font-medium transition-all ${isActive
+                    ? 'bg-gray-600 text-white shadow-md shadow-gray-500/30'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                    }`}
                   disabled={loading}
                 >
                   {pageNum}

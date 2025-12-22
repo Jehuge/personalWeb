@@ -29,6 +29,8 @@ export interface BlogPost {
   published_at?: string | null;
   category?: BlogCategory | null;
   tags: BlogTag[];
+  like_count?: number;
+  dislike_count?: number;
 }
 
 export interface PhotoCategory {
@@ -76,6 +78,8 @@ export interface PhotoWork {
   shutter_speed?: string | null;
   iso?: string | number | null;
   shoot_time?: string | null;
+  like_count?: number;
+  dislike_count?: number;
 }
 
 export interface AIProject {
@@ -131,7 +135,8 @@ export interface AIImage {
   is_featured: boolean;
   is_published: boolean;
   view_count: number;
-  like_count: number;
+  like_count?: number;
+  dislike_count?: number;
   created_at: string;
 }
 
@@ -179,4 +184,6 @@ export interface Video {
   created_at: string;
   updated_at?: string | null;
   category?: VideoCategory | null;
+  like_count?: number;
+  dislike_count?: number;
 }

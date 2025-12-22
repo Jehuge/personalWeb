@@ -49,6 +49,8 @@ class Blog(Base):
     cover_image = Column(String(500), nullable=True)  # 封面图片URL
     is_published = Column(Boolean, default=False)
     view_count = Column(Integer, default=0)
+    like_count = Column(Integer, default=0)
+    dislike_count = Column(Integer, default=0)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

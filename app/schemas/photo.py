@@ -69,6 +69,8 @@ class PhotoUpdate(BaseModel):
 class Photo(PhotoBase):
     id: int
     view_count: int
+    like_count: int = 0
+    dislike_count: int = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
     category: Optional[PhotoCategory] = None
