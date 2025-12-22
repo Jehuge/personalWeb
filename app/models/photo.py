@@ -41,6 +41,8 @@ class Photo(Base):
     category_id = Column(Integer, ForeignKey("photo_categories.id"), nullable=True)
     is_featured = Column(Boolean, default=False)  # 是否精选
     view_count = Column(Integer, default=0)
+    like_count = Column(Integer, default=0)
+    dislike_count = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

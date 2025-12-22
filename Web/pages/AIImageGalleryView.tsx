@@ -4,6 +4,7 @@ import { AIImage } from '../types';
 import { fetchAIImages, fetchAIImage } from '../services/dataService';
 import Loader from '../components/ui/Loader';
 import { ZoomableImage } from '../components/image/ZoomableImage';
+import VoteButtons from '../components/ui/VoteButtons';
 import PuzzleCaptcha from '../components/features/PuzzleCaptcha';
 import { showPuzzleCaptcha } from '../components/features/showPuzzleCaptcha';
 import { LazyImage } from '../components/image/LazyImage';
@@ -351,6 +352,12 @@ export const AIImageGalleryView: React.FC = () => {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">浏览次数</label>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{selectedImage.view_count || 0} 次</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">评价</label>
+                  <div className="mt-2">
+                    <VoteButtons contentType="ai_image" contentId={selectedImage.id} />
+                  </div>
                 </div>
                 {selectedImage.prompt && (
                   <div>
