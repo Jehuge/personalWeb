@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import ThemeSwitch from '../ui/ThemeSwitch';
 import CubeLogo from '../ui/CubeLogo';
 import GitHubButton from '../ui/GitHubButton';
+import PersonalSiteButton from '../ui/PersonalSiteButton';
 
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -55,8 +56,8 @@ export const Navbar: React.FC = () => {
         {/* 顶部栏：浅色模式降低透明度，深色保持纯色 */}
         <div
           className={`site-navbar rounded-b-2xl px-4 sm:px-6 md:px-8 transition-colors duration-300 backdrop-blur-2xl ${theme === 'dark'
-              ? 'bg-slate-900/40 shadow-lg shadow-black/10'
-              : 'bg-white/40 shadow-[0_8px_20px_rgba(0,0,0,0.04)]'
+            ? 'bg-slate-900/40 shadow-lg shadow-black/10'
+            : 'bg-white/40 shadow-[0_8px_20px_rgba(0,0,0,0.04)]'
             }`}
         >
           <div className="flex items-center h-12">
@@ -123,14 +124,7 @@ export const Navbar: React.FC = () => {
             {/* Right side actions */}
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-3">
-                <a
-                  href="https://www.jackjiapic.xyz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  JackJiaPic
-                </a>
+                <PersonalSiteButton />
                 <GitHubButton />
                 <ThemeSwitch
                   checked={theme === 'dark'}

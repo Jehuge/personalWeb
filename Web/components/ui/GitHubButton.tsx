@@ -34,7 +34,7 @@ const GitHubButton: React.FC = () => {
       href='https://github.com/Jehuge'
       target='_blank'
       rel='noopener noreferrer'
-      className='relative inline-block w-8 h-8 group dark:bg-black bg-white dark:border-white border-black border-2 rounded-lg'
+      className='relative inline-block w-24 h-8 group dark:bg-black bg-white dark:border-white border-black border-2 rounded-lg'
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -52,15 +52,15 @@ const GitHubButton: React.FC = () => {
         {[1, 2, 3, 4, 5].map((i) => (
           <span
             key={i}
-            className={`absolute inset-0 rounded-lg border-solid border-[3px] border-gradient-to-b from-transparent to-white mix-blend-overlay filter ${
-              i <= 2 ? 'blur-[3px]' : i === 3 ? 'blur-[5px]' : 'blur-xs'
-            }`}
+            className={`absolute inset-0 rounded-lg border-solid border-[3px] border-gradient-to-b from-transparent to-white mix-blend-overlay filter ${i <= 2 ? 'blur-[3px]' : i === 3 ? 'blur-[5px]' : 'blur-xs'
+              }`}
           ></span>
         ))}
         <span className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[70.8%] h-[42.85%] rounded-lg filter blur-[15px] bg-[#006]'></span>
       </div>
-      <span className='absolute inset-0 flex items-center justify-center rounded-lg group-hover:text-yellow-400 text-white pointer-events-none'>
+      <span className='absolute inset-0 flex items-center justify-center gap-2 rounded-lg group-hover:text-yellow-400 text-white pointer-events-none text-xs font-bold tracking-wide'>
         <Github className='inline-block group-hover:fill-yellow-400 fill-white w-4 h-4 shrink-0' />
+        <span>Github</span>
       </span>
     </a>
   );
