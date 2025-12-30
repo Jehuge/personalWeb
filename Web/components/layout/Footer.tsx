@@ -23,19 +23,7 @@ export const Footer: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 text-center md:text-right items-center md:items-end">
-          <div className="flex items-center justify-center md:justify-end flex-wrap gap-2">
-            <span className="uppercase tracking-wide text-xs font-semibold text-gray-500 dark:text-gray-400">个人其他网站：</span>
-            <a
-              href="https://www.jackjiapic.xyz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
-            >
-              JackJiaPic
-            </a>
-          </div>
-        </div>
+
       </div>
     </footer>
   );
