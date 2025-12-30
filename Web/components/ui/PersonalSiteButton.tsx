@@ -32,7 +32,7 @@ const PersonalSiteButton: React.FC = () => {
             href='https://www.jackjiapic.xyz'
             target='_blank'
             rel='noopener noreferrer'
-            className='relative inline-block w-32 h-8 group dark:bg-black bg-white dark:border-white border-black border-2 rounded-lg'
+            className='relative inline-block w-24 h-8 group dark:bg-black bg-white dark:border-white border-black border-2 rounded-lg'
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             title="Personal Website"
