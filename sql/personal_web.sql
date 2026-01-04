@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2025-12-12 14:05:06
+-- 生成日期： 2026-01-04 09:26:50
 -- 服务器版本： 5.7.43-log
 -- PHP 版本： 7.4.33
 
@@ -20,8 +20,6 @@ SET time_zone = "+00:00";
 --
 -- 数据库： `personal_web`
 --
-CREATE DATABASE IF NOT EXISTS `personal_web` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `personal_web`;
 
 -- --------------------------------------------------------
 
@@ -45,14 +43,12 @@ CREATE TABLE `ai_demos` (
   `is_published` tinyint(1) DEFAULT '0' COMMENT '是否已发布',
   `sort_order` int(11) DEFAULT '0' COMMENT '排序',
   `view_count` int(11) DEFAULT '0' COMMENT '浏览次数',
+  `like_count` int(11) DEFAULT '0',
+  `dislike_count` int(11) DEFAULT '0',
   `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` datetime(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   `published_at` datetime(6) DEFAULT NULL COMMENT '发布时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI Demo 表';
-
---
--- 转存表中的数据 `ai_demos`
---
 
 -- --------------------------------------------------------
 
@@ -74,15 +70,13 @@ CREATE TABLE `ai_images` (
   `is_published` tinyint(1) DEFAULT NULL,
   `view_count` int(11) DEFAULT NULL,
   `like_count` int(11) DEFAULT NULL,
+  `dislike_count` int(11) DEFAULT '0',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL,
   `thumbnail_url` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- 转存表中的数据 `ai_images`
---
-
+-- --------------------------------------------------------
 
 --
 -- 表的结构 `ai_projects`
@@ -106,11 +100,7 @@ CREATE TABLE `ai_projects` (
   `published_at` datetime(6) DEFAULT NULL COMMENT '发布时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI项目表';
 
---
--- 转存表中的数据 `ai_projects`
---
-
----------------------------------------------------
+-- --------------------------------------------------------
 
 --
 -- 表的结构 `blogs`
@@ -125,16 +115,14 @@ CREATE TABLE `blogs` (
   `cover_image` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '封面图片URL',
   `is_published` tinyint(1) DEFAULT '0' COMMENT '是否已发布',
   `view_count` int(11) DEFAULT '0' COMMENT '浏览次数',
+  `like_count` int(11) DEFAULT '0',
+  `dislike_count` int(11) DEFAULT '0',
   `category_id` int(11) DEFAULT NULL COMMENT '分类ID',
   `author_id` int(11) DEFAULT NULL COMMENT '作者ID',
   `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` datetime(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   `published_at` datetime(6) DEFAULT NULL COMMENT '发布时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='博客表';
-
---
--- 转存表中的数据 `blogs`
---
 
 -- --------------------------------------------------------
 
@@ -160,16 +148,6 @@ CREATE TABLE `categories` (
   `description` text COLLATE utf8mb4_unicode_ci COMMENT '分类描述',
   `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='博客分类表';
-
---
--- 转存表中的数据 `categories`
---
-
-INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `created_at`) VALUES
-(1, '技术分享', 'tech-share', NULL, '2025-11-30 17:44:20.388032'),
-(2, 'AI+工作流', 'ai-liu', NULL, '2025-11-30 19:09:15.317672'),
-(3, 'n8n 工作流', 'n8n1', NULL, '2025-12-01 12:30:53.096897'),
-(4, '环境搭建', ' huanjing', NULL, '2025-12-02 12:45:28.939025');
 
 -- --------------------------------------------------------
 
@@ -197,13 +175,11 @@ CREATE TABLE `photos` (
   `category_id` int(11) DEFAULT NULL COMMENT '分类ID',
   `is_featured` tinyint(1) DEFAULT '0' COMMENT '是否精选',
   `view_count` int(11) DEFAULT '0' COMMENT '浏览次数',
+  `like_count` int(11) DEFAULT '0',
+  `dislike_count` int(11) DEFAULT '0',
   `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` datetime(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='摄影作品表';
-
---
--- 转存表中的数据 `photos`
---
 
 -- --------------------------------------------------------
 
@@ -220,9 +196,6 @@ CREATE TABLE `photo_categories` (
   `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='摄影作品分类表';
 
---
--- 转存表中的数据 `photo_categories`
---
 -- --------------------------------------------------------
 
 --
@@ -235,10 +208,6 @@ CREATE TABLE `tags` (
   `slug` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标签URL标识',
   `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='标签表';
-
---
--- 转存表中的数据 `tags`
---
 
 -- --------------------------------------------------------
 
@@ -257,9 +226,74 @@ CREATE TABLE `users` (
   `updated_at` datetime(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
+-- --------------------------------------------------------
+
 --
--- 转存表中的数据 `users`
+-- 表的结构 `videos`
 --
+
+CREATE TABLE `videos` (
+  `id` int(11) NOT NULL COMMENT '视频ID',
+  `title` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '视频标题',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '视频描述',
+  `video_url` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '原视频URL（OSS）',
+  `thumbnail_video_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '缩略视频URL（OSS）',
+  `video_url_480p` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '标清视频URL（480p）',
+  `video_url_720p` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '高清视频URL（720p）',
+  `video_url_480p_size` bigint(20) DEFAULT NULL COMMENT '标清视频文件大小（字节）',
+  `video_url_720p_size` bigint(20) DEFAULT NULL COMMENT '高清视频文件大小（字节）',
+  `cover_image` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '视频封面图片URL',
+  `duration` int(11) DEFAULT NULL COMMENT '视频时长（秒）',
+  `width` int(11) DEFAULT NULL COMMENT '视频宽度（像素）',
+  `height` int(11) DEFAULT NULL COMMENT '视频高度（像素）',
+  `file_size` bigint(20) DEFAULT NULL COMMENT '原视频文件大小（字节）',
+  `thumbnail_file_size` bigint(20) DEFAULT NULL COMMENT '缩略视频文件大小（字节）',
+  `format` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '视频格式（如mp4, mov等）',
+  `codec` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '视频编码（如h264, hevc等）',
+  `fps` decimal(10,2) DEFAULT NULL COMMENT '帧率',
+  `bitrate` int(11) DEFAULT NULL COMMENT '比特率（bps）',
+  `category_id` int(11) DEFAULT NULL COMMENT '分类ID',
+  `is_featured` tinyint(1) DEFAULT '0' COMMENT '是否精选',
+  `is_published` tinyint(1) DEFAULT '0' COMMENT '是否已发布',
+  `view_count` int(11) DEFAULT '0' COMMENT '浏览次数',
+  `like_count` int(11) DEFAULT '0',
+  `dislike_count` int(11) DEFAULT '0',
+  `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` datetime(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  `published_at` datetime(6) DEFAULT NULL COMMENT '发布时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='视频表';
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `video_categories`
+--
+
+CREATE TABLE `video_categories` (
+  `id` int(11) NOT NULL COMMENT '分类ID',
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
+  `slug` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类URL标识',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '分类描述',
+  `cover_image` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '分类封面图片URL',
+  `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='视频分类表';
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `votes`
+--
+
+CREATE TABLE `votes` (
+  `id` int(11) NOT NULL,
+  `content_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content_id` int(11) NOT NULL,
+  `action` int(1) NOT NULL,
+  `visitor_id` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` text COLLATE utf8mb4_unicode_ci,
+  `ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- 转储表的索引
@@ -362,6 +396,34 @@ ALTER TABLE `users`
   ADD KEY `idx_email` (`email`);
 
 --
+-- 表的索引 `videos`
+--
+ALTER TABLE `videos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_title` (`title`),
+  ADD KEY `idx_category_id` (`category_id`),
+  ADD KEY `idx_is_featured` (`is_featured`),
+  ADD KEY `idx_is_published` (`is_published`);
+
+--
+-- 表的索引 `video_categories`
+--
+ALTER TABLE `video_categories`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`),
+  ADD UNIQUE KEY `slug` (`slug`),
+  ADD KEY `idx_name` (`name`),
+  ADD KEY `idx_slug` (`slug`);
+
+--
+-- 表的索引 `votes`
+--
+ALTER TABLE `votes`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_content` (`content_type`,`content_id`),
+  ADD KEY `idx_visitor` (`visitor_id`);
+
+--
 -- 在导出的表使用AUTO_INCREMENT
 --
 
@@ -369,55 +431,73 @@ ALTER TABLE `users`
 -- 使用表AUTO_INCREMENT `ai_demos`
 --
 ALTER TABLE `ai_demos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Demo ID', AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Demo ID';
 
 --
 -- 使用表AUTO_INCREMENT `ai_images`
 --
 ALTER TABLE `ai_images`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `ai_projects`
 --
 ALTER TABLE `ai_projects`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '项目ID', AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '项目ID';
 
 --
 -- 使用表AUTO_INCREMENT `blogs`
 --
 ALTER TABLE `blogs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '博客ID', AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '博客ID';
 
 --
 -- 使用表AUTO_INCREMENT `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '分类ID', AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '分类ID';
 
 --
 -- 使用表AUTO_INCREMENT `photos`
 --
 ALTER TABLE `photos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '照片ID', AUTO_INCREMENT=52;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '照片ID';
 
 --
 -- 使用表AUTO_INCREMENT `photo_categories`
 --
 ALTER TABLE `photo_categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '分类ID', AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '分类ID';
 
 --
 -- 使用表AUTO_INCREMENT `tags`
 --
 ALTER TABLE `tags`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '标签ID', AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '标签ID';
 
 --
 -- 使用表AUTO_INCREMENT `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '用户ID', AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '用户ID';
+
+--
+-- 使用表AUTO_INCREMENT `videos`
+--
+ALTER TABLE `videos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '视频ID';
+
+--
+-- 使用表AUTO_INCREMENT `video_categories`
+--
+ALTER TABLE `video_categories`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '分类ID';
+
+--
+-- 使用表AUTO_INCREMENT `votes`
+--
+ALTER TABLE `votes`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 限制导出的表
@@ -442,103 +522,6 @@ ALTER TABLE `blog_tag`
 --
 ALTER TABLE `photos`
   ADD CONSTRAINT `photos_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `photo_categories` (`id`) ON DELETE SET NULL;
-
--- --------------------------------------------------------
-
---
--- 表的结构 `videos`
---
-
-CREATE TABLE `videos` (
-  `id` int(11) NOT NULL COMMENT '视频ID',
-  `title` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '视频标题',
-  `description` text COLLATE utf8mb4_unicode_ci COMMENT '视频描述',
-  `video_url` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '原视频URL（OSS）',
-  `thumbnail_video_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '缩略视频URL（OSS）',
-  `duration` int(11) DEFAULT NULL COMMENT '视频时长（秒）',
-  `width` int(11) DEFAULT NULL COMMENT '视频宽度（像素）',
-  `height` int(11) DEFAULT NULL COMMENT '视频高度（像素）',
-  `file_size` bigint(20) DEFAULT NULL COMMENT '原视频文件大小（字节）',
-  `thumbnail_file_size` bigint(20) DEFAULT NULL COMMENT '缩略视频文件大小（字节）',
-  `format` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '视频格式（如mp4, mov等）',
-  `codec` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '视频编码（如h264, hevc等）',
-  `fps` decimal(10,2) DEFAULT NULL COMMENT '帧率',
-  `bitrate` int(11) DEFAULT NULL COMMENT '比特率（bps）',
-  `category_id` int(11) DEFAULT NULL COMMENT '分类ID',
-  `is_featured` tinyint(1) DEFAULT '0' COMMENT '是否精选',
-  `is_published` tinyint(1) DEFAULT '0' COMMENT '是否已发布',
-  `view_count` int(11) DEFAULT '0' COMMENT '浏览次数',
-  `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
-  `updated_at` datetime(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  `published_at` datetime(6) DEFAULT NULL COMMENT '发布时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='视频表';
-
---
--- 转存表中的数据 `videos`
---
-
--- --------------------------------------------------------
-
---
--- 表的结构 `video_categories`
---
-
-CREATE TABLE `video_categories` (
-  `id` int(11) NOT NULL COMMENT '分类ID',
-  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
-  `slug` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类URL标识',
-  `description` text COLLATE utf8mb4_unicode_ci COMMENT '分类描述',
-  `cover_image` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '分类封面图片URL',
-  `created_at` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='视频分类表';
-
---
--- 转存表中的数据 `video_categories`
---
-
---
--- 转储表的索引
---
-
---
--- 表的索引 `videos`
---
-ALTER TABLE `videos`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_title` (`title`),
-  ADD KEY `idx_category_id` (`category_id`),
-  ADD KEY `idx_is_featured` (`is_featured`),
-  ADD KEY `idx_is_published` (`is_published`);
-
---
--- 表的索引 `video_categories`
---
-ALTER TABLE `video_categories`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `name` (`name`),
-  ADD UNIQUE KEY `slug` (`slug`),
-  ADD KEY `idx_name` (`name`),
-  ADD KEY `idx_slug` (`slug`);
-
---
--- 在导出的表使用AUTO_INCREMENT
---
-
---
--- 使用表AUTO_INCREMENT `videos`
---
-ALTER TABLE `videos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '视频ID', AUTO_INCREMENT=1;
-
---
--- 使用表AUTO_INCREMENT `video_categories`
---
-ALTER TABLE `video_categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '分类ID', AUTO_INCREMENT=1;
-
---
--- 限制导出的表
---
 
 --
 -- 限制表 `videos`
