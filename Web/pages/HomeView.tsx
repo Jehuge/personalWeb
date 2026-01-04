@@ -336,46 +336,61 @@ export const HomeView: React.FC = () => {
     const loadData = async () => {
       const MIN_LOADING_MS = 900;
       const start = performance.now();
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY = 1000;
 
-      try {
-        const data = await fetchHomeOverview();
-        const allBlogs: BlogPost[] = data.blogs || [];
-        const allPhotos: PhotoWork[] = data.photos || [];
-        const allAiImages: AIImage[] = data.ai_images || [];
-        const allAiDemos: AIDemo[] = data.ai_demos || [];
-        const allAiProjects: AIProject[] = data.ai_projects || [];
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-        setBlogs(allBlogs);
-        setPhotos(allPhotos);
-        setAiImages(allAiImages);
-        setAiDemos(allAiDemos);
-        setAiProjects(allAiProjects);
+      let retryCount = 0;
+      let success = false;
 
-        // 随机挑选首页展示内容：每个板块显示2-3个
-        setFeaturedBlogs(pickRandomItems(allBlogs, 2));
-        setFeaturedPhotos(pickRandomItems(allPhotos, 10));
-        setFeaturedAiImages(pickRandomItems(allAiImages, 10));
-        setFeaturedAiDemos(pickRandomItems(allAiDemos, 2));
-        setFeaturedAiProjects(pickRandomItems(allAiProjects, 2));
-        setStats(data.stats || {
-          blog_count: 0,
-          photo_count: 0,
-          ai_image_count: 0,
-          ai_demo_count: 0,
-          ai_project_count: 0
-        });
-      } catch (err) {
-        console.error('Failed to load homepage data', err);
-        // 请求失败时重置标志，允许重试
-        hasLoadedRef.current = false;
-      } finally {
-        const elapsed = performance.now() - start;
-        const remaining = MIN_LOADING_MS - elapsed;
-        if (remaining > 0) {
-          setTimeout(() => setLoading(false), remaining);
-        } else {
-          setLoading(false);
+      while (retryCount <= MAX_RETRIES && !success) {
+        try {
+          const data = await fetchHomeOverview();
+          const allBlogs: BlogPost[] = data.blogs || [];
+          const allPhotos: PhotoWork[] = data.photos || [];
+          const allAiImages: AIImage[] = data.ai_images || [];
+          const allAiDemos: AIDemo[] = data.ai_demos || [];
+          const allAiProjects: AIProject[] = data.ai_projects || [];
+
+          setBlogs(allBlogs);
+          setPhotos(allPhotos);
+          setAiImages(allAiImages);
+          setAiDemos(allAiDemos);
+          setAiProjects(allAiProjects);
+
+          // 随机挑选首页展示内容：每个板块显示2-3个
+          setFeaturedBlogs(pickRandomItems(allBlogs, 2));
+          setFeaturedPhotos(pickRandomItems(allPhotos, 10));
+          setFeaturedAiImages(pickRandomItems(allAiImages, 10));
+          setFeaturedAiDemos(pickRandomItems(allAiDemos, 2));
+          setFeaturedAiProjects(pickRandomItems(allAiProjects, 2));
+          setStats(data.stats || {
+            blog_count: 0,
+            photo_count: 0,
+            ai_image_count: 0,
+            ai_demo_count: 0,
+            ai_project_count: 0
+          });
+          success = true;
+        } catch (err) {
+          console.error(`Failed to load homepage data (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`, err);
+          retryCount++;
+          if (retryCount <= MAX_RETRIES) {
+            await sleep(RETRY_DELAY);
+          } else {
+            // 所有重试都失败
+            hasLoadedRef.current = false; // 允许下次依然尝试
+          }
         }
+      }
+
+      const elapsed = performance.now() - start;
+      const remaining = MIN_LOADING_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => setLoading(false), remaining);
+      } else {
+        setLoading(false);
       }
     };
     loadData();
