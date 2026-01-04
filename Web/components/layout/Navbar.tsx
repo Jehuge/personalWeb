@@ -182,6 +182,12 @@ export const Navbar: React.FC = () => {
                   </Link>
                 );
               })}
+
+              {/* External Links Section */}
+              <div className="flex items-center justify-center gap-4 px-3 py-4 border-t border-gray-100/50 dark:border-gray-700/50 mt-2">
+                <PersonalSiteButton />
+                <GitHubButton />
+              </div>
               <div className="flex items-center justify-between px-3 py-3">
                 <span className="text-base font-medium text-gray-700 dark:text-gray-300">
                   主题
