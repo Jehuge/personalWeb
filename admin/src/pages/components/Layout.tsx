@@ -2,15 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Layout as AntLayout, Menu, Avatar, Typography, Button, Tabs } from 'antd'
 import {
-  CloudOutlined,
   DashboardOutlined,
   ExperimentOutlined,
   FileTextOutlined,
-  FolderOutlined,
   LogoutOutlined,
   PictureOutlined,
-  RobotOutlined,
-  TagsOutlined,
   TeamOutlined,
   UserOutlined,
   PlayCircleOutlined,
@@ -27,64 +23,87 @@ const menuItems = [
     label: '仪表盘',
   },
   {
-    key: '/blogs',
+    key: 'blog-management',
     icon: <FileTextOutlined />,
     label: '博客管理',
+    children: [
+      {
+        key: '/blogs',
+        label: '博客列表',
+      },
+      {
+        key: '/blog-categories',
+        label: '博客分类',
+      },
+      {
+        key: '/tags',
+        label: '标签管理',
+      },
+    ],
   },
   {
-    key: '/blog-categories',
-    icon: <FolderOutlined />,
-    label: '博客分类',
-  },
-  {
-    key: '/tags',
-    icon: <TagsOutlined />,
-    label: '标签管理',
-  },
-  {
-    key: '/photos',
+    key: 'photo-management',
     icon: <PictureOutlined />,
-    label: '摄影作品',
+    label: '摄影管理',
+    children: [
+      {
+        key: '/photos',
+        label: '摄影作品',
+      },
+      {
+        key: '/photo-categories',
+        label: '摄影分类',
+      },
+    ],
   },
   {
-    key: '/photo-categories',
-    icon: <FolderOutlined />,
-    label: '摄影分类',
-  },
-  {
-    key: '/videos',
+    key: 'video-management',
     icon: <PlayCircleOutlined />,
     label: '视频管理',
+    children: [
+      {
+        key: '/videos',
+        label: '视频管理',
+      },
+      {
+        key: '/video-categories',
+        label: '视频分类',
+      },
+    ],
   },
   {
-    key: '/video-categories',
-    icon: <FolderOutlined />,
-    label: '视频分类',
-  },
-  {
-    key: '/ai-projects',
-    icon: <RobotOutlined />,
-    label: 'AI项目',
-  },
-  {
-    key: '/ai-demos',
+    key: 'projects-lab',
     icon: <ExperimentOutlined />,
-    label: 'AI Lab Demo',
+    label: '项目与实验',
+    children: [
+      {
+        key: '/ai-projects',
+        label: '个人项目',
+      },
+      {
+        key: '/ai-demos',
+        label: 'AI Lab Demo',
+      },
+      {
+        key: '/ai-images',
+        label: 'AI 图片',
+      },
+    ],
   },
   {
-    key: '/ai-images',
-    icon: <PictureOutlined />,
-    label: 'AI 图片',
-  },
-  {
-    key: '/users',
+    key: 'system-management',
     icon: <TeamOutlined />,
-    label: '用户管理',
-  },
-  {
-    key: '/media',
-    icon: <CloudOutlined />,
-    label: '媒体资源',
+    label: '系统管理',
+    children: [
+      {
+        key: '/users',
+        label: '用户管理',
+      },
+      {
+        key: '/media',
+        label: '媒体资源',
+      },
+    ],
   },
 ]
 
