@@ -457,18 +457,19 @@
   }
 
   .markdown-content pre {
-    background-color: #111827;
-    color: #e5e7eb;
+    background-color: #f3f4f6;
+    color: #1f2937;
     overflow-x: auto;
     padding: 1.25rem;
     border-radius: 0.75rem;
     margin: 1.5em 0;
-    border: 1px solid #374151;
+    border: 1px solid #e5e7eb;
   }
 
   .dark .markdown-content pre {
-    background-color: rgba(10, 10, 10, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #111827;
+    color: #e5e7eb;
+    border-color: #374151;
   }
 
   .markdown-content pre code {
@@ -477,6 +478,7 @@
     padding: 0;
     color: inherit;
     font-size: 0.9em;
+    font-weight: 500;
   }
 
   .markdown-content a {

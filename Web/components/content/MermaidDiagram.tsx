@@ -17,7 +17,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, id }) => 
     // Initialize mermaid configuration
     mermaid.initialize({
       startOnLoad: false,
-      theme: theme === 'dark' ? 'dark' : 'default',
+      theme: theme === 'dark' ? 'dark' : 'neutral',
       securityLevel: 'loose',
       fontFamily: 'Inter, sans-serif',
       fontSize: 14,
