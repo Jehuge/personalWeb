@@ -229,7 +229,7 @@ export const BlogView: React.FC = () => {
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const hasScrolledToTopRef = useRef(false);
+
   const hasLoadedCategoriesRef = useRef(false);
   const hasLoadedPostsRef = useRef<string | false>(false);
 
@@ -247,12 +247,9 @@ export const BlogView: React.FC = () => {
 
   const PAGE_SIZE = 12;
 
-  // 组件挂载时滚动到顶部（只执行一次，且只在列表页时）
+  // 切换页面时（如从列表进入详情，或者详情返回列表）滚动到顶部
   useEffect(() => {
-    if (!id && !hasScrolledToTopRef.current) {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      hasScrolledToTopRef.current = true;
-    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [id]);
 
   // 加载分类列表

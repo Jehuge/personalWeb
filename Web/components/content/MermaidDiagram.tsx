@@ -54,7 +54,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, id }) => 
         if (errorElement) {
           errorElement.remove();
         }
-        setError('Diagram rendering failed');
+        setError(err instanceof Error ? err.message : 'Diagram rendering failed');
       }
     };
 
