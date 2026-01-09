@@ -11,7 +11,6 @@ blog_tag = Table(
     Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True),
 )
 
-
 class Category(Base):
     """博客分类模型"""
     __tablename__ = "categories"
